@@ -1,0 +1,11 @@
+# Portable CPU inference; separate from the existing satellite API dependencies.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.8.0+cpu
+torchvision==0.23.0+cpu
+sen2sr==0.8.5
+timm==1.0.30
+rasterio==1.5.2
+pillow==12.3.0
+safetensors==0.8.0
+einops==0.8.2
+matplotlib==3.11.2

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "rustgis": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\ndai0\\AppData\\Local\\Programs\\RustGIS\\rustgis-cli.exe",
+        "mcp",
+        "--yes"
+      ],
+      "enabled": true
+    },
+    "rustgis-app": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\ndai0\\AppData\\Local\\Programs\\RustGIS\\rustgis-cli.exe",
+        "mcp",
+        "--attach",
+        "--yes"
+      ],
+      "enabled": false
+    },
+    "mobile-mcp": {
+      "type": "local",
+      "command": [
+        "node",
+        "e:\\New folder\\SmartFarm\\reference\\testing-repos\\mobile-mcp\\lib\\index.js"
+      ],
+      "environment": {
+        "ANDROID_HOME": "C:\\Users\\ndai0\\AppData\\Local\\Android\\Sdk",
+        "MOBILEMCP_LEGACY_ROBOT": "1"
+      },
+      "enabled": true
+    }
+  }
+}

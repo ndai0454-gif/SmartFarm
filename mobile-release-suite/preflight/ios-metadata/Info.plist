@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDisplayName</key>
+    <string>SmartFarm Aurora</string>
+    <key>CFBundleIdentifier</key>
+    <string>vn.smartfarm.aurora</string>
+    <key>CFBundleShortVersionString</key>
+    <string>4.20.0</string>
+    <key>CFBundleVersion</key>
+    <string>7274</string>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
+    <!-- Apple Guideline 5.1.1(ii): Purpose Strings bắt buộc có ví dụ cụ thể -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>SmartFarm Aurora sử dụng vị trí GPS của bạn để khoanh vùng ranh giới vườn sầu riêng, định vị gốc cây ngoài thực địa và quy đổi tọa độ Sổ đỏ VN-2000.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>SmartFarm Aurora cần quyền máy ảnh để chụp ảnh triệu chứng lá vàng/xì mủ lưu vào nhật ký bệnh cây và quét mã QR truy xuất nguồn gốc tại gốc cây.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>SmartFarm Aurora cần quyền truy cập thư viện ảnh để đính kèm ảnh chụp thực tế của vườn và ảnh bay Drone vào hồ sơ từng cây.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>SmartFarm Aurora cần quyền lưu bản đồ chỉ số vệ tinh NDVI, mã QR cây trồng và ảnh chụp màn hình báo cáo mùa vụ vào thư viện ảnh của bạn.</string>
+</dict>
+</plist>

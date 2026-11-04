@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Nền xanh rừng Aurora đồng nhất cho Adaptive Icon (hệ điều hành tự bo góc thành 1 ô vuông bo tròn duy nhất) -->
+    <path
+        android:fillColor="#0F3B29"
+        android:pathData="M0,0h108v108h-108z" />
+</vector>

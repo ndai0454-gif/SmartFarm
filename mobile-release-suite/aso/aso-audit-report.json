@@ -1,0 +1,237 @@
+{
+  "generatedAt": "2026-11-01T15:51:38.819Z",
+  "metadataValidation": {
+    "iosTitle": {
+      "value": "SmartFarm: Vệ Tinh & VN-2000",
+      "length": 28,
+      "max": 30,
+      "optimal": true
+    },
+    "iosSubtitle": {
+      "value": "Bản đồ Vườn GEE, Sầu Riêng, 3D",
+      "length": 30,
+      "max": 30,
+      "optimal": true
+    },
+    "iosKeywordsField": {
+      "value": "ndvi,vn2000,sổ đỏ,sầu riêng,drone,dji,vệ tinh,gee,đo đất,quy hoạch,rtk,gis,nông nghiệp,thời tiết",
+      "length": 96,
+      "max": 100,
+      "keywordCount": 14,
+      "hasDuplicates": false,
+      "hasSpacesAfterComma": false,
+      "optimal": true
+    },
+    "googlePlayTitle": {
+      "value": "SmartFarm Aurora: Vệ Tinh GEE",
+      "length": 29,
+      "max": 30,
+      "optimal": true
+    },
+    "googlePlayShortDesc": {
+      "value": "Giám sát vườn sầu riêng bằng vệ tinh NDVI, quy đổi Sổ đỏ VN-2000 & địa hình 3D.",
+      "length": 79,
+      "max": 80,
+      "optimal": true
+    },
+    "fullDescription": {
+      "length": 1733,
+      "max": 4000,
+      "optimal": true
+    }
+  },
+  "keywordDensity": {
+    "totalWords": 385,
+    "hits": [
+      {
+        "keyword": "vệ tinh",
+        "occurrences": 4,
+        "densityPct": 2.08,
+        "inIosTitleOrSubtitle": true,
+        "inIosKeywordField": true
+      },
+      {
+        "keyword": "ndvi",
+        "occurrences": 1,
+        "densityPct": 0.26,
+        "inIosTitleOrSubtitle": false,
+        "inIosKeywordField": true
+      },
+      {
+        "keyword": "vn-2000",
+        "occurrences": 4,
+        "densityPct": 1.04,
+        "inIosTitleOrSubtitle": false,
+        "inIosKeywordField": true
+      },
+      {
+        "keyword": "sổ đỏ",
+        "occurrences": 2,
+        "densityPct": 1.04,
+        "inIosTitleOrSubtitle": false,
+        "inIosKeywordField": true
+      },
+      {
+        "keyword": "sầu riêng",
+        "occurrences": 2,
+        "densityPct": 1.04,
+        "inIosTitleOrSubtitle": true,
+        "inIosKeywordField": true
+      },
+      {
+        "keyword": "gee",
+        "occurrences": 3,
+        "densityPct": 0.78,
+        "inIosTitleOrSubtitle": true,
+        "inIosKeywordField": true
+      },
+      {
+        "keyword": "địa hình 3d",
+        "occurrences": 3,
+        "densityPct": 2.34,
+        "inIosTitleOrSubtitle": false,
+        "inIosKeywordField": false
+      },
+      {
+        "keyword": "gnss rtk",
+        "occurrences": 2,
+        "densityPct": 1.04,
+        "inIosTitleOrSubtitle": false,
+        "inIosKeywordField": false
+      },
+      {
+        "keyword": "quy hoạch",
+        "occurrences": 1,
+        "densityPct": 0.52,
+        "inIosTitleOrSubtitle": false,
+        "inIosKeywordField": true
+      },
+      {
+        "keyword": "drone",
+        "occurrences": 0,
+        "densityPct": 0,
+        "inIosTitleOrSubtitle": false,
+        "inIosKeywordField": true
+      },
+      {
+        "keyword": "kml",
+        "occurrences": 1,
+        "densityPct": 0.26,
+        "inIosTitleOrSubtitle": false,
+        "inIosKeywordField": false
+      },
+      {
+        "keyword": "dxf",
+        "occurrences": 1,
+        "densityPct": 0.26,
+        "inIosTitleOrSubtitle": false,
+        "inIosKeywordField": false
+      },
+      {
+        "keyword": "truy xuất nguồn gốc",
+        "occurrences": 2,
+        "densityPct": 2.08,
+        "inIosTitleOrSubtitle": false,
+        "inIosKeywordField": false
+      }
+    ]
+  },
+  "competitorComparison": [
+    {
+      "name": "DJI SmartFarm",
+      "bundleId": "com.utc.ag",
+      "category": "Drone & Nông nghiệp",
+      "rating": 4.2,
+      "strengths": [
+        "Điều khiển máy bay phun thuốc DJI Agras",
+        "Quản lý chuyến bay"
+      ],
+      "gapsVsSmartFarm": [
+        "Không có quy đổi Sổ đỏ VN-2000",
+        "Không có 7 chỉ số GEE miễn phí & thủy văn 3D"
+      ],
+      "targetKeywords": [
+        "drone nông nghiệp",
+        "dji smartfarm",
+        "máy bay phun thuốc"
+      ]
+    },
+    {
+      "name": "OneSoil Scouting",
+      "bundleId": "io.onesoil.scouting",
+      "category": "Viễn thám NDVI",
+      "rating": 4.5,
+      "strengths": [
+        "Xem chỉ số NDVI Sentinel-2 nhanh",
+        "Ghi chú đồng ruộng"
+      ],
+      "gapsVsSmartFarm": [
+        "Không hỗ trợ đếm cây ăn trái lâu năm (Sầu riêng)",
+        "Không có hệ tọa độ VN-2000 Việt Nam"
+      ],
+      "targetKeywords": [
+        "ndvi",
+        "vệ tinh nông nghiệp",
+        "bản đồ đồng ruộng"
+      ]
+    },
+    {
+      "name": "MobileLand / Thông Tin.Land",
+      "bundleId": "vn.mobileland.app",
+      "category": "Địa chính & Quy hoạch VN-2000",
+      "rating": 4.4,
+      "strengths": [
+        "Quy đổi tọa độ VN-2000",
+        "Tra cứu 34 tỉnh sau sáp nhập & KML"
+      ],
+      "gapsVsSmartFarm": [
+        "Không có phân tích sức khỏe cây trồng NDVI/EVI",
+        "Không có nhật ký nông trại & dự báo sâu bệnh"
+      ],
+      "targetKeywords": [
+        "quy hoạch",
+        "vn2000",
+        "đo đất",
+        "sổ đỏ"
+      ]
+    },
+    {
+      "name": "Climate FieldView",
+      "bundleId": "com.climate.fieldview",
+      "category": "Quản lý trang trại",
+      "rating": 4.3,
+      "strengths": [
+        "Bản đồ năng suất cây hàng năm",
+        "Tích hợp máy móc lớn"
+      ],
+      "gapsVsSmartFarm": [
+        "Chưa tối ưu cho vườn cây ăn trái Tây Nguyên & ĐBSCL",
+        "Không có xuất bản vẽ CAD DXF & RTK NMEA"
+      ],
+      "targetKeywords": [
+        "quản lý trang trại",
+        "năng suất mùa vụ",
+        "bản đồ nông nghiệp"
+      ]
+    },
+    {
+      "name": "DatumApp 3D GIS",
+      "bundleId": "net.datumapp.gis",
+      "category": "Địa hình 3D, Thủy văn & GNSS RTK",
+      "rating": 4.6,
+      "strengths": [
+        "Mô phỏng ngập lụt 3D",
+        "Mặt cắt địa hình & giải mã NMEA RTK"
+      ],
+      "gapsVsSmartFarm": [
+        "Không có quản lý hồ sơ cây trồng, QR truy xuất nguồn gốc & thời tiết phun thuốc"
+      ],
+      "targetKeywords": [
+        "gnss rtk",
+        "đường đồng mức",
+        "mặt cắt địa hình",
+        "dxf cad"
+      ]
+    }
+  ]
+}

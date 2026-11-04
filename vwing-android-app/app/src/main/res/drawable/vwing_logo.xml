@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="44dp"
+    android:height="44dp"
+    android:viewportWidth="44"
+    android:viewportHeight="44">
+    <!-- Logo VWing: 1 ô vuông bo tròn góc duy nhất + hình chiếc lá ở trung tâm -->
+    <path
+        android:fillColor="#0F3B29"
+        android:strokeColor="#A8DF65"
+        android:strokeWidth="1.8"
+        android:pathData="M12,1H32A11,11 0 0 1 43,12V32A11,11 0 0 1 32,43H12A11,11 0 0 1 1,32V12A11,11 0 0 1 12,1Z" />
+    <path
+        android:pathData="M31.5,12.5C31.5,12.5 30.8,23.2 23.4,27.9C18.0,31.3 12.6,30.6 12.6,30.6C12.6,30.6 11.9,24.5 16.0,19.8C20.7,14.5 31.5,12.5 31.5,12.5Z"
+        android:strokeColor="#A8DF65"
+        android:strokeWidth="2.4"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M11.5,32.5L24.2,19.8"
+        android:strokeColor="#A8DF65"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round" />
+</vector>

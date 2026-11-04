@@ -1,0 +1,41 @@
+# Local & secret configuration
+/local.properties
+**/local.properties
+**/keystore.properties
+**/secrets.properties
+/.satellite-token
+/.vwing-admin-token
+.env
+.env.*
+!.env.example
+
+# Build & Gradle caches
+/.gradle/
+**/.gradle/
+**/build/
+**/.kotlin/
+**/.idea/
+*.iml
+*.jks
+*.keystore
+*.hprof
+*.log
+/logs/
+
+# Python & Node environments / heavy model checkpoints
+**/.venv/
+**/venv/
+**/__pycache__/
+**/.pytest_cache/
+**/node_modules/
+/vwing-satellite-backend/artifacts/
+/vwing-satellite-backend/cache/
+/vwing-sync-server/data/
+
+# Large binary packages & reference reverse-engineering dumps
+*.apk
+*.xapk
+*.aab
+/reference/
+/app/src/main/*.apk/
+/app/src/main/java/

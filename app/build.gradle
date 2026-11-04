@@ -1,0 +1,57 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace "com.utc.ag"
+    compileSdkVersion 36
+
+    defaultConfig {
+        applicationId 'com.utc.ag'
+        minSdkVersion 24
+        //noinspection ExpiringTargetSdkVersion,ExpiredTargetSdkVersion
+        targetSdkVersion 34
+        versionCode 7274
+        versionName "4.20.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        debug {
+            manifestPlaceholders = [ALLOW_CLEARTEXT: 'true']
+        }
+        release {
+            manifestPlaceholders = [ALLOW_CLEARTEXT: 'false']
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildFeatures {
+        buildConfig = false
+    }
+    lint {
+        abortOnError false
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'src/smartfarm/AndroidManifest.xml'
+            java.srcDirs = ['src/smartfarm/java']
+            res.srcDirs = ['src/smartfarm/res']
+            assets.srcDirs = ['../ui-prototype']
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.multidex:multidex:2.0.1'
+}

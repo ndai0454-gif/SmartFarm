@@ -1,0 +1,3301 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07141D">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="VWing">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="description" content="VWing — Bảng điều khiển nông nghiệp thông minh: Viễn thám GEE Sentinel-2, quy đổi tọa độ Sổ đỏ VN-2000, mô hình địa hình 3D 7 tầng & khí tượng Bảo Lộc.">
+  <meta property="og:title" content="VWing — Quản lý Vườn Vệ tinh GEE & Địa chính VN-2000">
+  <meta property="og:description" content="Thiết kế tối giản, dễ nhìn, thao tác 1 chạm cho nông dân và kỹ sư nông nghiệp.">
+  <meta property="og:type" content="website">
+  <title>VWing — Bảng Điều Khiển Vườn Mẫu Tây Nguyên (Bảo Lộc)</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' rx='38' fill='%2307141d'/%3E%3Ccircle cx='90' cy='90' r='62' fill='none' stroke='%234ADE80' stroke-width='8.5'/%3E%3Cpath d='M40 68 Q65 55 90 68 T140 68 M36 90 Q63 77 90 90 T144 90 M40 112 Q65 99 90 112 T140 112' fill='none' stroke='%2338EF7D' stroke-width='8.5' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <style>
+    /* ═══════════════════════════════════════════════════════════════════════
+       IBELICK/UI-SKILLS DESIGN SYSTEM:
+       - baseline-ui: High-contrast solid surfaces, tabular-nums, text-balance,
+         text-pretty, 100dvh, safe-area-inset, >=48px touch targets.
+       - fixing-motion-performance: No entry animation lag; <=150ms compositor
+         transitions (transform, opacity) only.
+       - fixing-accessibility: Visible Vietnamese labels on all nav items,
+         WCAG AAA contrast, clear focus rings.
+       ═══════════════════════════════════════════════════════════════════════ */
+    :root {
+      --bg-base: #07141d;
+      --bg-surface: rgba(12, 29, 41, 0.94);
+      --bg-elevated: #11293a;
+      --bg-interactive: #163347;
+      --border-subtle: rgba(255, 255, 255, 0.14);
+      --border-strong: rgba(255, 255, 255, 0.26);
+      --text-primary: #f8fafc;
+      --text-secondary: #cbd5e1;
+      --text-muted: #94a3b8;
+      --accent-green: #4ade80;
+      --accent-green-bg: rgba(74, 222, 128, 0.16);
+      --accent-green-border: rgba(74, 222, 128, 0.48);
+      --accent-amber: #fbbf24;
+      --accent-amber-bg: rgba(251, 191, 36, 0.16);
+      --accent-amber-border: rgba(251, 191, 36, 0.48);
+      --accent-red: #f87171;
+      --accent-red-bg: rgba(248, 113, 113, 0.18);
+      --accent-red-border: rgba(248, 113, 113, 0.52);
+      --accent-sky: #38bdf8;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --u: 1px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100dvh;
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
+    /* Typography rules from ibelick/ui-skills (baseline-ui) */
+    h1, h2, h3, .sf-drawer-title, .who, .rcity {
+      text-wrap: balance;
+    }
+
+    p, .blurb, .sf-tile-sub, .rcond {
+      text-wrap: pretty;
+    }
+
+    .tval, .tsub, .big-temp, .rtemp, .metric span, .sf-tile-val, .sf-table td, .kpi-val {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
+
+    button, a {
+      color: inherit;
+      text-decoration: none;
+      background: none;
+      border: 0;
+      font: inherit;
+      cursor: pointer;
+      touch-action: manipulation;
+      transition: transform 150ms var(--ease-out), opacity 150ms var(--ease-out), background-color 150ms ease, border-color 150ms ease;
+    }
+
+    button:active, a:active {
+      transform: scale(0.98);
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent-green);
+      outline-offset: 2px;
+    }
+
+    ::selection {
+      background: rgba(74, 222, 128, 0.28);
+      color: #ffffff;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       MAIN APPLICATION SHELL (.stage)
+       ═══════════════════════════════════════════════════════════════════════ */
+    .stage {
+      position: relative;
+      min-height: 100dvh;
+      background-color: var(--bg-base);
+      background-image:
+        linear-gradient(180deg, rgba(7, 20, 29, 0.84) 0%, rgba(7, 20, 29, 0.90) 55%, rgba(7, 20, 29, 0.96) 100%),
+        url("./assets/storm-background.jpg");
+      background-size: cover;
+      background-position: center top;
+      background-attachment: fixed;
+      display: grid;
+      grid-template-columns: 104px minmax(0, 1fr);
+      gap: 20px;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding:
+        calc(16px + env(safe-area-inset-top, 0px))
+        calc(20px + env(safe-area-inset-right, 0px))
+        calc(24px + env(safe-area-inset-bottom, 0px))
+        calc(20px + env(safe-area-inset-left, 0px));
+    }
+
+    @media (hover: none), (max-width: 1180px) {
+      .stage {
+        background-attachment: scroll;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       1) LABELED NAVIGATION BAR (.sidebar) — Dễ nhìn, có nhãn tiếng Việt rõ ràng
+       ═══════════════════════════════════════════════════════════════════════ */
+    .sidebar {
+      position: sticky;
+      top: 16px;
+      height: calc(100dvh - 32px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 22px;
+      z-index: 30;
+    }
+
+    .pip {
+      display: none;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: rgba(74, 222, 128, 0.12);
+      border: 1px solid var(--accent-green-border);
+      flex-shrink: 0;
+    }
+
+    .logo svg {
+      width: 30px;
+      height: 30px;
+      display: block;
+    }
+
+    .nav {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      width: 100%;
+    }
+
+    .nav a,
+    .logout {
+      min-height: 56px;
+      padding: 6px 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      border-radius: 14px;
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+      position: relative;
+      text-align: center;
+    }
+
+    .nav a:hover,
+    .logout:hover {
+      background: var(--bg-interactive);
+      color: var(--text-primary);
+    }
+
+    .nav a[aria-current="page"] {
+      background: var(--accent-green-bg);
+      border-color: var(--accent-green-border);
+      color: var(--accent-green);
+      font-weight: 600;
+    }
+
+    .nav svg,
+    .logout svg {
+      width: 22px;
+      height: 22px;
+      display: block;
+      flex-shrink: 0;
+    }
+
+    .nav-label {
+      font-size: 11.5px;
+      line-height: 1.15;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-badge {
+      position: absolute;
+      top: 4px;
+      right: 10px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 999px;
+      background: #ef4444;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       MAIN CONTENT WORKSPACE (.workspace)
+       ═══════════════════════════════════════════════════════════════════════ */
+    .workspace {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    /* 2) HEADER (.header) */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 16px 20px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+    }
+
+    .greet {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .hello {
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .conn-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      flex-shrink: 0;
+    }
+
+    .who {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .tools {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tool {
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-primary);
+      font-size: 13.5px;
+      font-weight: 600;
+      position: relative;
+    }
+
+    .tool:hover {
+      background: var(--bg-interactive);
+      border-color: var(--border-strong);
+    }
+
+    .tool svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+
+    /* 3) 4 THẺ CHỈ SỐ CỐT LÕI (KPI SUMMARY GRID — DỄ NHÌN TRONG 1 GIÂY) */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .kpi-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 6px;
+      text-align: left;
+      min-height: 112px;
+    }
+
+    .kpi-card:hover {
+      border-color: var(--border-strong);
+      background: var(--bg-elevated);
+    }
+
+    .kpi-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .kpi-val {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1.15;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+    }
+
+    .kpi-val.green { color: var(--accent-green); }
+    .kpi-val.amber { color: var(--accent-amber); }
+    .kpi-val.sky   { color: var(--accent-sky); }
+
+    .kpi-sub {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.35;
+    }
+
+    /* 4) MAIN TWO-COLUMN DASHBOARD GRID */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.35fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .left-col,
+    .right-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    /* HERO WEATHER & ACTION CARD (.hero) */
+    .hero {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 22px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .chip-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      padding: 4px 12px;
+      border-radius: 10px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .chip.mode-switch {
+      background: var(--accent-green-bg);
+      border-color: var(--accent-green-border);
+      color: var(--accent-green);
+    }
+
+    .hero-top-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .hero h1 {
+      font-size: 36px;
+      line-height: 1.15;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--text-primary);
+    }
+
+    .hero h1 .ln {
+      display: inline;
+    }
+
+    .hero h1 .ln::after {
+      content: " ";
+    }
+
+    /* Card A (.card.big) integrated cleanly next to Hero Title */
+    .card.big {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 14px 18px;
+      min-width: 240px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .place {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .place svg {
+      width: 16px;
+      height: 16px;
+      color: var(--accent-green);
+    }
+
+    .big-temp {
+      font-size: 44px;
+      line-height: 1;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: flex-start;
+    }
+
+    .big-temp i {
+      font-style: normal;
+      font-size: 20px;
+      font-weight: 600;
+      margin-left: 2px;
+      color: var(--text-secondary);
+    }
+
+    .metrics {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding-top: 8px;
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .metric {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .metric svg {
+      width: 15px;
+      height: 15px;
+      color: var(--accent-sky);
+    }
+
+    .blurb {
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--text-secondary);
+      background: rgba(251, 191, 36, 0.10);
+      border-left: 4px solid var(--accent-amber);
+      padding: 12px 14px;
+      border-radius: 8px;
+    }
+
+    /* 4 NÚT THAO TÁC NHANH 1 CHẠM (QUICK ACTION BAR) */
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .quick-btn {
+      min-height: 50px;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      text-align: left;
+    }
+
+    .quick-btn:hover {
+      background: var(--bg-interactive);
+      border-color: var(--accent-green-border);
+    }
+
+    .quick-btn.primary {
+      background: var(--accent-green-bg);
+      border-color: var(--accent-green-border);
+      color: var(--accent-green);
+    }
+
+    /* 5) 6-DAY FORECAST STRIP (.forecast) */
+    .forecast {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 22px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .section-sub {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+
+    .temps {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .tcol {
+      min-height: 88px;
+      padding: 10px 6px;
+      border-radius: 14px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .tcol:hover {
+      background: var(--bg-interactive);
+    }
+
+    .tcol.on {
+      background: var(--accent-green-bg);
+      border-color: var(--accent-green);
+    }
+
+    .tval {
+      font-size: 20px;
+      line-height: 1;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .tcol.on .tval {
+      color: var(--accent-green);
+    }
+
+    .ticon {
+      width: 22px;
+      height: 22px;
+      color: var(--text-secondary);
+    }
+
+    .tsub {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .wave-wrap {
+      width: 100%;
+      height: 90px;
+      position: relative;
+    }
+
+    .wave-svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+
+    .wline {
+      fill: none;
+      stroke: url(#wg);
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .wline.l1 { stroke-width: 5; opacity: 0.18; }
+    .wline.l2 { stroke-width: 3.5; opacity: 0.32; }
+    .wline.l3 { stroke-width: 2.8; opacity: 1; }
+
+    .days {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 8px;
+      text-align: center;
+    }
+
+    .days span {
+      padding: 6px 4px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .days span.on {
+      color: var(--accent-green);
+      background: var(--accent-green-bg);
+    }
+
+    /* 6) RIGHT COLUMN: PRIORITY TREE CHECK CARDS (.rail) */
+    .rail {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 22px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .card.row {
+      min-height: 84px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .card.row:hover {
+      background: var(--bg-interactive);
+      border-color: var(--border-strong);
+    }
+
+    .rmeta {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .rcountry {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .rcity {
+      font-size: 16.5px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .rcond {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent-amber);
+    }
+
+    .rright {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .rtemp {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .rright svg {
+      width: 20px;
+      height: 20px;
+      color: var(--text-secondary);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       SMARTFARM DRAWER / MODAL WORKSPACE (.sf-drawer)
+       ═══════════════════════════════════════════════════════════════════════ */
+    .sf-drawer {
+      position: fixed;
+      top: 20px;
+      left: 136px;
+      right: 20px;
+      bottom: 20px;
+      z-index: 50;
+      background: #0a1924;
+      border: 1px solid var(--border-strong);
+      border-radius: 22px;
+      padding: 20px 24px;
+      display: none;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+    }
+
+    .sf-drawer.open {
+      display: flex;
+    }
+
+    .sf-drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      background: #0a1924;
+      z-index: 5;
+    }
+
+    .sf-drawer-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .sf-close-btn {
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 12px;
+      background: var(--accent-red-bg);
+      border: 1px solid var(--accent-red-border);
+      color: #fca5a5;
+      font-size: 14px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .sf-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+      gap: 12px;
+    }
+
+    .sf-tile {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .sf-tile-label {
+      font-size: 12px;
+      color: var(--text-secondary);
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .sf-tile-val {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+
+    .sf-tile-sub {
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .sf-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    .sf-table th,
+    .sf-table td {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .sf-table th {
+      color: var(--text-secondary);
+      font-weight: 600;
+      font-size: 12.5px;
+    }
+
+    .sf-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: var(--bg-interactive);
+    }
+
+    .sf-pill.alert { background: var(--accent-red-bg); border: 1px solid var(--accent-red-border); color: #fca5a5; }
+    .sf-pill.watch { background: var(--accent-amber-bg); border: 1px solid var(--accent-amber-border); color: #fde68a; }
+    .sf-pill.ok    { background: var(--accent-green-bg); border: 1px solid var(--accent-green-border); color: var(--accent-green); }
+
+    .sf-range-track {
+      position: relative;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.12);
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .sf-range-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: var(--accent-green);
+    }
+
+    .sf-action-btn {
+      min-height: 42px;
+      padding: 8px 16px;
+      border-radius: 12px;
+      background: var(--accent-green-bg);
+      border: 1px solid var(--accent-green-border);
+      color: var(--accent-green);
+      font-size: 13.5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .sf-action-btn:hover {
+      background: rgba(74, 222, 128, 0.26);
+    }
+
+    .sf-action-btn.secondary {
+      background: var(--bg-interactive);
+      border-color: var(--border-subtle);
+      color: var(--text-primary);
+    }
+
+    .sf-gis-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 8px 0 12px;
+    }
+
+    .sf-gis-tab {
+      min-height: 42px;
+      padding: 8px 14px;
+      border-radius: 12px;
+      background: var(--bg-interactive);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .sf-gis-tab.active {
+      background: var(--accent-green-bg);
+      border-color: var(--accent-green);
+      color: var(--accent-green);
+    }
+
+    .sf-input, .sf-select, .sf-textarea {
+      width: 100%;
+      min-height: 44px;
+      background: #07141d;
+      border: 1px solid var(--border-strong);
+      border-radius: 12px;
+      color: var(--text-primary);
+      padding: 10px 12px;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .sf-textarea {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      resize: vertical;
+      min-height: 96px;
+      line-height: 1.5;
+    }
+
+    .sf-input:focus, .sf-select:focus, .sf-textarea:focus {
+      border-color: var(--accent-green);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       RESPONSIVE UTILITY CLASSES CHO CÁC DRAWER ĐỘNG (GIS, 3D, NWS, SUPABASE)
+       ═══════════════════════════════════════════════════════════════════════ */
+    .sf-split-2 {
+      display: grid;
+      grid-template-columns: 1.15fr 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .sf-split-2.qr-layout {
+      grid-template-columns: 1.15fr 1.85fr;
+    }
+
+    .sf-split-2.nws-layout {
+      grid-template-columns: 1.45fr 1fr;
+      align-items: stretch;
+    }
+
+    .sf-split-2.gnss-select {
+      grid-template-columns: 2fr 1fr;
+      gap: 8px;
+    }
+
+    .sf-vn2000-form-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .sf-stat-grid-5 {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .sf-stat-grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .sf-stat-grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .sf-stat-grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .sf-stakeout-grid {
+      display: grid;
+      grid-template-columns: 150px minmax(0, 1fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .sf-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .sf-canvas-responsive {
+      width: 100%;
+      height: auto !important;
+      display: block;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       REDUCED MOTION (ibelick/ui-skills baseline-ui)
+       ═══════════════════════════════════════════════════════════════════════ */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       TIER 1: TABLET LANDSCAPE & COMPACT LAPTOP (≤ 1180px)
+       (iPad Pro 11", iPad Air Landscape, Android Tablet 10–11")
+       ═══════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 1180px) {
+      .stage {
+        grid-template-columns: 88px minmax(0, 1fr);
+        gap: 14px;
+        padding:
+          calc(12px + env(safe-area-inset-top, 0px))
+          calc(14px + env(safe-area-inset-right, 0px))
+          calc(20px + env(safe-area-inset-bottom, 0px))
+          calc(14px + env(safe-area-inset-left, 0px));
+      }
+
+      .kpi-val {
+        font-size: 22px;
+      }
+
+      .hero h1 {
+        font-size: 30px;
+      }
+
+      .card.big {
+        min-width: 210px;
+      }
+
+      .sf-drawer {
+        left: calc(114px + env(safe-area-inset-left, 0px));
+        right: calc(14px + env(safe-area-inset-right, 0px));
+        top: calc(12px + env(safe-area-inset-top, 0px));
+        bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+        padding: 18px;
+      }
+
+      .sf-stat-grid-5 {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       TIER 2: TABLET PORTRAIT & PHABLET / FOLDABLE (≤ 960px)
+       (iPad Mini, iPad Air/Pro Portrait, Galaxy Tab, iOS & Android Touch)
+       ═══════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 960px) {
+      /* Ngăn iOS Safari tự động phóng to (Auto-Zoom) khi chạm vào ô nhập liệu */
+      .sf-input,
+      .sf-select,
+      .sf-textarea,
+      input[type="text"],
+      input[type="number"],
+      input[type="password"],
+      select,
+      textarea {
+        font-size: 16px !important;
+      }
+
+      .stage {
+        grid-template-columns: 1fr;
+        padding:
+          calc(12px + env(safe-area-inset-top, 0px))
+          calc(14px + env(safe-area-inset-right, 0px))
+          calc(96px + env(safe-area-inset-bottom, 0px))
+          calc(14px + env(safe-area-inset-left, 0px));
+        gap: 14px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+
+      .kpi-card {
+        padding: 14px;
+        min-height: 98px;
+      }
+
+      .kpi-val {
+        font-size: 22px;
+      }
+
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: 28px;
+      }
+
+      .card.big {
+        width: 100%;
+      }
+
+      .quick-actions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      /* Thanh điều hướng nổi dưới đáy (iOS/Android Dock chuẩn Safe-Area) */
+      .sidebar {
+        position: fixed;
+        left: max(10px, env(safe-area-inset-left, 0px));
+        right: max(10px, env(safe-area-inset-right, 0px));
+        bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+        top: auto;
+        height: 68px;
+        max-width: 680px;
+        margin: 0 auto;
+        flex-direction: row;
+        padding: 6px 8px;
+        border-radius: 20px;
+        background: rgba(10, 25, 36, 0.96);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid var(--border-strong);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.65);
+        z-index: 60;
+      }
+
+      .logo,
+      .logout {
+        display: none;
+      }
+
+      .nav {
+        flex-direction: row;
+        justify-content: space-around;
+        gap: 4px;
+        width: 100%;
+      }
+
+      .nav a {
+        flex: 1;
+        min-height: 54px;
+        padding: 4px 2px;
+      }
+
+      .sf-drawer {
+        left: max(10px, env(safe-area-inset-left, 0px));
+        right: max(10px, env(safe-area-inset-right, 0px));
+        top: calc(10px + env(safe-area-inset-top, 0px));
+        bottom: calc(84px + env(safe-area-inset-bottom, 0px));
+        padding: 16px;
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+      }
+
+      .sf-split-2,
+      .sf-split-2.qr-layout,
+      .sf-split-2.nws-layout {
+        grid-template-columns: 1fr !important;
+      }
+
+      .sf-stat-grid-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+
+      .sf-vn2000-form-grid {
+        grid-template-columns: 1fr 1fr !important;
+      }
+
+      .sf-vn2000-form-grid > div:first-child {
+        grid-column: 1 / -1;
+      }
+
+      .sf-table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       TIER 3: ĐIỆN THOẠI DI ĐỘNG — iOS iPhone & Android Phone (≤ 640px)
+       ═══════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 640px) {
+      .stage {
+        padding:
+          calc(10px + env(safe-area-inset-top, 0px))
+          calc(10px + env(safe-area-inset-right, 0px))
+          calc(88px + env(safe-area-inset-bottom, 0px))
+          calc(10px + env(safe-area-inset-left, 0px));
+        gap: 12px;
+      }
+
+      .header {
+        padding: 12px 14px;
+        border-radius: 16px;
+        gap: 10px;
+      }
+
+      .hello {
+        font-size: 12.5px;
+      }
+
+      .who {
+        font-size: 17px;
+      }
+
+      /* Thanh công cụ Header cuộn ngang mượt bằng 1 ngón tay, không chiếm chiều dọc */
+      .tools {
+        width: 100%;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        gap: 6px;
+        padding-bottom: 2px;
+      }
+
+      .tools::-webkit-scrollbar {
+        display: none;
+      }
+
+      .tool {
+        flex-shrink: 0;
+        min-height: 40px;
+        padding: 0 12px;
+        font-size: 12.5px;
+        border-radius: 10px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .kpi-card {
+        padding: 12px;
+        min-height: 92px;
+        border-radius: 14px;
+      }
+
+      .kpi-label {
+        font-size: 11px;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+
+      .kpi-val {
+        font-size: 20px;
+      }
+
+      .kpi-sub {
+        font-size: 11.5px;
+      }
+
+      .hero {
+        padding: 14px;
+        border-radius: 18px;
+        gap: 12px;
+      }
+
+      .chip {
+        font-size: 12px;
+        padding: 4px 10px;
+        min-height: 34px;
+      }
+
+      .hero h1 {
+        font-size: 24px;
+      }
+
+      .card.big {
+        padding: 12px 14px;
+        border-radius: 14px;
+      }
+
+      .big-temp {
+        font-size: 36px;
+      }
+
+      .blurb {
+        font-size: 13.5px;
+        line-height: 1.5;
+        padding: 10px 12px;
+      }
+
+      .quick-actions {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .quick-btn {
+        min-height: 46px;
+        padding: 10px 12px;
+        font-size: 13.5px;
+        border-radius: 12px;
+      }
+
+      .forecast {
+        padding: 14px;
+        border-radius: 18px;
+        gap: 10px;
+      }
+
+      .temps {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 4px;
+      }
+
+      .tcol {
+        min-height: 68px;
+        padding: 6px 2px;
+        border-radius: 10px;
+        gap: 4px;
+      }
+
+      .tval {
+        font-size: 15px;
+      }
+
+      .ticon {
+        width: 18px;
+        height: 18px;
+      }
+
+      .tsub {
+        font-size: 9.5px;
+        white-space: nowrap;
+        letter-spacing: -0.02em;
+      }
+
+      .wave-wrap {
+        height: 70px;
+      }
+
+      .days {
+        gap: 4px;
+      }
+
+      .days span {
+        font-size: 10.5px;
+        padding: 4px 1px;
+        white-space: nowrap;
+        letter-spacing: -0.02em;
+      }
+
+      .rail {
+        padding: 14px;
+        border-radius: 18px;
+        gap: 10px;
+      }
+
+      .card.row {
+        padding: 12px;
+        min-height: 76px;
+        border-radius: 14px;
+      }
+
+      .rcity {
+        font-size: 15px;
+      }
+
+      .rtemp {
+        font-size: 18px;
+      }
+
+      .sidebar {
+        left: max(8px, env(safe-area-inset-left, 0px));
+        right: max(8px, env(safe-area-inset-right, 0px));
+        bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+        height: 64px;
+        padding: 4px 6px;
+        border-radius: 18px;
+      }
+
+      .nav a {
+        min-height: 50px;
+        border-radius: 12px;
+      }
+
+      .nav-label {
+        font-size: 10.5px;
+      }
+
+      .nav-badge {
+        top: 2px;
+        right: 6px;
+        min-width: 16px;
+        height: 16px;
+        font-size: 10px;
+      }
+
+      .sf-drawer {
+        left: max(6px, env(safe-area-inset-left, 0px));
+        right: max(6px, env(safe-area-inset-right, 0px));
+        top: calc(6px + env(safe-area-inset-top, 0px));
+        bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+        padding: 12px 14px;
+        border-radius: 18px;
+        gap: 12px;
+      }
+
+      .sf-drawer-head {
+        padding-bottom: 10px;
+      }
+
+      .sf-drawer-title {
+        font-size: 16px;
+        line-height: 1.25;
+      }
+
+      .sf-close-btn {
+        min-height: 38px;
+        padding: 0 12px;
+        font-size: 13px;
+        border-radius: 10px;
+      }
+
+      .sf-drawer .sf-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .sf-gis-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding-bottom: 4px;
+        gap: 6px;
+      }
+
+      .sf-gis-tabs::-webkit-scrollbar {
+        display: none;
+      }
+
+      .sf-gis-tab {
+        flex-shrink: 0;
+        white-space: nowrap;
+        min-height: 38px;
+        padding: 6px 12px;
+        font-size: 12.5px;
+      }
+
+      .sf-split-2.gnss-select,
+      .sf-vn2000-form-grid,
+      .sf-stat-grid-3,
+      .sf-stakeout-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      .sf-stakeout-grid > svg {
+        margin: 0 auto;
+      }
+
+      .sf-stat-grid-5 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+
+      .sf-table th,
+      .sf-table td {
+        padding: 9px 8px;
+        font-size: 12.5px;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       TIER 4: ĐIỆN THOẠI MÀN HÌNH NHỎ (iPhone SE / Mini / Fold Cover ≤ 374px)
+       ═══════════════════════════════════════════════════════════════════════ */
+    @media (max-width: 374px) {
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .sf-stat-grid-4,
+      .sf-stat-grid-5,
+      .sf-stat-grid-2 {
+        grid-template-columns: 1fr !important;
+      }
+
+      .nav-label {
+        font-size: 9.5px;
+      }
+
+      .tval {
+        font-size: 13.5px;
+      }
+
+      .tsub,
+      .days span {
+        font-size: 9px;
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       TIER 5: ĐIỆN THOẠI XOAY NGANG (LANDSCAPE MODE ≤ 520px HEIGHT)
+       Chuyển thanh điều hướng sang cạnh trái để tối ưu 100% chiều dọc màn hình
+       ═══════════════════════════════════════════════════════════════════════ */
+    @media (max-height: 520px) and (orientation: landscape) {
+      .stage {
+        grid-template-columns: 1fr;
+        padding:
+          calc(8px + env(safe-area-inset-top, 0px))
+          max(12px, env(safe-area-inset-right, 0px))
+          calc(14px + env(safe-area-inset-bottom, 0px))
+          calc(88px + env(safe-area-inset-left, 0px));
+      }
+
+      .sidebar {
+        position: fixed;
+        left: max(8px, env(safe-area-inset-left, 0px));
+        top: calc(8px + env(safe-area-inset-top, 0px));
+        bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+        right: auto;
+        width: 72px;
+        height: auto;
+        flex-direction: column;
+        padding: 6px 4px;
+        border-radius: 16px;
+      }
+
+      .nav {
+        flex-direction: column;
+        gap: 2px;
+        height: 100%;
+      }
+
+      .nav a {
+        min-height: 40px;
+        padding: 2px;
+      }
+
+      .nav svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      .nav-label {
+        font-size: 9.5px;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+
+      .sf-drawer {
+        left: calc(88px + env(safe-area-inset-left, 0px));
+        right: max(8px, env(safe-area-inset-right, 0px));
+        top: calc(8px + env(safe-area-inset-top, 0px));
+        bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+      }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════════════
+       TASTE-SKILL v2.1 (DATA-TERMINAL) & IMPECCABLE v4.8 CRAFT FLOOR OVERRIDES
+       - Tabular numerals (tabular-nums) on all metrics, prices, coordinates, tables
+       - Flat resting cards with crisp 1px borders (no shadow + border simultaneously)
+       - KPI strip divided by 1px hairlines (KPIs are type, not tiles)
+       - Sentence-case headers & right-aligned numeric table columns
+       ═══════════════════════════════════════════════════════════════════════ */
+    body,
+    .kpi-val,
+    .rtemp,
+    .tval,
+    .sf-stat-val,
+    .sf-table td,
+    .sf-table th,
+    code,
+    pre {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum" 1;
+    }
+
+    .kpi-grid {
+      display: grid;
+      gap: 0 !important;
+      background: rgba(11, 24, 34, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: none !important;
+    }
+
+    .kpi-card {
+      background: transparent !important;
+      border: none !important;
+      border-right: 1px solid rgba(148, 163, 184, 0.14) !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+      padding: 16px 18px !important;
+    }
+
+    .kpi-card:last-child {
+      border-right: none !important;
+    }
+
+    .kpi-top .kpi-icon {
+      display: none !important; /* Taste Skill §5: No icon in a coloured circle on a KPI */
+    }
+
+    .kpi-label,
+    .sf-section-title,
+    .sf-stat-lbl,
+    .sf-table th {
+      text-transform: none !important;
+      letter-spacing: 0 !important;
+    }
+
+    .card,
+    .forecast,
+    .rail,
+    .sf-card,
+    .sf-stat-box {
+      box-shadow: none !important;
+      border-radius: 12px;
+      border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .sf-table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    .sf-table tr {
+      background: transparent !important; /* No zebra striping */
+      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    }
+
+    .sf-table th {
+      font-size: 12px;
+      font-weight: 500;
+      color: #94a3b8;
+      padding: 10px 12px;
+    }
+
+    .sf-table td {
+      padding: 10px 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- INLINE SVG ICON SPRITE -->
+  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;width:0;height:0;overflow:hidden" aria-hidden="true">
+    <defs>
+      <symbol id="i-grid" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="2"/>
+        <rect x="14" y="3" width="7" height="7" rx="2"/>
+        <rect x="14" y="14" width="7" height="7" rx="2"/>
+        <rect x="3" y="14" width="7" height="7" rx="2"/>
+      </symbol>
+      <symbol id="i-chart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10"/>
+        <line x1="12" y1="20" x2="12" y2="4"/>
+        <line x1="6" y1="20" x2="6" y2="14"/>
+      </symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <path d="M12 3a14.5 14.5 0 0 1 0 18 14.5 14.5 0 0 1 0-18"/>
+      </symbol>
+      <symbol id="i-cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="4" width="18" height="17" rx="3"/>
+        <line x1="16" y1="2.5" x2="16" y2="6"/>
+        <line x1="8" y1="2.5" x2="8" y2="6"/>
+        <line x1="3" y1="9.5" x2="21" y2="9.5"/>
+      </symbol>
+      <symbol id="i-gear" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3.2"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.77 1.02 1.41 1.09H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </symbol>
+      <symbol id="i-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+        <polyline points="16 17 21 12 16 7"/>
+        <line x1="21" y1="12" x2="9" y2="12"/>
+      </symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="12" y1="5" x2="12" y2="19"/>
+        <line x1="5" y1="12" x2="19" y2="12"/>
+      </symbol>
+      <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/>
+        <line x1="20" y1="20" x2="16.2" y2="16.2"/>
+      </symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/>
+        <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+      </symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/>
+        <circle cx="12" cy="10" r="3"/>
+      </symbol>
+      <symbol id="i-wind" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9.59 4.59A2 2 0 1 1 11 8H2"/>
+        <path d="M12.59 19.41A2 2 0 1 0 14 16H2"/>
+        <path d="M17.73 7.73A2.5 2.5 0 1 1 19.5 12H2"/>
+      </symbol>
+      <symbol id="i-drop" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+      </symbol>
+      <symbol id="i-gust" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 8h13a3 3 0 1 0-3-3"/>
+        <path d="M3 12h16a3 3 0 1 1-3 3"/>
+        <path d="M3 16h9a2.5 2.5 0 1 1-2.5 2.5"/>
+      </symbol>
+      <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19H9a5 5 0 0 1-.4-9.98A6.5 6.5 0 0 1 21 11.5a4.5 4.5 0 0 1-3.5 7.5z"/>
+      </symbol>
+      <symbol id="i-cloud2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 16.5H7.5a4.5 4.5 0 0 1-.36-8.98A5.8 5.8 0 0 1 18.2 9.8a3.8 3.8 0 0 1-2.2 6.7z"/>
+        <line x1="8" y1="19.5" x2="7" y2="21.5"/>
+        <line x1="12" y1="19.5" x2="11" y2="21.5"/>
+        <line x1="16" y1="19.5" x2="15" y2="21.5"/>
+      </symbol>
+      <symbol id="i-hail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 16H7.5a4.5 4.5 0 0 1-.36-8.98A5.8 5.8 0 0 1 18.2 9.2 3.8 3.8 0 0 1 17 16z"/>
+        <polyline points="12.5 15.5 10.2 19 13 19 11.2 22"/>
+      </symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4.5"/>
+        <line x1="12" y1="2.5" x2="12" y2="5"/>
+        <line x1="12" y1="19" x2="12" y2="21.5"/>
+        <line x1="4.22" y1="4.22" x2="5.98" y2="5.98"/>
+        <line x1="18.02" y1="18.02" x2="19.78" y2="19.78"/>
+        <line x1="2.5" y1="12" x2="5" y2="12"/>
+        <line x1="19" y1="12" x2="21.5" y2="12"/>
+        <line x1="4.22" y1="19.78" x2="5.98" y2="18.02"/>
+        <line x1="18.02" y1="5.98" x2="19.78" y2="4.22"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <main class="stage">
+    <!-- 1) LABELED NAVIGATION BAR (.sidebar) — Có nhãn chữ tiếng Việt rõ ràng -->
+    <aside class="sidebar" aria-label="Điều hướng chính SmartFarm">
+      <span class="pip" id="navPip" aria-hidden="true"></span>
+
+      <a href="#dashboard" class="logo" onclick="openDrawer('dashboard', 0); return false;" aria-label="Trang chủ SmartFarm Aurora">
+        <svg viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="16" stroke="#4ADE80" stroke-width="2.2"/>
+          <path d="M8 14 Q14 11 20 14 T32 14 M7 20 Q13.5 17 20 20 T33 20 M8 26 Q14 23 20 26 T32 26" stroke="#38EF7D" stroke-width="2.2" stroke-linecap="round"/>
+        </svg>
+      </a>
+
+      <nav class="nav" aria-label="Các phân hệ quản lý vườn">
+        <a href="#dashboard" aria-label="Tổng quan vườn" aria-current="page" onclick="openDrawer('dashboard', 0); return false;">
+          <svg><use href="#i-grid"/></svg>
+          <span class="nav-label">Tổng quan</span>
+        </a>
+        <a href="#reports" aria-label="Viễn thám GEE và Cảm biến IoT" onclick="openDrawer('reports', 1); return false;">
+          <svg><use href="#i-chart"/></svg>
+          <span class="nav-label">Viễn thám</span>
+        </a>
+        <a href="#regions" aria-label="Bản đồ vườn và Sổ đỏ VN-2000" onclick="openDrawer('regions', 2); return false;">
+          <svg><use href="#i-globe"/></svg>
+          <span class="nav-label">Sổ đỏ GIS</span>
+        </a>
+        <a href="#calendar" aria-label="Danh sách 3 cây cần kiểm tra" onclick="openDrawer('calendar', 3); return false;">
+          <svg><use href="#i-cal"/></svg>
+          <span class="nav-label">Cây bệnh</span>
+          <span class="nav-badge" id="navAlertBadge">3</span>
+        </a>
+        <a href="#settings" aria-label="Trợ lý Kỹ sư AI và Cài đặt" onclick="openDrawer('settings', 4); return false;">
+          <svg><use href="#i-gear"/></svg>
+          <span class="nav-label">Trợ lý AI</span>
+        </a>
+      </nav>
+
+      <a href="#sync" class="logout" aria-label="Chuyển đổi dữ liệu Vườn Tây Nguyên và Mẫu Aurora" onclick="toggleDataPreset(); return false;">
+        <svg><use href="#i-out"/></svg>
+        <span class="nav-label">Đổi mẫu</span>
+      </a>
+    </aside>
+
+    <!-- MAIN CONTENT WORKSPACE -->
+    <div class="workspace">
+      <!-- 2) HEADER (.header) -->
+      <header class="header">
+        <div class="greet">
+          <span class="hello" id="hdrHello">
+            <span class="conn-dot" id="connDot" title="Trạng thái kết nối máy chủ GEE :8000"></span>
+            <span id="hdrHelloText">Xin chào · Vườn mẫu Tây Nguyên (1,8 ha · 34 cây)</span>
+          </span>
+          <strong class="who" id="hdrWho">Người làm vườn · Bảo Lộc, Lâm Đồng</strong>
+        </div>
+
+        <div class="tools">
+          <button class="tool" aria-label="Quy trình 6 bước từ Khoanh vùng đến AI" style="border-color:rgba(74,222,128,0.75);background:rgba(74,222,128,0.18);color:#4ade80;" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(1);}">
+            <svg><use href="#i-grid"/></svg>
+            <span>Quy trình 6 Bước</span>
+          </button>
+          <button class="tool" aria-label="Quét mã QR cây và tính doanh thu theo giá vùng" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(4);}">
+            <svg><use href="#i-search"/></svg>
+            <span>Quét QR &amp; Giá Nông Sản</span>
+          </button>
+          <button class="tool" aria-label="Phân tích 7 Tầng Mô hình 3D Độc lập" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(2);}">
+            <svg><use href="#i-chart"/></svg>
+            <span>7 Tầng 3D &amp; Đếm Cây</span>
+          </button>
+          <button class="tool" aria-label="Bản đồ Radar NWS FFC KFFC & Cảnh báo WWA" onclick="if(window.NwsFfcMap){NwsFfcMap.openNwsMapDrawer();}">
+            <svg><use href="#i-globe"/></svg>
+            <span>Radar NWS FFC</span>
+          </button>
+          <button class="tool" aria-label="Hỏi Trợ lý Kỹ sư AI" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(6);}">
+            <svg><use href="#i-gear"/></svg>
+            <span>Chatbot AI</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- THANH QUY TRÌNH CANH TÁC THÔNG MINH 6 BƯỚC KHÉP KÍN DÀNH CHO NÔNG DÂN -->
+      <section aria-label="Quy trình 6 bước từ khoanh vùng vườn đến hỏi Chatbot AI" style="background:linear-gradient(135deg,rgba(10,36,24,0.92),rgba(6,22,31,0.94));border:1.5px solid rgba(74,222,128,0.45);border-radius:18px;padding:12px 14px;box-shadow:0 12px 28px rgba(0,0,0,0.28);">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+          <div>
+            <span class="sf-pill ok" style="font-size:10.5px;">🚀 WORKFLOW KHÉP KÍN 6 BƯỚC CHO NÔNG DÂN</span>
+            <strong style="font-size:14px;color:#fff;margin-left:6px;">Khoanh Vùng Vườn → Phân Tích 3D 7 Tầng → Segmentation Đếm Cây &amp; Dán Nhãn QR → Ghi Chú, Chăm Sóc &amp; Giá API Theo Vùng → Lưu Vườn &amp; Hỏi Chatbot AI</strong>
+          </div>
+          <button class="sf-action-btn" style="background:rgba(74,222,128,0.28);border-color:#4ade80;color:#fff;" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(1);}">
+            ▶ Mở Bàn Điều Hành 6 Bước
+          </button>
+        </div>
+        <div class="sf-stat-grid-3" style="grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px;">
+          <button class="sf-action-btn secondary" style="justify-content:flex-start;text-align:left;padding:9px 11px;" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(1);}">
+            <span><strong>1. Khoanh vùng vườn</strong><br><small style="color:#94a3b8;">Vẽ đa giác &amp; chọn Sầu riêng / Cà phê</small></span>
+          </button>
+          <button class="sf-action-btn secondary" style="justify-content:flex-start;text-align:left;padding:9px 11px;" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(2);}">
+            <span><strong>2. Chỉ số &amp; 3D 7 Tầng</strong><br><small style="color:#94a3b8;">Phân tích 7 tầng đất - nước - tán</small></span>
+          </button>
+          <button class="sf-action-btn secondary" style="justify-content:flex-start;text-align:left;padding:9px 11px;" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(3);}">
+            <span><strong>3. Segmentation &amp; Đếm cây</strong><br><small style="color:#94a3b8;">Tách tán DeepLabV3+ &amp; dán nhãn QR</small></span>
+          </button>
+          <button class="sf-action-btn secondary" style="justify-content:flex-start;text-align:left;padding:9px 11px;" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(4);}">
+            <span><strong>4. Quét QR &amp; Doanh thu</strong><br><small style="color:#94a3b8;">Ghi chú, chăm sóc &amp; Giá API ngày/vùng</small></span>
+          </button>
+          <button class="sf-action-btn secondary" style="justify-content:flex-start;text-align:left;padding:9px 11px;" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(5);}">
+            <span><strong>5. Lưu Hồ sơ Vườn</strong><br><small style="color:#94a3b8;">Lưu đa giác, từng cây &amp; doanh thu</small></span>
+          </button>
+          <button class="sf-action-btn secondary" style="justify-content:flex-start;text-align:left;padding:9px 11px;" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(6);}">
+            <span><strong>6. Hỏi Chatbot Kỹ sư AI</strong><br><small style="color:#94a3b8;">Bón phân gì, xịt thuốc gì &amp; lưu lượng</small></span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 3) 4 THẺ CHỈ SỐ TỔNG QUAN (NHÌN NHANH TRONG 1 GIÂY) -->
+      <section class="kpi-grid" aria-label="Chỉ số cốt lõi của vườn">
+        <button class="kpi-card" onclick="openDrawer('reports', 1)" aria-label="Xem chi tiết chỉ số vệ tinh NDVI">
+          <div class="kpi-label">
+            <span>SỨC KHỎE TÁN LÁ (GEE)</span>
+            <span class="sf-pill ok">Tốt</span>
+          </div>
+          <div class="kpi-val green">NDVI 0,74</div>
+          <div class="kpi-sub">Độ phủ tán 76,2% · 31/34 cây ổn định</div>
+        </button>
+
+        <button class="kpi-card" onclick="openDrawer('reports', 1)" aria-label="Xem chi tiết cảm biến đất IoT">
+          <div class="kpi-label">
+            <span>ĐỘ ẨM &amp; ĐỘ PH ĐẤT</span>
+            <span class="sf-pill ok">Chuẩn Ri6</span>
+          </div>
+          <div class="kpi-val sky">64% · 6,2 pH</div>
+          <div class="kpi-sub">Tầng rễ 0–30cm đủ ẩm · EC 1,42 dS/m</div>
+        </button>
+
+        <button class="kpi-card" onclick="openDrawer('reports', 1)" aria-label="Xem dự báo sản lượng và doanh thu">
+          <div class="kpi-label">
+            <span>SẢN LƯỢNG DỰ KIẾN</span>
+            <span class="sf-pill ok">1.254 trái</span>
+          </div>
+          <div class="kpi-val">2,76 tấn</div>
+          <div class="kpi-sub">Doanh thu ~171,1 triệu ₫ (62.000 ₫/kg)</div>
+        </button>
+
+        <button class="kpi-card" onclick="openDrawer('calendar', 3)" aria-label="Mở danh sách 3 cây cần kiểm tra">
+          <div class="kpi-label">
+            <span>ƯU TIÊN KIỂM TRA</span>
+            <span class="sf-pill alert">Cần khám</span>
+          </div>
+          <div class="kpi-val amber">3 cây</div>
+          <div class="kpi-sub">Cây A-04 (Lá vàng), B-05, D-02</div>
+        </button>
+      </section>
+
+      <!-- 4) MAIN TWO-COLUMN GRID -->
+      <div class="main-grid">
+        <!-- CỘT TRÁI: THỜI TIẾT NÔNG HỌC, THAO TÁC 1 CHẠM & DỰ BÁO 6 NGÀY -->
+        <div class="left-col">
+          <section class="hero" aria-label="Khuyến cáo thời tiết và thao tác nhanh">
+            <div class="chip-row">
+              <div class="chip" id="heroChip">Dự báo thời tiết · Thứ Ba · Sầu riêng Bảo Lộc</div>
+              <button class="chip mode-switch" id="btnModeSwitch" onclick="toggleDataPreset()">
+                Vườn Tây Nguyên ⇄ Mẫu Aurora
+              </button>
+            </div>
+
+            <div class="hero-top-row">
+              <div>
+                <span class="sf-pill watch" style="margin-bottom:8px;">⚠️ KHUYẾN CÁO: TẠM HOÃN PHUN THUỐC HÔM NAY</span>
+                <h1>
+                  <span class="ln"><span id="heroLine1">Mưa rào</span></span>
+                  <span class="ln"><span id="heroLine2">&amp; Dông lớn</span></span>
+                </h1>
+              </div>
+
+              <!-- Card A (.card.big) -->
+              <article class="card big" onclick="openDrawer('reports', 1)" style="cursor:pointer;">
+                <div class="place">
+                  <span id="cardAPlace">Bảo Lộc, Lâm Đồng</span>
+                  <svg><use href="#i-pin"/></svg>
+                </div>
+                <div class="big-temp" id="cardATemp">
+                  21°<i>C</i>
+                </div>
+                <div class="metrics">
+                  <div class="metric">
+                    <svg><use href="#i-wind"/></svg>
+                    <span id="cardAMetric1">3.4 km/h</span>
+                  </div>
+                  <div class="metric">
+                    <svg><use href="#i-drop"/></svg>
+                    <span id="cardAMetric2">98% ẩm</span>
+                  </div>
+                  <div class="metric">
+                    <svg><use href="#i-gust"/></svg>
+                    <span id="cardAMetric3">NDVI 0.74</span>
+                  </div>
+                </div>
+              </article>
+            </div>
+
+            <p class="blurb" id="heroBlurb">
+              Cảnh báo mưa dông &amp; độ ẩm 98% tại Bảo Lộc, Lâm Đồng. Cao nhất 28,9°C · Thấp 19,1°C.<br>
+              Gió Đông 3,4 km/h · Khả năng mưa 98% · Độ phủ tán GEE 76,2% (NDVI 0,74 · 34 cây · 3 cây cần kiểm tra: A-04, B-05, D-02).
+            </p>
+
+            <!-- 4 NÚT THAO TÁC NHANH 1 CHẠM (DỄ BẤM, RÕ NGHĨA) -->
+            <div class="quick-actions">
+              <button class="quick-btn primary" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(1);}else{openDrawer('regions', 2);}">
+                <span>🚀 Bắt đầu Khoanh Vùng → 3D 7 Tầng → Đếm Cây &amp; QR</span>
+              </button>
+              <button class="quick-btn" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(4);}">
+                <span>📱 Quét QR Cây, Ghi chú &amp; Tính Doanh Thu Theo Giá Vùng</span>
+              </button>
+              <button class="quick-btn" id="btnDatumAppSuite" onclick="DatumAppSuite.openSuite('flood')">
+                <span>🌊 Mô phỏng Ngập lụt 3D, Mặt cắt &amp; RTK</span>
+              </button>
+              <button class="quick-btn" onclick="if(window.SmartFarmWorkflow){SmartFarmWorkflow.openWorkflow(6);}else{openDrawer('settings', 4);}">
+                <span>🤖 Hỏi Chatbot AI (Vườn + GIS + Bài Báo Khoa Học)</span>
+              </button>
+            </div>
+          </section>
+
+          <!-- 5) DỰ BÁO THỜI TIẾT 6 NGÀY (CHẠM ĐỂ XEM LỊCH CANH TÁC TỪNG NGÀY) -->
+          <section class="forecast" aria-label="Dự báo 6 ngày và lịch canh tác">
+            <div class="section-header">
+              <strong class="section-title">Lịch Thời tiết &amp; Canh tác 6 Ngày Tới</strong>
+              <span class="section-sub">Chạm vào từng ngày để xem khuyến cáo phun thuốc / bón phân</span>
+            </div>
+
+            <div class="temps" id="forecastTemps">
+              <button class="tcol" onclick="selectDay(0)" aria-label="Dự báo Thứ Bảy">
+                <span class="tval">21°</span>
+                <svg class="ticon"><use href="#i-cloud"/></svg>
+                <span class="tsub">Mưa 75%</span>
+              </button>
+              <button class="tcol" onclick="selectDay(1)" aria-label="Dự báo Chủ Nhật">
+                <span class="tval">28°</span>
+                <svg class="ticon"><use href="#i-cloud2"/></svg>
+                <span class="tsub">Mưa 45%</span>
+              </button>
+              <button class="tcol" onclick="selectDay(2)" aria-label="Dự báo Thứ Hai">
+                <span class="tval">28°</span>
+                <svg class="ticon"><use href="#i-cloud2"/></svg>
+                <span class="tsub">Mưa 68%</span>
+              </button>
+              <button class="tcol on" onclick="selectDay(3)" aria-label="Dự báo Thứ Ba">
+                <span class="tval">21°</span>
+                <svg class="ticon"><use href="#i-hail"/></svg>
+                <span class="tsub">Dông 98%</span>
+              </button>
+              <button class="tcol" onclick="selectDay(4)" aria-label="Dự báo Thứ Tư">
+                <span class="tval">29°</span>
+                <svg class="ticon"><use href="#i-sun"/></svg>
+                <span class="tsub">Nắng 20%</span>
+              </button>
+              <button class="tcol" onclick="selectDay(5)" aria-label="Dự báo Thứ Năm">
+                <span class="tval">28°</span>
+                <svg class="ticon"><use href="#i-cloud"/></svg>
+                <span class="tsub">Ẩm 35%</span>
+              </button>
+            </div>
+
+            <div class="wave-wrap">
+              <svg class="wave-svg" viewBox="0 0 835 230" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="wg" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#4ade80" stop-opacity="0.35"/>
+                    <stop offset="50%" stop-color="#4ade80" stop-opacity="1"/>
+                    <stop offset="100%" stop-color="#38bdf8" stop-opacity="0.45"/>
+                  </linearGradient>
+                  <linearGradient id="wf" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stop-color="#4ade80" stop-opacity="0.24"/>
+                    <stop offset="100%" stop-color="#4ade80" stop-opacity="0.0"/>
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M0,79 C68,79 95,38 155,38 C215,38 242,112 305,112 C368,112 398,176 462,176 C526,176 558,28 625,28 C692,28 735,86 835,86 L835,230 L0,230 Z"
+                  fill="url(#wf)"
+                />
+                <path class="wline l1" d="M0,79 C68,79 95,38 155,38 C215,38 242,112 305,112 C368,112 398,176 462,176 C526,176 558,28 625,28 C692,28 735,86 835,86"/>
+                <path class="wline l3" d="M0,79 C68,79 95,38 155,38 C215,38 242,112 305,112 C368,112 398,176 462,176 C526,176 558,28 625,28 C692,28 735,86 835,86"/>
+                <g id="waveActiveNode">
+                  <line id="waveGuideLine" x1="462" y1="176" x2="462" y2="222" stroke="rgba(74,222,128,0.55)" stroke-width="2" stroke-dasharray="5 5"/>
+                  <circle id="waveHalo" cx="462" cy="176" r="12" fill="rgba(74,222,128,0.25)"/>
+                  <circle id="waveDotOuter" cx="462" cy="176" r="6" fill="#4ade80"/>
+                  <circle id="waveDotInner" cx="462" cy="176" r="2.6" fill="#07141d"/>
+                </g>
+              </svg>
+            </div>
+
+            <div class="days" id="forecastDays">
+              <span onclick="selectDay(0)">Thứ Bảy</span>
+              <span onclick="selectDay(1)">Chủ Nhật</span>
+              <span onclick="selectDay(2)">Thứ Hai</span>
+              <span class="on" onclick="selectDay(3)">Thứ Ba</span>
+              <span onclick="selectDay(4)">Thứ Tư</span>
+              <span onclick="selectDay(5)">Thứ Năm</span>
+            </div>
+          </section>
+        </div>
+
+        <!-- CỘT PHẢI: DANH SÁCH 3 CÂY CẦN KIỂM TRA NGAY (.rail) -->
+        <div class="right-col">
+          <aside class="rail" aria-label="Danh sách cây cần kiểm tra ngay">
+            <div class="section-header">
+              <div>
+                <strong class="section-title">Cây Cần Kiểm Tra Tại Vườn (3 cây)</strong>
+                <div class="section-sub">Chạm vào từng thẻ để xem chi tiết hoặc xác nhận ổn</div>
+              </div>
+              <button class="sf-action-btn" onclick="openDrawer('calendar', 3)">Mở nhật ký</button>
+            </div>
+
+            <!-- Card B (.card.row) -->
+            <article class="card row" onclick="openDrawer('calendar', 3)">
+              <div class="rmeta">
+                <span class="rcountry" id="cardBSub">Khu A · Gần lối vào (8 cây)</span>
+                <strong class="rcity" id="cardBTitle">Cây A-04 · Kiểm tra lá vàng</strong>
+                <span class="rcond" id="cardBCond">Lá vàng · NDVI 0.52 · 46 trái</span>
+              </div>
+              <div class="rright">
+                <span class="sf-pill alert">Ưu tiên cao</span>
+                <span class="rtemp" id="cardBTemp">21°</span>
+              </div>
+            </article>
+
+            <!-- Card C (.card.row) -->
+            <article class="card row" onclick="openDrawer('calendar', 3)">
+              <div class="rmeta">
+                <span class="rcountry" id="cardCSub">Khu B · Đất dốc (8 cây)</span>
+                <strong class="rcity" id="cardCTitle">Cây B-05 · Đối chiếu phân bón</strong>
+                <span class="rcond" id="cardCCond">Sau bón phân hữu cơ · NDVI 0.54</span>
+              </div>
+              <div class="rright">
+                <span class="sf-pill watch">Đang xử lý</span>
+                <span class="rtemp" id="cardCTemp">20°</span>
+              </div>
+            </article>
+
+            <!-- Card D (.card.row) -->
+            <article class="card row" onclick="openDrawer('regions', 2)">
+              <div class="rmeta">
+                <span class="rcountry" id="cardDSub">Khu C &amp; D · 18 cây · 2,76 tấn</span>
+                <strong class="rcity" id="cardDTitle">Cây D-02 · Chờ phun thuốc</strong>
+                <span class="rcond" id="cardDCond">Độ phủ tán 76.2% · 171,1 tr ₫</span>
+              </div>
+              <div class="rright">
+                <span class="sf-pill watch">Chờ nắng ráo</span>
+                <span class="rtemp" id="cardDTemp">22°</span>
+              </div>
+            </article>
+
+            <!-- Tóm tắt nhanh 4 Khu Vườn -->
+            <div style="padding-top:8px;border-top:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+              <span class="section-sub">Tổng cộng 4 Khu (A, B, C, D) · 34 cây sầu riêng</span>
+              <button class="sf-action-btn secondary" onclick="openDrawer('regions', 2)">🗺 Xem sơ đồ 4 khu</button>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </div>
+
+    <!-- STREAMLINED SMARTFARM DRAWER (5 CORE MODULES) -->
+    <section class="sf-drawer" id="sfDrawer" role="dialog" aria-modal="true" aria-labelledby="sfDrawerTitle" aria-live="polite">
+      <div class="sf-drawer-head">
+        <strong class="sf-drawer-title" id="sfDrawerTitle">Tổng quan Vườn Tây Nguyên</strong>
+        <button class="sf-close-btn" onclick="closeDrawer()" aria-label="Đóng bảng chi tiết">Đóng ✕</button>
+      </div>
+      <div id="sfDrawerBody"></div>
+    </section>
+  </main>
+
+  <script>
+    // Dữ liệu thực tế từ SmartFarm (vwing_data.json + vwing_weather_11.545_107.792.json + GEE)
+    const SMARTFARM_DATA = {
+      mode: 'smartfarm',
+      garden: {
+        name: 'Vườn mẫu Tây Nguyên',
+        location: 'Bảo Lộc, Lâm Đồng',
+        crop: 'Sầu riêng',
+        areaHa: 1.8,
+        perimeterM: 542,
+        operator: 'Người làm vườn',
+        totalTrees: 34,
+        canopyCoverPct: 76.2,
+        estimatedYieldTon: 2.76,
+        estimatedRevenueM: 171.1,
+        pricePerKg: 62000
+      },
+      weather: {
+        tempC: 21,
+        feelsC: 24.2,
+        humidity: 98,
+        windKmh: 3.4,
+        rainProb: 98,
+        conditionVi: 'Mưa rào & Dông',
+        days: [
+          { dayEn: 'Sunday',    dayVi: 'Thứ Bảy',  temp: '21°', refTemp: '11°', icon: '#i-cloud',  sub: 'Mưa 75%', line1: 'Nhiều mây',      line2: 'Mưa rào nhẹ',    refL1: 'Cloudy',    refL2: 'with Light Breeze', blurb: 'Độ ẩm đất ổn định 64% tại Bảo Lộc, Lâm Đồng · Thuận lợi bón thúc NPK hữu cơ khu C & D.', ax: 70,  ay: 62 },
+          { dayEn: 'Monday',    dayVi: 'Chủ Nhật', temp: '28°', refTemp: '13°', icon: '#i-cloud2', sub: 'Mưa 45%', line1: 'Nắng gián đoạn', line2: '& Mây thay đổi', refL1: 'Scattered', refL2: 'Rain Showers',      blurb: 'Trời ráo buổi sáng · Phù hợp bay Drone đa phổ & kiểm tra sinh trưởng 34 cây sầu riêng.', ax: 210, ay: 64 },
+          { dayEn: 'Tuesday',   dayVi: 'Thứ Hai',  temp: '28°', refTemp: '14°', icon: '#i-cloud2', sub: 'Mưa 68%', line1: 'Trời âm u',      line2: 'Mưa rào chiều',  refL1: 'Mostly',    refL2: 'Cloudy Skies',      blurb: 'Có mưa rào nhẹ về chiều · Nên hoàn tất tỉa cành & quét thuốc gốc A-04 trong buổi sáng.', ax: 350, ay: 132 },
+          { dayEn: 'Wednesday', dayVi: 'Thứ Ba',   temp: '21°', refTemp: '10°', icon: '#i-hail',   sub: 'Dông 98%', line1: 'Mưa rào',       line2: '& Dông lớn',     refL1: 'Storm',     refL2: 'with Heavy Rain',   blurb: 'Cảnh báo mưa dông & độ ẩm 98% tại Bảo Lộc, Lâm Đồng. Cao nhất 28,9°C · Thấp 19,1°C.<br>Gió Đông 3,4 km/h · Khả năng mưa 98% · Độ phủ tán GEE 76,2% (NDVI 0,74 · 34 cây · 3 cây cần khám).', ax: 462, ay: 176, on: true },
+          { dayEn: 'Thursday',  dayVi: 'Thứ Tư',   temp: '29°', refTemp: '19°', icon: '#i-sun',    sub: 'Nắng 20%', line1: 'Nắng ấm',       line2: '& Quang mây',    refL1: 'Sunny',     refL2: '& Clear Sky',       blurb: 'Nắng ráo lý tưởng sau đợt mưa · Khuyến nghị phun phòng nấm Phytophthora & đo lại pH đất.', ax: 625, ay: 28 },
+          { dayEn: 'Friday',    dayVi: 'Thứ Năm',  temp: '28°', refTemp: '12°', icon: '#i-cloud',  sub: 'Ẩm 35%',   line1: 'Mây rải rác',   line2: 'Gió nhẹ êm',     refL1: 'Partly',    refL2: 'Cloudy Day',        blurb: 'Thời tiết mát mẻ · Thích hợp đi tuần vườn, cập nhật ảnh NDVI (0,74) & đối chiếu cây B-05.', ax: 765, ay: 80 }
+        ]
+      },
+      selectedDayIdx: 3,
+      iotSensors: [
+        { label: 'Độ ẩm đất (0–30cm)', val: '64%', pct: 64, range: 'Tối ưu: 55–75%' },
+        { label: 'Độ pH đất tầng rễ',  val: '6.2 pH', pct: 72, range: 'Tối ưu: 5.5–6.8' },
+        { label: 'Độ dẫn điện EC',     val: '1.42 dS/m', pct: 58, range: 'An toàn: < 2.0 dS/m' },
+        { label: 'Đạm dễ tiêu (N)',    val: '145 mg/kg', pct: 76, range: 'Đủ dinh dưỡng đọt' },
+        { label: 'Lân hữu hiệu (P)',   val: '68 mg/kg', pct: 65, range: 'Nuôi trái ổn định' },
+        { label: 'Kali trao đổi (K)',  val: '210 mg/kg', pct: 82, range: 'Tốt cho cơm sầu riêng' }
+      ],
+      indices: [
+        { code: 'NDVI', name: 'Độ xanh tán lá', val: '0.74', status: 'Tốt (Sentinel-2 10m)' },
+        { code: 'EVI',  name: 'Sinh khối tán dày', val: '0.58', status: 'Ổn định' },
+        { code: 'NDRE', name: 'Diệp lục ngọn', val: '0.44', status: 'Đang ra đọt' },
+        { code: 'NDMI', name: 'Độ ẩm trong tán', val: '0.28', status: 'Đủ ẩm (18.4 ngày)' },
+        { code: 'SAVI', name: 'Che phủ đất', val: '0.52', status: 'Thảm cỏ tốt' },
+        { code: 'BSI',  name: 'Chỉ số đất trống', val: '-0.24', status: '9% diện tích trống' }
+      ],
+      alerts: [
+        { code: 'A-04', zone: 'Khu A · Gần lối vào', ndvi: '0.52', fruits: 46, priority: 'Cao', status: 'Chờ xác minh', note: 'Lá có dấu hiệu vàng; cần kiểm tra trực tiếp.' },
+        { code: 'B-05', zone: 'Khu B · Đất dốc',     ndvi: '0.54', fruits: 46, priority: 'Vừa', status: 'Đang xử lý',   note: 'Cần đối chiếu sau bón phân hữu cơ (2 kg).' },
+        { code: 'D-02', zone: 'Khu D · Cuối vườn',   ndvi: '0.49', fruits: 44, priority: 'Vừa', status: 'Chờ tái kiểm', note: 'Theo dõi sau lần phun thuốc sinh học phòng rầy.' }
+      ],
+      zones: [
+        { name: 'Khu A · Gần lối vào', trees: 8, fruits: 308, ndvi: '0.71', status: '1 cây cần kiểm tra (A-04)' },
+        { name: 'Khu B · Đất dốc',     trees: 8, fruits: 320, ndvi: '0.72', status: '1 cây cần đối chiếu (B-05)' },
+        { name: 'Khu C · Giữa vườn',   trees: 9, fruits: 320, ndvi: '0.77', status: 'Ổn định · Đã tưới nhỏ giọt 45p' },
+        { name: 'Khu D · Cuối vườn',   trees: 9, fruits: 306, ndvi: '0.70', status: '1 cây chờ tái kiểm (D-02)' }
+      ]
+    };
+
+    function toggleDataPreset() {
+      const isRef = SMARTFARM_DATA.mode === 'reference';
+      SMARTFARM_DATA.mode = isRef ? 'smartfarm' : 'reference';
+
+      if (SMARTFARM_DATA.mode === 'reference') {
+        document.getElementById('hdrHelloText').textContent = 'Welcome';
+        document.getElementById('hdrWho').textContent = 'Calfin Danang';
+        document.getElementById('btnModeSwitch').textContent = 'Mẫu Aurora ⇄ Vườn Tây Nguyên';
+        document.getElementById('cardAPlace').textContent = 'Central Jakarta';
+        document.getElementById('cardAMetric1').textContent = '19 mph';
+        document.getElementById('cardAMetric2').textContent = '40%';
+        document.getElementById('cardAMetric3').textContent = '15km/h';
+
+        document.getElementById('cardBSub').textContent = 'Indonesia';
+        document.getElementById('cardBTitle').textContent = 'North Jakarta';
+        document.getElementById('cardBCond').textContent = 'Mostly Sunny';
+        document.getElementById('cardBTemp').textContent = '12°';
+
+        document.getElementById('cardCSub').textContent = 'Indonesia';
+        document.getElementById('cardCTitle').textContent = 'Bandung';
+        document.getElementById('cardCCond').textContent = 'Cloudy';
+        document.getElementById('cardCTemp').textContent = '10°';
+
+        document.getElementById('cardDSub').textContent = 'Indonesia';
+        document.getElementById('cardDTitle').textContent = 'South Jakarta';
+        document.getElementById('cardDCond').textContent = 'Sunny';
+        document.getElementById('cardDTemp').textContent = '14°';
+
+        document.querySelectorAll('#forecastTemps .tval').forEach((el, i) => {
+          el.textContent = SMARTFARM_DATA.weather.days[i].refTemp;
+        });
+        document.querySelectorAll('#forecastDays span').forEach((el, i) => {
+          el.textContent = SMARTFARM_DATA.weather.days[i].dayEn;
+        });
+      } else {
+        document.getElementById('hdrHelloText').textContent = 'Xin chào · Vườn mẫu Tây Nguyên (1,8 ha · 34 cây)';
+        document.getElementById('hdrWho').textContent = 'Người làm vườn · Bảo Lộc, Lâm Đồng';
+        document.getElementById('btnModeSwitch').textContent = 'Vườn Tây Nguyên ⇄ Mẫu Aurora';
+        document.getElementById('cardAPlace').textContent = 'Bảo Lộc, Lâm Đồng';
+        document.getElementById('cardAMetric1').textContent = `${SMARTFARM_DATA.weather.windKmh} km/h`;
+        document.getElementById('cardAMetric2').textContent = `${SMARTFARM_DATA.weather.humidity}% ẩm`;
+        document.getElementById('cardAMetric3').textContent = 'NDVI 0.74';
+
+        document.getElementById('cardBSub').textContent = 'Khu A · Gần lối vào (8 cây)';
+        document.getElementById('cardBTitle').textContent = 'Cây A-04 · Kiểm tra lá vàng';
+        document.getElementById('cardBCond').textContent = 'Lá vàng · NDVI 0.52 · 46 trái';
+        document.getElementById('cardBTemp').textContent = '21°';
+
+        document.getElementById('cardCSub').textContent = 'Khu B · Đất dốc (8 cây)';
+        document.getElementById('cardCTitle').textContent = 'Cây B-05 · Đối chiếu phân bón';
+        document.getElementById('cardCCond').textContent = 'Sau bón phân hữu cơ · NDVI 0.54';
+        document.getElementById('cardCTemp').textContent = '20°';
+
+        document.getElementById('cardDSub').textContent = 'Khu C & D · 18 cây · 2,76 tấn';
+        document.getElementById('cardDTitle').textContent = 'Cây D-02 · Chờ phun thuốc';
+        document.getElementById('cardDCond').textContent = 'Độ phủ tán 76.2% · 171,1 tr ₫';
+        document.getElementById('cardDTemp').textContent = '22°';
+
+        document.querySelectorAll('#forecastTemps .tval').forEach((el, i) => {
+          el.textContent = SMARTFARM_DATA.weather.days[i].temp;
+        });
+        document.querySelectorAll('#forecastDays span').forEach((el, i) => {
+          el.textContent = SMARTFARM_DATA.weather.days[i].dayVi;
+        });
+      }
+      selectDay(SMARTFARM_DATA.selectedDayIdx);
+    }
+
+    function selectDay(idx) {
+      SMARTFARM_DATA.selectedDayIdx = idx;
+      const d = SMARTFARM_DATA.weather.days[idx] || SMARTFARM_DATA.weather.days[3];
+      const isRef = SMARTFARM_DATA.mode === 'reference';
+
+      document.querySelectorAll('#forecastDays span').forEach((el, i) => {
+        el.classList.toggle('on', i === idx);
+      });
+      document.querySelectorAll('#forecastTemps .tcol').forEach((el, i) => {
+        el.classList.toggle('on', i === idx);
+      });
+
+      document.getElementById('heroChip').textContent = isRef
+        ? `Weather Forecast · ${d.dayEn}`
+        : `Dự báo thời tiết · ${d.dayVi} · Sầu riêng Bảo Lộc`;
+      document.getElementById('heroLine1').textContent = isRef ? d.refL1 : d.line1;
+      document.getElementById('heroLine2').textContent = isRef ? d.refL2 : d.line2;
+      document.getElementById('heroBlurb').innerHTML = isRef
+        ? 'Partly cloudy with occasional showers. High around 50°F.<br>Wind from the east 11 to 21 mph. Rain chance is 40%, with<br>rainfall expected to be less than an inch.'
+        : d.blurb;
+      document.getElementById('cardATemp').innerHTML = `${(isRef ? d.refTemp : d.temp).replace('°', '')}°<i>C</i>`;
+
+      const guide = document.getElementById('waveGuideLine');
+      const halo = document.getElementById('waveHalo');
+      const outer = document.getElementById('waveDotOuter');
+      const inner = document.getElementById('waveDotInner');
+      if (guide && halo && outer && inner) {
+        guide.setAttribute('x1', d.ax);
+        guide.setAttribute('x2', d.ax);
+        guide.setAttribute('y1', d.ay);
+        halo.setAttribute('cx', d.ax);
+        halo.setAttribute('cy', d.ay);
+        outer.setAttribute('cx', d.ax);
+        outer.setAttribute('cy', d.ay);
+        inner.setAttribute('cx', d.ax);
+        inner.setAttribute('cy', d.ay);
+      }
+    }
+
+    function inspectTree(code, zone, ndvi, fruits, status) {
+      const box = document.getElementById('sfTreeInspector');
+      if (!box) return;
+      box.innerHTML = `
+        <span class="sf-tile-label">HỒ SƠ CÂY ĐANG CHỌN TRÊN BẢN ĐỒ GEE</span>
+        <strong class="sf-tile-val">Cây ${code} · ${zone}</strong>
+        <span class="sf-tile-sub">Chỉ số NDVI: <strong>${ndvi}</strong> · Số trái đếm: <strong>${fruits} trái</strong> · Tình trạng: <span class="sf-pill ${ndvi < 0.55 ? 'alert' : 'ok'}">${status}</span></span>
+      `;
+    }
+
+    function confirmAlertTree(idx) {
+      const a = SMARTFARM_DATA.alerts[idx];
+      if (!a) return;
+      a.status = '✓ Đã xác nhận ổn';
+      a.priority = 'Ổn định';
+      if (window.SmartFarmInfra && window.SmartFarmInfra.syncTreeAlertConfirm) {
+        window.SmartFarmInfra.syncTreeAlertConfirm(a.code, a.zone, a.ndvi, a.fruits);
+      }
+      openDrawer('calendar', 3);
+    }
+
+    function askAiQuick(qIdx) {
+      const box = document.getElementById('sfAiAnswer');
+      if (!box) return;
+      const answers = [
+        '<strong>Khuyến nghị phun thuốc cây D-02 (Khu D):</strong> Hôm nay xác suất mưa dông 98% và độ ẩm không khí 98%. <em>Tuyệt đối không phun phân bón lá hoặc thuốc BVTV lúc này</em> vì mưa sẽ rửa trôi trong 30 phút. Hãy dời lịch phun sang <strong>sáng Thứ Tư (07:30–10:00)</strong> khi trời nắng ấm 29°C, gió nhẹ 2,8 km/h.',
+        '<strong>Phác đồ xử lý cây A-04 (Lá vàng, NDVI 0.52):</strong> Kiểm tra cổ rễ và thân chính cách mặt đất 20–60cm. Khơi rãnh thoát nước quanh tán, cạo sạch vết xì mủ (nếu có) và quét Fosetyl-Aluminium hoặc Metalaxyl + Mancozeb; bổ sung 3kg phân hữu cơ vi sinh Trichoderma sau khi đất ráo.',
+        '<strong>Lịch tưới &amp; dinh dưỡng Khu B (Đất dốc):</strong> Độ ẩm đất tầng 0–30cm đang đạt 64%, EC 1,42 dS/m và pH 6,2 (ngưỡng tối ưu cho sầu riêng Ri6). Tạm ngưng tưới nhỏ giọt 48 giờ tới do có mưa rào; đối chiếu màu lá cây B-05 vào Thứ Năm.'
+      ];
+      box.innerHTML = answers[qIdx] || answers[0];
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    // TÍCH HỢP BỘ CÔNG CỤ GIS MOBILELAND (REA EXTRACTED: VN-2000 ⇄ WGS84, KML/KMZ/GEOJSON, 34 TỈNH SAU SÁP NHẬP)
+    // ═══════════════════════════════════════════════════════════════════════════
+    const MOBILELAND_GIS = {
+      activeTab: 'spacing_qr',
+      orchardCropRule: 'DURIAN', // DURIAN (8m*8m = 64m2) | COFFEE (3m*3m = 9m2)
+      selectedQrTreeIdx: 0,
+      adminMode: 'after-merger',
+      selectedProvince: 'Lâm Đồng',
+      selectedL0: 107.75,
+      svgPolygonPoints: '45,32 290,18 585,42 545,185 85,176',
+      overlayFeatures: [],
+      lastConversion: null,
+      vn2000Input: [
+        '1276912.40\t504680.15',
+        '1276928.85\t504812.60',
+        '1276810.20\t504835.40',
+        '1276785.50\t504702.10',
+        '1276854.10\t504658.90'
+      ].join('\n'),
+      sheetNumber: '18',
+      plotNumber: '142',
+      centralMeridians63: {
+        "Lâm Đồng": 107.75, "Đắk Lắk": 108.5, "Đắk Nông": 108.5, "Gia Lai": 108.5, "Kon Tum": 107.5,
+        "Bình Phước": 106.25, "Đồng Nai": 107.75, "Bình Dương": 105.75, "Tây Ninh": 105.5, "Bà Rịa - Vũng Tàu": 107.75,
+        "Hồ Chí Minh": 105.75, "Hà Nội": 105.0, "Đà Nẵng": 107.75, "Hải Phòng": 105.75, "Cần Thơ": 105.0,
+        "Khánh Hòa": 108.25, "Bình Thuận": 108.5, "Ninh Thuận": 108.25, "Phú Yên": 108.5, "Bình Định": 108.25,
+        "Quảng Ngãi": 108.0, "Quảng Nam": 107.75, "Thừa Thiên Huế": 107.0, "Quảng Trị": 106.25, "Quảng Bình": 106.0,
+        "Hà Tĩnh": 105.5, "Nghệ An": 104.75, "Thanh Hóa": 105.0, "Tiền Giang": 105.75, "Bến Tre": 105.75,
+        "Vĩnh Long": 105.5, "Đồng Tháp": 105.0, "An Giang": 104.75, "Kiên Giang": 104.5, "Cà Mau": 104.5,
+        "Sóc Trăng": 105.5, "Bạc Liêu": 105.0, "Hậu Giang": 105.0, "Trà Vinh": 105.5, "Long An": 105.75,
+        "Lào Cai": 104.75, "Yên Bái": 104.75, "Sơn La": 104.0, "Điện Biên": 103.0, "Lai Châu": 103.0,
+        "Hòa Bình": 106.0, "Thái Nguyên": 106.5, "Tuyên Quang": 106.0, "Phú Thọ": 104.75, "Bắc Giang": 107.0,
+        "Bắc Ninh": 105.5, "Hải Dương": 105.5, "Hưng Yên": 105.5, "Quảng Ninh": 107.75, "Lạng Sơn": 107.25,
+        "Cao Bằng": 105.75, "Bắc Kạn": 106.5, "Hà Giang": 105.5, "Vĩnh Phúc": 105.0, "Hà Nam": 105.0,
+        "Nam Định": 105.5, "Ninh Bình": 105.0, "Thái Bình": 105.5
+      },
+      afterMergerProvinces: [
+        { name: "Lâm Đồng (Mới)", defaultL0: 107.75, areaKm2: 24233.1, pop: 3324400, merged: "Lâm Đồng (107.75°) + Đắk Nông (108.5°) + Bình Thuận (108.5°)", center: "TP. Đà Lạt / Bảo Lộc" },
+        { name: "Đắk Lắk (Mới)", defaultL0: 108.5, areaKm2: 18096.4, pop: 2831300, merged: "Đắk Lắk (108.5°) + Phú Yên (108.5°)", center: "TP. Buôn Ma Thuột" },
+        { name: "Gia Lai (Mới)", defaultL0: 108.5, areaKm2: 21576.5, pop: 3153300, merged: "Gia Lai (108.5°) + Bình Định (108.25°)", center: "TP. Quy Nhơn / Pleiku" },
+        { name: "Quảng Ngãi (Mới)", defaultL0: 108.0, areaKm2: 14832.6, pop: 1861700, merged: "Quảng Ngãi (108.0°) + Kon Tum (107.5°)", center: "TP. Quảng Ngãi / Kon Tum" },
+        { name: "Đồng Nai (Mới)", defaultL0: 107.75, areaKm2: 12737.2, pop: 4427700, merged: "Đồng Nai (107.75°) + Bình Phước (106.25°)", center: "TP. Biên Hòa / Đồng Xoài" },
+        { name: "TP. Hồ Chí Minh (Mới)", defaultL0: 105.75, areaKm2: 6772.6, pop: 13608800, merged: "TP.HCM (105.75°) + Bình Dương (105.75°) + Bà Rịa - Vũng Tàu (107.75°)", center: "TP. Hồ Chí Minh" },
+        { name: "Khánh Hòa (Mới)", defaultL0: 108.25, areaKm2: 8555.9, pop: 1882000, merged: "Khánh Hòa (108.25°) + Ninh Thuận (108.25°)", center: "TP. Nha Trang" },
+        { name: "Tây Ninh (Mới)", defaultL0: 105.5, areaKm2: 8536.5, pop: 2959000, merged: "Tây Ninh (105.5°) + Long An (105.75°)", center: "Tây Ninh / Tân An" },
+        { name: "Đồng Tháp (Mới)", defaultL0: 105.0, areaKm2: 5938.7, pop: 3397200, merged: "Đồng Tháp (105.0°) + Tiền Giang (105.75°)", center: "Mỹ Tho / Cao Lãnh" },
+        { name: "Vĩnh Long (Mới)", defaultL0: 105.5, areaKm2: 6296.2, pop: 3367400, merged: "Vĩnh Long (105.5°) + Bến Tre (105.75°) + Trà Vinh (105.5°)", center: "TP. Vĩnh Long" },
+        { name: "TP. Cần Thơ (Mới)", defaultL0: 105.0, areaKm2: 6360.8, pop: 3207000, merged: "Cần Thơ (105.0°) + Sóc Trăng (105.5°) + Hậu Giang (105.0°)", center: "TP. Cần Thơ" },
+        { name: "An Giang (Mới)", defaultL0: 104.75, areaKm2: 9888.9, pop: 3679200, merged: "An Giang (104.75°) + Kiên Giang (104.5°)", center: "Rạch Giá / Long Xuyên" },
+        { name: "TP. Đà Nẵng (Mới)", defaultL0: 107.75, areaKm2: 11859.6, pop: 2765500, merged: "Đà Nẵng (107.75°) + Quảng Nam (107.75°)", center: "TP. Đà Nẵng" },
+        { name: "TP. Hà Nội", defaultL0: 105.0, areaKm2: 3359.8, pop: 8587100, merged: "Giữ nguyên địa giới Thủ đô Hà Nội (105.0°)", center: "TP. Hà Nội" }
+      ],
+      presetsVn2000: [
+        {
+          label: "Sổ đỏ Vườn Sầu riêng Bảo Lộc (Lâm Đồng · L0=107.75°)",
+          province: "Lâm Đồng",
+          l0: 107.75,
+          sheet: "18",
+          plot: "142",
+          coords: [
+            "1276912.40\t504680.15",
+            "1276928.85\t504812.60",
+            "1276810.20\t504835.40",
+            "1276785.50\t504702.10",
+            "1276854.10\t504658.90"
+          ].join("\n")
+        },
+        {
+          label: "Sổ đỏ Vườn Cư M'gar (Đắk Lắk · L0=108.50°)",
+          province: "Đắk Lắk",
+          l0: 108.5,
+          sheet: "34",
+          plot: "209",
+          coords: [
+            "1416420.10\t452310.50",
+            "1416445.80\t452468.20",
+            "1416310.40\t452490.75",
+            "1416288.00\t452332.10",
+            "1416362.50\t452295.00"
+          ].join("\n")
+        },
+        {
+          label: "Sổ đỏ Vườn Chư Prông (Gia Lai · L0=108.50°)",
+          province: "Gia Lai",
+          l0: 108.5,
+          sheet: "12",
+          plot: "88",
+          coords: [
+            "1510240.00\t438120.00",
+            "1510255.00\t438275.00",
+            "1510115.00\t438282.00",
+            "1510102.00\t438130.00"
+          ].join("\n")
+        }
+      ]
+    };
+
+    function vn2000ToWgs84(xIn, yIn, lon0Deg) {
+      let N = Number(xIn), E = Number(yIn);
+      if (!Number.isFinite(N) || !Number.isFinite(E)) return null;
+      if (N < E && E > 800000) {
+        const tmp = N; N = E; E = tmp;
+      }
+      const a = 6378137.0;
+      const f = 1 / 298.257223563;
+      const e2 = 2 * f - f * f;
+      const ep2 = e2 / (1 - e2);
+      const k0 = 0.9999;
+      const x0 = 500000.0;
+      const y0 = 0.0;
+      const lon0 = lon0Deg * Math.PI / 180.0;
+
+      const M = (N - y0) / k0;
+      const mu = M / (a * (1 - e2 / 4 - 3 * e2 * e2 / 64 - 5 * e2 * e2 * e2 / 256));
+      const e1 = (1 - Math.sqrt(1 - e2)) / (1 + Math.sqrt(1 - e2));
+      const phi1 = mu
+        + (3 * e1 / 2 - 27 * Math.pow(e1, 3) / 32) * Math.sin(2 * mu)
+        + (21 * e1 * e1 / 16 - 55 * Math.pow(e1, 4) / 32) * Math.sin(4 * mu)
+        + (151 * Math.pow(e1, 3) / 96) * Math.sin(6 * mu)
+        + (1097 * Math.pow(e1, 4) / 512) * Math.sin(8 * mu);
+
+      const sinPhi1 = Math.sin(phi1), cosPhi1 = Math.cos(phi1), tanPhi1 = Math.tan(phi1);
+      const N1 = a / Math.sqrt(1 - e2 * sinPhi1 * sinPhi1);
+      const T1 = tanPhi1 * tanPhi1;
+      const C1 = ep2 * cosPhi1 * cosPhi1;
+      const R1 = a * (1 - e2) / Math.pow(1 - e2 * sinPhi1 * sinPhi1, 1.5);
+      const D = (E - x0) / (N1 * k0);
+
+      const latVn = phi1 - (N1 * tanPhi1 / R1) * (
+        D * D / 2
+        - (5 + 3 * T1 + 10 * C1 - 4 * C1 * C1 - 9 * ep2) * Math.pow(D, 4) / 24
+        + (61 + 90 * T1 + 298 * C1 + 45 * T1 * T1 - 252 * ep2 - 3 * C1 * C1) * Math.pow(D, 6) / 720
+      );
+      const lonVn = lon0 + (
+        D
+        - (1 + 2 * T1 + C1) * Math.pow(D, 3) / 6
+        + (5 - 2 * C1 + 28 * T1 - 3 * C1 * C1 + 8 * ep2 + 24 * T1 * T1) * Math.pow(D, 5) / 120
+      ) / cosPhi1;
+
+      const sinLat = Math.sin(latVn), cosLat = Math.cos(latVn);
+      const sinLon = Math.sin(lonVn), cosLon = Math.cos(lonVn);
+      const nu = a / Math.sqrt(1 - e2 * sinLat * sinLat);
+      const X = nu * cosLat * cosLon;
+      const Y = nu * cosLat * sinLon;
+      const Z = nu * (1 - e2) * sinLat;
+
+      const dx = -191.90441429, dy = -39.30318279, dz = -111.45032835;
+      const as2rad = Math.PI / (180 * 3600);
+      const rx = 0.00928836 * as2rad;
+      const ry = -0.01975479 * as2rad;
+      const rz = 0.00427372 * as2rad;
+      const s = 1 + 0.252906278 * 1e-6;
+
+      const Xw = dx + s * (X - rz * Y + ry * Z);
+      const Yw = dy + s * (rz * X + Y - rx * Z);
+      const Zw = dz + s * (-ry * X + rx * Y + Z);
+
+      const p = Math.sqrt(Xw * Xw + Yw * Yw);
+      const lonWgs = Math.atan2(Yw, Xw) * 180 / Math.PI;
+      let latWgsRad = Math.atan2(Zw, p * (1 - e2));
+      for (let i = 0; i < 5; i++) {
+        const sinL = Math.sin(latWgsRad);
+        const nuW = a / Math.sqrt(1 - e2 * sinL * sinL);
+        latWgsRad = Math.atan2(Zw + e2 * nuW * sinL, p);
+      }
+      const latWgs = latWgsRad * 180 / Math.PI;
+      return { xNorthing: N, yEasting: E, lat: Number(latWgs.toFixed(7)), lng: Number(lonWgs.toFixed(7)) };
+    }
+
+    function computePolygonMetrics(wgsPts) {
+      if (!wgsPts || wgsPts.length < 3) return { areaM2: 0, areaHa: 0, perimeterM: 0 };
+      const R = 6378137.0;
+      const o = wgsPts[0];
+      const cosLat = Math.cos(o.lat * Math.PI / 180);
+      const xy = wgsPts.map(pt => ({
+        x: (pt.lng - o.lng) * (Math.PI / 180) * R * cosLat,
+        y: (pt.lat - o.lat) * (Math.PI / 180) * R
+      }));
+      let area2 = 0, perim = 0;
+      for (let i = 0; i < xy.length; i++) {
+        const j = (i + 1) % xy.length;
+        area2 += xy[i].x * xy[j].y - xy[j].x * xy[i].y;
+        perim += Math.hypot(xy[j].x - xy[i].x, xy[j].y - xy[i].y);
+      }
+      const areaM2 = Math.abs(area2) / 2;
+      return { areaM2, areaHa: areaM2 / 10000, perimeterM: perim };
+    }
+
+    function projectRingToSvg(wgsPts) {
+      if (!wgsPts || wgsPts.length < 3) return '45,32 290,18 585,42 545,185 85,176';
+      const lats = wgsPts.map(p => p.lat), lngs = wgsPts.map(p => p.lng);
+      const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+      const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+      const dLat = Math.max(maxLat - minLat, 1e-6);
+      const dLng = Math.max(maxLng - minLng, 1e-6);
+      return wgsPts.map(p => {
+        const sx = Math.round(55 + ((p.lng - minLng) / dLng) * 530);
+        const sy = Math.round(182 - ((p.lat - minLat) / dLat) * 156);
+        return `${sx},${sy}`;
+      }).join(' ');
+    }
+
+    function switchGisTab(tab) {
+      MOBILELAND_GIS.activeTab = tab;
+      openDrawer('regions', 2);
+    }
+
+    function switchOrchardSpacingRule(ruleKey) {
+      MOBILELAND_GIS.orchardCropRule = ruleKey === 'COFFEE' ? 'COFFEE' : 'DURIAN';
+      MOBILELAND_GIS.selectedQrTreeIdx = 0;
+      openDrawer('regions', 2);
+    }
+
+    function selectOrchardQrTree(idx) {
+      MOBILELAND_GIS.selectedQrTreeIdx = Number(idx) || 0;
+      openDrawer('regions', 2);
+    }
+
+    function pointInSvgPoly(x, y, poly) {
+      let inside = false;
+      for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+        const xi = poly[i][0], yi = poly[i][1];
+        const xj = poly[j][0], yj = poly[j][1];
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) + 1e-9) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    function renderDeterministicQrSvg(payload, sizePx) {
+      const N = 21;
+      const grid = Array.from({ length: N }, () => Array(N).fill(false));
+      const reserved = Array.from({ length: N }, () => Array(N).fill(false));
+      const putFinder = (r0, c0) => {
+        for (let r = -1; r <= 7; r++) {
+          for (let c = -1; c <= 7; c++) {
+            const rr = r0 + r, cc = c0 + c;
+            if (rr < 0 || rr >= N || cc < 0 || cc >= N) continue;
+            reserved[rr][cc] = true;
+            if (r >= 0 && r <= 6 && c >= 0 && c <= 6) {
+              const onBorder = r === 0 || r === 6 || c === 0 || c === 6;
+              const onInner = r >= 2 && r <= 4 && c >= 2 && c <= 4;
+              grid[rr][cc] = onBorder || onInner;
+            }
+          }
+        }
+      };
+      putFinder(0, 0);
+      putFinder(0, N - 7);
+      putFinder(N - 7, 0);
+      for (let i = 8; i < N - 8; i++) {
+        reserved[6][i] = true; grid[6][i] = (i % 2 === 0);
+        reserved[i][6] = true; grid[i][6] = (i % 2 === 0);
+      }
+      let h1 = 2166136261 >>> 0;
+      for (let i = 0; i < payload.length; i++) {
+        h1 ^= payload.charCodeAt(i);
+        h1 = Math.imul(h1, 16777619) >>> 0;
+      }
+      let state = h1 || 0xA5A5A5A5;
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          if (reserved[r][c]) continue;
+          state ^= (state << 13);
+          state ^= (state >>> 17);
+          state ^= (state << 5);
+          const ch = payload.charCodeAt((r * N + c) % payload.length) || 65;
+          grid[r][c] = (((state >>> 0) + ch + r * 17 + c * 31) & 1) === 1;
+        }
+      }
+      let rects = '';
+      for (let r = 0; r < N; r++) {
+        for (let c = 0; c < N; c++) {
+          if (grid[r][c]) rects += `<rect x="${c + 1}" y="${r + 1}" width="1" height="1" fill="#06140d"/>`;
+        }
+      }
+      return `<svg viewBox="0 0 ${N + 2} ${N + 2}" width="${sizePx}" height="${sizePx}" style="background:#fff;border-radius:8px;display:block;shape-rendering:crispEdges;">${rects}</svg>`;
+    }
+
+    function computeOrchardSpacingData() {
+      const conv = MOBILELAND_GIS.lastConversion;
+      const areaHa = conv && conv.metrics ? conv.metrics.areaHa : (Number(SMARTFARM_DATA.garden.areaHa) || 1.80);
+      const areaM2 = Math.round(areaHa * 10000 * 10) / 10;
+      const isCoffee = MOBILELAND_GIS.orchardCropRule === 'COFFEE';
+      const spacingM = isCoffee ? 3 : 8;
+      const unitAreaM2 = spacingM * spacingM; // 9 m² hoặc 64 m²
+      const prefix = isCoffee ? 'CF' : 'SR';
+      const cropLabelVi = isCoffee ? 'Vườn Cà phê (3m × 3m = 9 m²/cây)' : 'Vườn Sầu riêng (8m × 8m = 64 m²/cây)';
+      const accent = isCoffee ? '#fbbf24' : '#4ade80';
+      const totalTrees = Math.max(1, Math.floor(areaM2 / unitAreaM2));
+      const digits = totalTrees >= 1000 ? 4 : 3;
+
+      const polyStr = MOBILELAND_GIS.svgPolygonPoints || '45,32 290,18 585,42 545,185 85,176';
+      const polyCoords = polyStr.trim().split(/\s+/).map(pair => {
+        const [x, y] = pair.split(',').map(Number);
+        return [x || 0, y || 0];
+      });
+      const baseLat = conv && conv.points && conv.points[0] ? conv.points[0].lat : 11.550420;
+      const baseLng = conv && conv.points && conv.points[0] ? conv.points[0].lng : 107.800450;
+
+      const maxPlotPts = Math.min(totalTrees, 140);
+      const candidates = [];
+      const stepsTry = isCoffee ? [11, 9, 8, 7] : [18, 15, 13, 11];
+      for (const stepPx of stepsTry) {
+        candidates.length = 0;
+        let rowIdx = 0;
+        for (let y = 26; y <= 182; y += stepPx) {
+          rowIdx++;
+          let colIdx = 0;
+          for (let x = 52; x <= 580; x += stepPx) {
+            if (pointInSvgPoly(x, y, polyCoords)) {
+              colIdx++;
+              candidates.push({ x, y, r: rowIdx, c: colIdx });
+            }
+          }
+        }
+        if (candidates.length >= maxPlotPts) break;
+      }
+      const trees = [];
+      for (let i = 0; i < totalTrees; i++) {
+        const treeNum = i + 1;
+        const code = `${prefix}-${String(treeNum).padStart(digits, '0')}`;
+        const pt = candidates[i % Math.max(1, candidates.length)] || { x: 250, y: 100, r: 1, c: 1 };
+        const rowNum = Math.floor(i / Math.max(1, Math.round(Math.sqrt(totalTrees * 1.4)))) + 1;
+        const colNum = (i % Math.max(1, Math.round(Math.sqrt(totalTrees * 1.4)))) + 1;
+        const lat = (baseLat - rowNum * (spacingM / 110574)).toFixed(6);
+        const lng = (baseLng + colNum * (spacingM / 109000)).toFixed(6);
+        const qrPayload = `vwing://tree/${code}?id=${code}&code=${code}&crop=${isCoffee ? 'COFFEE' : 'DURIAN'}&spacing=${spacingM}x${spacingM}m&unit_m2=${unitAreaM2}&row=${rowNum}&col=${colNum}&lat=${lat}&lng=${lng}&area_m2=${areaM2}&total=${totalTrees}`;
+        trees.push({
+          idx: i,
+          treeNum,
+          code,
+          rowNum,
+          colNum,
+          svgX: pt.x,
+          svgY: pt.y,
+          lat,
+          lng,
+          qrPayload
+        });
+      }
+      return {
+        areaHa,
+        areaM2,
+        isCoffee,
+        spacingM,
+        unitAreaM2,
+        prefix,
+        cropLabelVi,
+        accent,
+        totalTrees,
+        firstCode: trees[0].code,
+        lastCode: trees[trees.length - 1].code,
+        formulaVi: `Số cây = ⌊Diện tích vùng khoanh (${areaM2.toLocaleString('vi-VN')} m²) ÷ (${spacingM}m × ${spacingM}m = ${unitAreaM2} m²/cây)⌋ = ${totalTrees.toLocaleString('vi-VN')} cây`,
+        trees,
+        plottedTrees: trees.slice(0, maxPlotPts)
+      };
+    }
+
+    function toggleGisAdminMode(mode) {
+      MOBILELAND_GIS.adminMode = mode;
+      openDrawer('regions', 2);
+    }
+
+    function onSelectGisProvince(val) {
+      const parts = val.split('|');
+      MOBILELAND_GIS.selectedProvince = parts[0];
+      MOBILELAND_GIS.selectedL0 = parseFloat(parts[1]) || 107.75;
+      const l0Badge = document.getElementById('gisL0Badge');
+      if (l0Badge) l0Badge.textContent = `Kinh tuyến trục L0 = ${MOBILELAND_GIS.selectedL0}° · Múi chiếu 3° (k0 = 0.9999)`;
+    }
+
+    function applyVn2000Preset(idx) {
+      const p = MOBILELAND_GIS.presetsVn2000[idx];
+      if (!p) return;
+      MOBILELAND_GIS.selectedProvince = p.province;
+      MOBILELAND_GIS.selectedL0 = p.l0;
+      MOBILELAND_GIS.sheetNumber = p.sheet;
+      MOBILELAND_GIS.plotNumber = p.plot;
+      MOBILELAND_GIS.vn2000Input = p.coords;
+      convertVn2000InputAndRender(p.coords, p.l0, p.label);
+    }
+
+    function convertVn2000InputAndRender(rawText, customL0, sourceLabel) {
+      const textEl = document.getElementById('gisVn2000Textarea');
+      const raw = typeof rawText === 'string' ? rawText : (textEl ? textEl.value : MOBILELAND_GIS.vn2000Input);
+      MOBILELAND_GIS.vn2000Input = raw;
+      const l0 = customL0 || MOBILELAND_GIS.selectedL0 || 107.75;
+      const rows = raw.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const converted = [];
+      for (const line of rows) {
+        const nums = line.replace(/[,;|]/g, ' ').trim().split(/\s+/).map(Number).filter(n => Number.isFinite(n));
+        if (nums.length >= 2) {
+          const pt = vn2000ToWgs84(nums[0], nums[1], l0);
+          if (pt && Math.abs(pt.lat) <= 90 && Math.abs(pt.lng) <= 180) {
+            converted.push(pt);
+          }
+        }
+      }
+      if (converted.length >= 3) {
+        const metrics = computePolygonMetrics(converted);
+        MOBILELAND_GIS.svgPolygonPoints = projectRingToSvg(converted);
+        MOBILELAND_GIS.lastConversion = {
+          province: MOBILELAND_GIS.selectedProvince,
+          l0,
+          points: converted,
+          metrics,
+          source: sourceLabel || `Sổ đỏ Tờ ${MOBILELAND_GIS.sheetNumber} · Thửa ${MOBILELAND_GIS.plotNumber} (${MOBILELAND_GIS.selectedProvince})`
+        };
+        SMARTFARM_DATA.garden.areaHa = Number(metrics.areaHa.toFixed(2));
+        SMARTFARM_DATA.garden.perimeterM = Math.round(metrics.perimeterM);
+      }
+      openDrawer('regions', 2);
+    }
+
+    function exportConvertedGeoJson() {
+      const conv = MOBILELAND_GIS.lastConversion;
+      if (!conv || !conv.points || conv.points.length < 3) return;
+      const ring = conv.points.map(p => [p.lng, p.lat]);
+      ring.push([conv.points[0].lng, conv.points[0].lat]);
+      const geojson = {
+        type: "FeatureCollection",
+        features: [{
+          type: "Feature",
+          properties: {
+            name: conv.source,
+            province: conv.province,
+            centralMeridianL0: conv.l0,
+            areaM2: Number(conv.metrics.areaM2.toFixed(1)),
+            areaHa: Number(conv.metrics.areaHa.toFixed(4)),
+            perimeterM: Number(conv.metrics.perimeterM.toFixed(1)),
+            crsSource: `VN-2000 (L0=${conv.l0}, k0=0.9999)`
+          },
+          geometry: {
+            type: "Polygon",
+            coordinates: [ring]
+          }
+        }]
+      };
+      const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ranh-vuon-vn2000-${conv.province.toLowerCase().replace(/\s+/g, '-')}.geojson`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function extractKmlFromKmzBuffer(arrayBuffer) {
+      const bytes = new Uint8Array(arrayBuffer);
+      const view = new DataView(arrayBuffer);
+      let offset = 0;
+      while (offset + 30 < bytes.length) {
+        const sig = view.getUint32(offset, true);
+        if (sig !== 0x04034b50) break;
+        const compression = view.getUint16(offset + 8, true);
+        const compressedSize = view.getUint32(offset + 18, true);
+        const nameLen = view.getUint16(offset + 26, true);
+        const extraLen = view.getUint16(offset + 28, true);
+        const nameBytes = bytes.slice(offset + 30, offset + 30 + nameLen);
+        const fileName = new TextDecoder().decode(nameBytes);
+        const dataStart = offset + 30 + nameLen + extraLen;
+        const dataSlice = bytes.slice(dataStart, dataStart + compressedSize);
+        if (fileName.toLowerCase().endsWith('.kml')) {
+          if (compression === 0) {
+            return new TextDecoder('utf-8').decode(dataSlice);
+          } else if (compression === 8 && typeof DecompressionStream !== 'undefined') {
+            const ds = new DecompressionStream('deflate-raw');
+            const writer = ds.writable.getWriter();
+            writer.write(dataSlice);
+            writer.close();
+            const decompressed = await new Response(ds.readable).arrayBuffer();
+            return new TextDecoder('utf-8').decode(decompressed);
+          }
+        }
+        offset = dataStart + compressedSize;
+      }
+      throw new Error('Không tìm thấy tệp doc.kml hợp lệ bên trong gói KMZ.');
+    }
+
+    function parseKmlOrGeoJsonText(text, fileName) {
+      const trimmed = text.trim();
+      const features = [];
+      if (trimmed.startsWith('{')) {
+        const root = JSON.parse(trimmed);
+        const list = root.type === 'FeatureCollection' ? (root.features || []) : [root];
+        list.forEach((f, idx) => {
+          const g = f.geometry || f;
+          const name = (f.properties && (f.properties.name || f.properties.Name || f.properties.ten)) || `Lớp GeoJSON #${idx + 1}`;
+          if (g.type === 'Polygon' && g.coordinates && g.coordinates[0]) {
+            const pts = g.coordinates[0].map(c => ({ lng: Number(c[0]), lat: Number(c[1]) }));
+            features.push({ name, type: 'Polygon', points: pts, metrics: computePolygonMetrics(pts) });
+          } else if (g.type === 'Point' && g.coordinates) {
+            features.push({ name, type: 'Point', points: [{ lng: Number(g.coordinates[0]), lat: Number(g.coordinates[1]) }] });
+          }
+        });
+      } else if (trimmed.startsWith('<')) {
+        const xml = new DOMParser().parseFromString(trimmed, 'text/xml');
+        const placemarks = Array.from(xml.getElementsByTagName('Placemark'));
+        placemarks.forEach((pm, idx) => {
+          const nameNode = pm.getElementsByTagName('name')[0];
+          const name = nameNode ? nameNode.textContent.trim() : `Placemark #${idx + 1}`;
+          const coordNode = pm.getElementsByTagName('coordinates')[0];
+          if (coordNode) {
+            const pts = coordNode.textContent.trim().split(/\s+/).map(s => {
+              const parts = s.split(',');
+              return parts.length >= 2 ? { lng: Number(parts[0]), lat: Number(parts[1]) } : null;
+            }).filter(p => p && Number.isFinite(p.lat) && Number.isFinite(p.lng));
+            const isPoly = pm.getElementsByTagName('Polygon').length > 0 || pts.length >= 3;
+            features.push({
+              name,
+              type: isPoly ? 'Polygon' : 'Point',
+              points: pts,
+              metrics: isPoly ? computePolygonMetrics(pts) : null
+            });
+          }
+        });
+      }
+      if (features.length > 0) {
+        MOBILELAND_GIS.overlayFeatures = features;
+        const firstPoly = features.find(f => f.type === 'Polygon' && f.points.length >= 3);
+        if (firstPoly) {
+          MOBILELAND_GIS.svgPolygonPoints = projectRingToSvg(firstPoly.points);
+          SMARTFARM_DATA.garden.areaHa = Number(firstPoly.metrics.areaHa.toFixed(2));
+          SMARTFARM_DATA.garden.perimeterM = Math.round(firstPoly.metrics.perimeterM);
+        }
+      }
+      openDrawer('regions', 2);
+    }
+
+    async function handleGisFileUpload(ev) {
+      const file = ev.target.files && ev.target.files[0];
+      if (!file) return;
+      try {
+        if (file.name.toLowerCase().endsWith('.kmz')) {
+          const buf = await file.arrayBuffer();
+          const kmlText = await extractKmlFromKmzBuffer(buf);
+          parseKmlOrGeoJsonText(kmlText, file.name);
+        } else {
+          const text = await file.text();
+          parseKmlOrGeoJsonText(text, file.name);
+        }
+      } catch (err) {
+        alert('Lỗi đọc tệp GIS: ' + (err.message || err));
+      }
+    }
+
+    function loadSampleKmlOverlay() {
+      const sampleKml = `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>Ranh giới Quy hoạch Vườn Sầu Riêng Bảo Lộc (KML)</name>
+      <Polygon>
+        <outerBoundaryIs><LinearRing><coordinates>
+          107.79182,11.54582,0 107.79315,11.54596,0 107.79338,11.54482,0 107.79202,11.54461,0 107.79161,11.54524,0 107.79182,11.54582,0
+        </coordinates></LinearRing></outerBoundaryIs>
+      </Polygon>
+    </Placemark>
+    <Placemark><name>Trạm Bơm Trung Tâm IoT</name><Point><coordinates>107.79248,11.54531,0</coordinates></Point></Placemark>
+    <Placemark><name>Cống Thoát Nước Khu B</name><Point><coordinates>107.79305,11.54552,0</coordinates></Point></Placemark>
+  </Document>
+</kml>`;
+      parseKmlOrGeoJsonText(sampleKml, 'quy-hoach-bao-loc-sample.kml');
+    }
+
+    function renderRegionsDrawerHtml() {
+      const conv = MOBILELAND_GIS.lastConversion;
+      const activeTab = MOBILELAND_GIS.activeTab;
+      const isAfterMerger = MOBILELAND_GIS.adminMode === 'after-merger';
+      const polyPts = MOBILELAND_GIS.svgPolygonPoints || '45,32 290,18 585,42 545,185 85,176';
+      const spData = computeOrchardSpacingData();
+      const selTree = spData.trees[Math.min(MOBILELAND_GIS.selectedQrTreeIdx || 0, spData.trees.length - 1)] || spData.trees[0];
+
+      const provinceOptions = isAfterMerger
+        ? MOBILELAND_GIS.afterMergerProvinces.map(p => `<option value="${p.name}|${p.defaultL0}" ${MOBILELAND_GIS.selectedProvince.includes(p.name.replace(' (Mới)', '')) ? 'selected' : ''}>${p.name} — KT trục L0 = ${p.defaultL0}° (${p.merged})</option>`).join('')
+        : Object.entries(MOBILELAND_GIS.centralMeridians63).map(([k, v]) => `<option value="${k}|${v}" ${MOBILELAND_GIS.selectedProvince === k ? 'selected' : ''}>${k} — KT trục L0 = ${v}°</option>`).join('');
+
+      let tabContentHtml = '';
+      if (activeTab === 'spacing_qr') {
+        const durianPreviewCount = Math.max(1, Math.floor(spData.areaM2 / 64));
+        const coffeePreviewCount = Math.max(1, Math.floor(spData.areaM2 / 9));
+        tabContentHtml = `
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin-bottom:10px;">
+            <div onclick="switchOrchardSpacingRule('DURIAN')" style="cursor:pointer;padding:12px;border-radius:12px;background:${!spData.isCoffee ? 'rgba(74,222,128,0.18)' : 'rgba(255,255,255,0.04)'};border:${!spData.isCoffee ? '2px solid #4ade80' : '1px solid rgba(255,255,255,0.14)'};">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong style="color:#4ade80;font-size:14px;">🌳 Vườn Sầu riêng (8m × 8m = 64 m²/cây)</strong>
+                ${!spData.isCoffee ? '<span class="sf-pill ok">ĐANG CHỌN</span>' : ''}
+              </div>
+              <div style="font-size:12px;color:#cbd5e1;margin-top:4px;">Công thức: ⌊${spData.areaM2.toLocaleString('vi-VN')} m² ÷ (8m × 8m = 64 m²)⌋</div>
+              <div style="font-size:16px;font-weight:800;color:#4ade80;margin-top:4px;">= ${durianPreviewCount.toLocaleString('vi-VN')} cây (SR-001 → SR-${String(durianPreviewCount).padStart(3,'0')})</div>
+            </div>
+            <div onclick="switchOrchardSpacingRule('COFFEE')" style="cursor:pointer;padding:12px;border-radius:12px;background:${spData.isCoffee ? 'rgba(251,191,36,0.18)' : 'rgba(255,255,255,0.04)'};border:${spData.isCoffee ? '2px solid #fbbf24' : '1px solid rgba(255,255,255,0.14)'};">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <strong style="color:#fbbf24;font-size:14px;">☕ Vườn Cà phê (3m × 3m = 9 m²/cây)</strong>
+                ${spData.isCoffee ? '<span class="sf-pill watch">ĐANG CHỌN</span>' : ''}
+              </div>
+              <div style="font-size:12px;color:#cbd5e1;margin-top:4px;">Công thức: ⌊${spData.areaM2.toLocaleString('vi-VN')} m² ÷ (3m × 3m = 9 m²)⌋</div>
+              <div style="font-size:16px;font-weight:800;color:#fbbf24;margin-top:4px;">= ${coffeePreviewCount.toLocaleString('vi-VN')} cây (CF-0001 → CF-${String(coffeePreviewCount).padStart(4,'0')})</div>
+            </div>
+          </div>
+
+          <div style="padding:12px;border-radius:12px;background:rgba(6,24,16,0.92);border:1.5px solid ${spData.accent};margin-bottom:10px;">
+            <div style="font-size:11.5px;font-weight:800;color:${spData.accent};letter-spacing:0.4px;">🧮 CÔNG THỨC TÍNH SỐ LƯỢNG CÂY DỰA TRÊN DIỆN TÍCH KHOANH VÙNG &amp; GÁN NHÃN + MÃ QR</div>
+            <div style="font-size:15px;font-weight:800;color:#fff;margin-top:4px;">${spData.formulaVi}</div>
+            <div style="font-size:12.5px;color:#cbd5e1;margin-top:4px;">
+              • Dải nhãn đã gán tự động: <strong style="color:${spData.accent};">${spData.firstCode} → ${spData.lastCode}</strong> (${spData.totalTrees.toLocaleString('vi-VN')} cây) ·
+              Mỗi cây có <strong>1 Mã QR định danh duy nhất</strong> chứa tọa độ GPS, hàng/cột và thông số ô trồng (${spData.spacingM}m × ${spData.spacingM}m = ${spData.unitAreaM2} m²).
+            </div>
+          </div>
+
+          <div class="sf-split-2 qr-layout">
+            <div style="padding:12px;border-radius:12px;background:#071912;border:1.5px solid ${spData.accent};text-align:center;">
+              <div style="font-size:12.5px;font-weight:800;color:${spData.accent};margin-bottom:8px;">📱 MÃ QR CỦA CÂY ĐANG CHỌN: ${selTree.code}</div>
+              <div style="display:inline-block;padding:8px;background:#fff;border-radius:10px;margin-bottom:8px;">
+                ${renderDeterministicQrSvg(selTree.qrPayload, 138)}
+              </div>
+              <div style="font-size:14px;font-weight:800;color:#fff;">${selTree.code} · Hàng ${selTree.rowNum} - Cây ${selTree.colNum}</div>
+              <div style="font-size:12px;color:#38bdf8;margin-top:3px;">📍 GPS: ${selTree.lat}, ${selTree.lng}</div>
+              <div style="font-size:11.5px;color:#cbd5e1;margin-top:3px;">Khoảng cách: ${spData.spacingM}m × ${spData.spacingM}m (${spData.unitAreaM2} m²/cây)</div>
+              <div style="font-size:10.5px;color:#94a3b8;margin-top:6px;word-break:break-all;background:rgba(0,0,0,0.35);padding:6px;border-radius:6px;">${selTree.qrPayload}</div>
+            </div>
+
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#cbd5e1;margin-bottom:6px;">DANH SÁCH NHÃN CÂY &amp; MÃ QR TRONG VÙNG ĐÃ KHOANH (${spData.firstCode} → ${spData.lastCode} · Chạm vào cây bất kỳ để xem QR):</div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;max-height:265px;overflow-y:auto;padding-right:4px;-webkit-overflow-scrolling:touch;">
+                ${spData.trees.slice(0, 24).map(t => `
+                  <div onclick="selectOrchardQrTree(${t.idx})" style="cursor:pointer;display:flex;gap:8px;align-items:center;padding:8px;border-radius:10px;background:${t.idx === selTree.idx ? 'rgba(74,222,128,0.18)' : 'rgba(255,255,255,0.04)'};border:${t.idx === selTree.idx ? `1.6px solid ${spData.accent}` : '1px solid rgba(255,255,255,0.12)'};">
+                    <div style="flex-shrink:0;">${renderDeterministicQrSvg(t.qrPayload, 46)}</div>
+                    <div style="min-width:0;">
+                      <div style="font-size:12.5px;font-weight:800;color:${spData.accent};">${t.code}</div>
+                      <div style="font-size:11px;color:#e2e8f0;">Hàng ${t.rowNum} · Cây ${t.colNum}</div>
+                      <div style="font-size:10px;color:#94a3b8;">${spData.spacingM}m×${spData.spacingM}m · ${t.lat}</div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (activeTab === 'vn2000') {
+        tabContentHtml = `
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <button class="sf-action-btn ${isAfterMerger ? '' : 'secondary'}" onclick="toggleGisAdminMode('after-merger')">🏛 Hành chính mới (34 Tỉnh sau sáp nhập)</button>
+              <button class="sf-action-btn ${!isAfterMerger ? '' : 'secondary'}" onclick="toggleGisAdminMode('63-provinces')">📍 63 Tỉnh/Thành gốc (Chuẩn Bộ TN&amp;MT)</button>
+            </div>
+            <span class="sf-pill ok" id="gisL0Badge">Kinh tuyến trục L0 = ${MOBILELAND_GIS.selectedL0}° · Múi chiếu 3° (k0 = 0.9999)</span>
+          </div>
+          <div class="sf-vn2000-form-grid">
+            <div>
+              <span class="sf-tile-label">TỈNH / THÀNH PHỐ (TỰ ĐỘNG CHỌN KINH TUYẾN TRỤC L0)</span>
+              <select class="sf-select" onchange="onSelectGisProvince(this.value)">${provinceOptions}</select>
+            </div>
+            <div>
+              <span class="sf-tile-label">SỐ TỜ BẢN ĐỒ</span>
+              <input class="sf-input" type="text" value="${MOBILELAND_GIS.sheetNumber}" onchange="MOBILELAND_GIS.sheetNumber=this.value" placeholder="VD: 18" />
+            </div>
+            <div>
+              <span class="sf-tile-label">SỐ THỬA ĐẤT</span>
+              <input class="sf-input" type="text" value="${MOBILELAND_GIS.plotNumber}" onchange="MOBILELAND_GIS.plotNumber=this.value" placeholder="VD: 142" />
+            </div>
+          </div>
+          <div style="margin-bottom:8px;">
+            <span class="sf-tile-label">NẠP NHANH BẢNG TỌA ĐỘ GÓC RANH SỔ ĐỎ MẪU TÂY NGUYÊN:</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px;">
+              ${MOBILELAND_GIS.presetsVn2000.map((p, idx) => `
+                <button class="sf-action-btn secondary" onclick="applyVn2000Preset(${idx})">📐 ${p.label}</button>
+              `).join('')}
+            </div>
+          </div>
+          <div style="margin-bottom:8px;">
+            <span class="sf-tile-label">BẢNG TỌA ĐỘ GÓC RANH VN-2000 TRÊN SỔ ĐỎ (MỖI DÒNG: X_BẮC  Y_ĐÔNG — TỰ ĐỘNG NHẬN DIỆN ĐẢO TRỤC X/Y)</span>
+            <textarea class="sf-textarea" id="gisVn2000Textarea" spellcheck="false">${MOBILELAND_GIS.vn2000Input}</textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+            <button class="sf-action-btn" onclick="convertVn2000InputAndRender()">⚡ Quy đổi VN-2000 → WGS84 &amp; Vẽ Ranh Vườn</button>
+            ${conv ? `
+              <button class="sf-action-btn secondary" onclick="exportConvertedGeoJson()">⬇ Xuất tệp GeoJSON</button>
+              <a class="sf-action-btn secondary" style="text-decoration:none;" target="_blank" rel="noopener" href="https://www.google.com/maps?q=${conv.points[0].lat},${conv.points[0].lng}&t=k&z=19">🛰 Mở Vệ tinh Google Maps (${conv.points[0].lat}, ${conv.points[0].lng})</a>
+            ` : ''}
+          </div>
+          ${conv ? `
+            <div style="margin-top:10px;padding:12px;border-radius:12px;background:rgba(74,222,128,0.12);border:1px solid rgba(74,222,128,0.4);">
+              <strong style="font-size:14px;color:#4ade80;">✓ Đã quy đổi ${conv.points.length} đỉnh góc ranh (${conv.source}) · Helmert 7 tham số Bộ TN&amp;MT:</strong>
+              <div style="font-size:13px;margin-top:4px;">
+                Diện tích đo đạc: <strong>${conv.metrics.areaM2.toFixed(1)} m² (${conv.metrics.areaHa.toFixed(4)} ha)</strong> · Chu vi: <strong>${conv.metrics.perimeterM.toFixed(1)} m</strong> · Kinh tuyến trục: <strong>${conv.l0}°</strong>
+              </div>
+              <table class="sf-table" style="margin-top:6px;">
+                <thead><tr><th>Đỉnh</th><th>X Bắc (VN-2000 m)</th><th>Y Đông (VN-2000 m)</th><th>Vĩ độ (WGS84 Lat)</th><th>Kinh độ (WGS84 Lng)</th></tr></thead>
+                <tbody>
+                  ${conv.points.map((pt, i) => `
+                    <tr>
+                      <td><strong>M${i + 1}</strong></td>
+                      <td>${pt.xNorthing.toFixed(2)}</td>
+                      <td>${pt.yEasting.toFixed(2)}</td>
+                      <td><strong>${pt.lat}</strong></td>
+                      <td><strong>${pt.lng}</strong></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          ` : ''}
+        `;
+      } else if (activeTab === 'kml') {
+        tabContentHtml = `
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;">
+            <div>
+              <span class="sf-tile-label">CHỌN TỆP BẢN ĐỒ CỤC BỘ (.KML, .KMZ, .GEOJSON) — XỬ LÝ TRỰC TIẾP TRÊN TRÌNH DUYỆT</span>
+              <input type="file" accept=".kml,.kmz,.geojson,.json" class="sf-input" style="margin-top:4px;" onchange="handleGisFileUpload(event)" />
+            </div>
+            <button class="sf-action-btn" onclick="loadSampleKmlOverlay()">📂 Nạp KML Quy hoạch Vườn Bảo Lộc Mẫu</button>
+          </div>
+          ${MOBILELAND_GIS.overlayFeatures.length > 0 ? `
+            <table class="sf-table" style="margin-top:10px;">
+              <thead><tr><th>Tên lớp / Đối tượng GIS</th><th>Hình học</th><th>Số đỉnh</th><th>Diện tích / Tọa độ WGS84</th></tr></thead>
+              <tbody>
+                ${MOBILELAND_GIS.overlayFeatures.map(f => `
+                  <tr>
+                    <td><strong>${f.name}</strong></td>
+                    <td><span class="sf-pill ok">${f.type}</span></td>
+                    <td>${f.points.length}</td>
+                    <td>${f.metrics ? `${f.metrics.areaHa.toFixed(3)} ha (${f.metrics.areaM2.toFixed(0)} m²)` : `${f.points[0].lat.toFixed(5)}, ${f.points[0].lng.toFixed(5)}`}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          ` : `<span class="sf-tile-sub" style="margin-top:6px;">Hỗ trợ giải nén trực tiếp tệp <strong>.KMZ</strong> (Deflate ZIP) và phân tích cấu trúc <code>&lt;Placemark&gt;</code> KML / GeoJSON để chồng lớp lên bản đồ vườn.</span>`}
+        `;
+      } else if (activeTab === 'nws_ffc') {
+        tabContentHtml = window.NwsFfcMap ? window.NwsFfcMap.renderTabHtml() : '<div>Đang tải mô-đun Bản đồ Radar NWS FFC...</div>';
+      } else {
+        tabContentHtml = `
+          <span class="sf-tile-sub">Bảng đối chiếu <strong>Đơn vị Hành chính mới sau sáp nhập (34 tỉnh/thành)</strong> và Kinh tuyến trục <code>VN-2000</code> tương ứng từ cơ sở dữ liệu MobileLand GIS:</span>
+          <table class="sf-table" style="margin-top:6px;">
+            <thead><tr><th>Đơn vị Hành chính Mới</th><th>Kinh tuyến trục L0</th><th>Các Tỉnh/Thành hợp nhất &amp; Múi chiếu</th><th>Diện tích (km²)</th><th>Dân số</th></tr></thead>
+            <tbody>
+              ${MOBILELAND_GIS.afterMergerProvinces.slice(0, 8).map(p => `
+                <tr>
+                  <td><strong>${p.name}</strong></td>
+                  <td><span class="sf-pill ok">${p.defaultL0}°</span></td>
+                  <td>${p.merged}</td>
+                  <td>${p.areaKm2.toLocaleString('vi-VN')}</td>
+                  <td>${p.pop.toLocaleString('vi-VN')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+
+      return `
+        <div class="sf-tile" style="padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+            <span class="sf-tile-label">SƠ ĐỒ ĐA GIÁC RANH VƯỜN (${spData.areaHa.toFixed(2)} HA = ${spData.areaM2.toLocaleString('vi-VN')} M²) · LƯỚI ĐẾM CÂY ${spData.spacingM}M×${spData.spacingM}M (${spData.totalTrees.toLocaleString('vi-VN')} CÂY · ${spData.firstCode} → ${spData.lastCode})</span>
+            <span class="sf-pill ok">${spData.cropLabelVi} · Đã gán ${spData.totalTrees.toLocaleString('vi-VN')} Nhãn &amp; Mã QR</span>
+          </div>
+          <svg viewBox="0 0 640 210" style="width:100%;height:195px;border-radius:14px;background:#07141d;border:1px solid rgba(255,255,255,0.16);margin-top:6px;">
+            <polygon points="${polyPts}" fill="rgba(74,222,128,0.14)" stroke="${spData.accent}" stroke-width="2.2" stroke-dasharray="6 4"/>
+            ${spData.plottedTrees.map((pt, idx) => {
+              const isSel = pt.idx === selTree.idx;
+              const showText = isSel || idx % (spData.isCoffee ? 12 : 6) === 0;
+              return `
+                <g style="cursor:pointer" onclick="selectOrchardQrTree(${pt.idx})">
+                  <circle cx="${pt.svgX}" cy="${pt.svgY}" r="${isSel ? 7 : (spData.isCoffee ? 3.2 : 4.6)}" fill="${isSel ? '#ffea00' : spData.accent}" stroke="#06140d" stroke-width="1"/>
+                  ${showText ? `<text x="${pt.svgX}" y="${pt.svgY - 6}" text-anchor="middle" fill="${isSel ? '#ffea00' : '#fff'}" font-size="${isSel ? 9.5 : 7.5}" font-weight="800">${pt.code}</text>` : ''}
+                </g>
+              `;
+            }).join('')}
+          </svg>
+        </div>
+
+        <div class="sf-tile" style="padding:14px;">
+          <span class="sf-tile-label">BỘ CÔNG CỤ ĐẾM CÂY (8M×8M / 3M×3M) &amp; MÃ QR, BẢN ĐỒ RADAR NWS FFC &amp; QUY HOẠCH GIS</span>
+          <div class="sf-gis-tabs">
+            <button class="sf-gis-tab ${activeTab === 'spacing_qr' ? 'active' : ''}" onclick="switchGisTab('spacing_qr')" style="border-color:rgba(74,222,128,0.75);color:#4ade80;">📐 Đếm Cây (8m×8m / 3m×3m) · Gán Nhãn &amp; Mã QR (${spData.totalTrees.toLocaleString('vi-VN')} cây)</button>
+            <button class="sf-gis-tab ${activeTab === 'nws_ffc' ? 'active' : ''}" onclick="switchGisTab('nws_ffc')" style="border-color:rgba(56,189,248,0.65);color:#7dd3fc;">📡 Bản đồ Radar KFFC &amp; Cảnh báo WWA (weather.gov/ffc)</button>
+            <button class="sf-gis-tab ${activeTab === 'vn2000' ? 'active' : ''}" onclick="switchGisTab('vn2000')">📐 Quy đổi Góc ranh Sổ đỏ (VN-2000 → WGS84)</button>
+            <button class="sf-gis-tab ${activeTab === 'kml' ? 'active' : ''}" onclick="switchGisTab('kml')">🗺 Chồng lớp KML / KMZ / GeoJSON</button>
+            <button class="sf-gis-tab ${activeTab === 'merger' ? 'active' : ''}" onclick="switchGisTab('merger')">🏛 Tra cứu 34 Tỉnh/Thành sau sáp nhập</button>
+            <button class="sf-gis-tab" onclick="DatumAppSuite.openSuite('flood')" style="border-color:rgba(74,222,128,0.55);color:#4ade80;">🌊 Mở Bàn điều khiển Thủy văn &amp; 3D DatumApp</button>
+          </div>
+          ${tabContentHtml}
+        </div>
+
+        <div class="sf-tile" id="sfTreeInspector">
+          <span class="sf-tile-label">HỒ SƠ CÂY ĐANG CHỌN TRÊN BẢN ĐỒ GEE</span>
+          <strong class="sf-tile-val">Cây A-04 · Khu A · Gần lối vào</strong>
+          <span class="sf-tile-sub">Chỉ số NDVI: <strong>0.52</strong> · Số trái đếm: <strong>46 trái</strong> · Tình trạng: <span class="sf-pill alert">Cần kiểm tra lá vàng</span></span>
+        </div>
+        <div class="sf-grid">
+          ${SMARTFARM_DATA.zones.map(z => `
+            <div class="sf-tile">
+              <span class="sf-tile-label">${z.trees} CÂY · ${z.fruits} TRÁI</span>
+              <strong class="sf-tile-val">${z.name}</strong>
+              <span class="sf-tile-sub">NDVI TB: ${z.ndvi} · ${z.status}</span>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    function openDrawer(section, navIdx) {
+      document.querySelectorAll('.nav a').forEach((a, i) => {
+        if (i === navIdx) a.setAttribute('aria-current', 'page');
+        else a.removeAttribute('aria-current');
+      });
+
+      const drawer = document.getElementById('sfDrawer');
+      const title = document.getElementById('sfDrawerTitle');
+      const body = document.getElementById('sfDrawerBody');
+
+      if (section === 'dashboard') {
+        drawer.classList.remove('open');
+        return;
+      }
+
+      drawer.classList.add('open');
+
+      if (section === 'reports') {
+        title.textContent = 'Viễn thám GEE, Cảm biến Đất IoT & Dự báo Sản lượng';
+        body.innerHTML = `
+          <div class="sf-grid">
+            <div class="sf-tile">
+              <span class="sf-tile-label">ĐỘ PHỦ TÁN GEE</span>
+              <strong class="sf-tile-val">76,2%</strong>
+              <span class="sf-tile-sub">1,8 ha · Chu vi 542 m · 34 cây hồ sơ</span>
+            </div>
+            <div class="sf-tile">
+              <span class="sf-tile-label">SẢN LƯỢNG DỰ KIẾN</span>
+              <strong class="sf-tile-val">2,76 tấn</strong>
+              <span class="sf-tile-sub">1.254 trái · TB 2,2 kg/trái</span>
+            </div>
+            <div class="sf-tile">
+              <span class="sf-tile-label">DOANH THU THAM KHẢO</span>
+              <strong class="sf-tile-val">171,1 tr ₫</strong>
+              <span class="sf-tile-sub">Giá 62.000 ₫/kg · Bảo Lộc</span>
+            </div>
+          </div>
+          <div class="sf-grid">
+            ${SMARTFARM_DATA.iotSensors.map(s => `
+              <div class="sf-tile">
+                <span class="sf-tile-label">${s.label.toUpperCase()}</span>
+                <strong class="sf-tile-val">${s.val}</strong>
+                <div class="sf-range-track"><div class="sf-range-fill" style="width:${s.pct}%"></div></div>
+                <span class="sf-tile-sub">${s.range}</span>
+              </div>
+            `).join('')}
+          </div>
+          <table class="sf-table">
+            <thead>
+              <tr><th>Chỉ số</th><th>Ý nghĩa nông học</th><th>Giá trị TB</th><th>Đánh giá</th></tr>
+            </thead>
+            <tbody>
+              ${SMARTFARM_DATA.indices.map(idx => `
+                <tr>
+                  <td><strong>${idx.code}</strong></td>
+                  <td>${idx.name}</td>
+                  <td><strong>${idx.val}</strong></td>
+                  <td><span class="sf-pill ok">${idx.status}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } else if (section === 'regions') {
+        title.textContent = 'Bản đồ Đa giác Vườn GEE, VN-2000 Sổ Đỏ & GIS Quy Hoạch';
+        body.innerHTML = renderRegionsDrawerHtml();
+      } else if (section === 'datumapp') {
+        title.textContent = 'DatumApp v4.1021.224 — Mô phỏng Ngập lụt, Mặt cắt Địa hình, GNSS RTK & Xuất CAD DXF';
+        body.innerHTML = window.DatumAppSuite ? window.DatumAppSuite.renderDrawerHtml() : '';
+        if (window.DatumAppSuite) window.DatumAppSuite.onDrawerOpened();
+      } else if (section === 'calendar') {
+        title.textContent = 'Ưu tiên Kiểm tra & Nhật ký Chăm sóc (3 Cây cảnh báo)';
+        body.innerHTML = `
+          <table class="sf-table">
+            <thead>
+              <tr><th>Mã cây</th><th>Khu vực</th><th>NDVI</th><th>Trạng thái</th><th>Triệu chứng / Công việc</th><th>Thao tác</th></tr>
+            </thead>
+            <tbody>
+              ${SMARTFARM_DATA.alerts.map((a, idx) => `
+                <tr>
+                  <td><strong>Cây ${a.code}</strong></td>
+                  <td>${a.zone}</td>
+                  <td>${a.ndvi}</td>
+                  <td><span class="sf-pill ${a.priority === 'Cao' ? 'alert' : a.priority === 'Ổn định' ? 'ok' : 'watch'}">${a.status}</span></td>
+                  <td>${a.note}</td>
+                  <td><button class="sf-action-btn" onclick="confirmAlertTree(${idx})">✓ Xác nhận ổn</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      } else if (section === 'settings') {
+        title.textContent = 'Hạ tầng Đám mây Supabase BaaS · PostGIS · Realtime & Trợ lý Kỹ sư AI';
+        body.innerHTML = window.SmartFarmInfra
+          ? window.SmartFarmInfra.renderSettingsDrawer()
+          : '';
+      }
+    }
+
+    function closeDrawer() {
+      openDrawer('dashboard', 0);
+    }
+
+    // Tự động đồng bộ thời tiết thực tế từ backend :8000 nếu truy cập được (hỗ trợ cả localhost, ADB reverse và Android Emulator 10.0.2.2)
+    (async function syncLiveWeather() {
+      const endpoints = ['http://127.0.0.1:8000', 'http://10.0.2.2:8000'];
+      for (const base of endpoints) {
+        try {
+          const res = await fetch(base + '/v1/health');
+          if (res.ok) {
+            const dot = document.getElementById('connDot');
+            if (dot) dot.style.background = '#4ade80';
+            const st = document.getElementById('stSatStatus');
+            if (st) st.textContent = base;
+            break;
+          }
+        } catch (_) {}
+      }
+    })();
+  </script>
+  <script src="./datumapp-features.js"></script>
+  <script src="./nws-ffc-map.js"></script>
+  <script src="./supabase-infra.js"></script>
+  <script src="./farm-workflow.js"></script>
+</body>
+</html>

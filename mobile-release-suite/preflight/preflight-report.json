@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-11-01T16:17:15.067Z",
+  "appName": "SmartFarm Aurora / VWing",
+  "summary": {
+    "total": 9,
+    "passed": 9,
+    "failed": 0
+  },
+  "checks": [
+    {
+      "id": "GP-01",
+      "category": "Google Play Policy",
+      "rule": "Yêu cầu targetSdkVersion >= 34 (Android 14+)",
+      "status": "PASS",
+      "detail": "targetSdkVersion hiện tại = 34"
+    },
+    {
+      "id": "GP-02",
+      "category": "Google Play Security",
+      "rule": "Vô hiệu hóa Cleartext HTTP trong bản dựng Release",
+      "status": "PASS",
+      "detail": "manifestPlaceholders.ALLOW_CLEARTEXT = 'false' ở buildType release"
+    },
+    {
+      "id": "GP-03",
+      "category": "Android 12+ Manifest",
+      "rule": "Khai báo tường minh android:exported cho Activity có intent-filter",
+      "status": "PASS",
+      "detail": "SmartFarmDashboardActivity đã khai báo android:exported=\"true\""
+    },
+    {
+      "id": "GP-04",
+      "category": "Material 3 Adaptive Icon",
+      "rule": "Đầy đủ Adaptive Icon XML (mipmap-anydpi-v26) & PNG Mipmaps (mdpi..xxxhdpi)",
+      "status": "PASS",
+      "detail": "Đã tích hợp Adaptive Icon + Monochrome cho Android 13+"
+    },
+    {
+      "id": "AS-5.1.1",
+      "category": "App Store Privacy",
+      "rule": "Mọi Purpose Strings trong Info.plist giải thích rõ mục đích sử dụng (≥25 ký tự)",
+      "status": "PASS",
+      "detail": "Đạt chuẩn cả 4 quyền: Location, Camera, PhotoLibrary"
+    },
+    {
+      "id": "AS-EXPORT",
+      "category": "App Store Connect",
+      "rule": "Khai báo ITSAppUsesNonExemptEncryption để bỏ bước duyệt mã hóa thủ công trên TestFlight",
+      "status": "PASS",
+      "detail": "ITSAppUsesNonExemptEncryption = false (chỉ dùng HTTPS/TLS chuẩn)"
+    },
+    {
+      "id": "AS-2.5.1",
+      "category": "Apple Privacy Manifest",
+      "rule": "Tồn tại PrivacyInfo.xcprivacy khai báo Required Reason APIs (CA92.1, C617.1)",
+      "status": "PASS",
+      "detail": "PrivacyInfo.xcprivacy hợp lệ, NSPrivacyTracking = false"
+    },
+    {
+      "id": "AS-2.3.8",
+      "category": "App Store Icon",
+      "rule": "Biểu tượng App Store Marketing chuẩn 1024x1024px không viền trong suốt",
+      "status": "PASS",
+      "detail": "Kích thước 1024x1024px (311.1 KB, Opaque 100%)"
+    },
+    {
+      "id": "AS-2.1",
+      "category": "App Completeness",
+      "rule": "Đầy đủ tài nguyên hình ảnh cục bộ (storm-background.jpg) & không chứa chuỗi nháp Lorem Ipsum",
+      "status": "PASS",
+      "detail": "Tất cả tài nguyên HTML/JS/CSS & ảnh nền đều sẵn sàng ngoại tuyến"
+    }
+  ]
+}

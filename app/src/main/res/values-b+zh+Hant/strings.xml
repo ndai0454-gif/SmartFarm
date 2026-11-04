@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_title_cancel">取消</string>
+    <string name="action_title_share">分享</string>
+    <string name="app_name">DJI SmartFarm</string>
+    <string name="calendar_date_title_pattern">yyyy年MMM</string>
+    <string name="calendar_limit_notice">最長支持選擇 %d 天</string>
+    <string name="calendar_week_short_text_friday">五</string>
+    <string name="calendar_week_short_text_monday">一</string>
+    <string name="calendar_week_short_text_saturday">六</string>
+    <string name="calendar_week_short_text_sunday">日</string>
+    <string name="calendar_week_short_text_thursday">四</string>
+    <string name="calendar_week_short_text_tuesday">二</string>
+    <string name="calendar_week_short_text_wednesday">三</string>
+    <string name="efficient_work">讓農業更輕鬆</string>
+    <string name="error_api_unkown">發生未知錯誤</string>
+    <string name="facebook_app_id">220195446961713</string>
+    <string name="fb_login_protocol_scheme">fb220195446961713</string>
+    <string name="image_picker_bucket_all">圖片和視頻</string>
+    <string name="image_picker_bucket_all_video">所有視頻</string>
+    <string name="image_picker_bucket_unknown">相冊</string>
+    <string name="image_picker_done_button_text" formatted="false">完成 %d/%d</string>
+    <string name="task_affinity">com.dji.agflow.task.foo</string>
+</resources>

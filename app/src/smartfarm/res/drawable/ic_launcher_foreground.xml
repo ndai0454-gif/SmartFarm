@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Vòng tròn biểu trưng SmartFarm Aurora -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#A8DF65"
+        android:strokeWidth="3.2"
+        android:pathData="M54,24 A30,30 0 1,1 53.9,24 Z" />
+    <!-- Các đường đồng mức / sóng viễn thám GEE -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#38EF7D"
+        android:strokeWidth="2.8"
+        android:strokeLineCap="round"
+        android:pathData="M32,42 Q43,36 54,42 T76,42 M30,50 Q42,44 54,50 T78,50 M30,58 Q42,52 54,58 T78,58 M32,66 Q43,60 54,66 T76,66" />
+</vector>

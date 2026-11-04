@@ -1,0 +1,424 @@
+{
+  "generatedAt": "2026-11-01T15:51:38.879372+00:00",
+  "apiVersion": "v5",
+  "orgName": "SmartFarm Aurora Vietnam",
+  "customProductPages": [
+    {
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "name": "CPP 1 — Viễn thám Vệ tinh GEE & Đếm cây Sầu riêng",
+      "deepLink": "smartfarm://aurora/satellite?preset=durian-baoloc",
+      "primaryAudience": "Chủ vườn sầu riêng, bơ, cà phê tại Tây Nguyên & ĐBSCL",
+      "screenshotsFocus": [
+        "Bản đồ 7 chỉ số phổ Sentinel-2 (NDVI, EVI, NDRE, NDMI)",
+        "Đếm cây tự động DeepForest & Dự báo sản lượng thu hoạch",
+        "Trạm khí tượng cảnh báo mưa dông & giờ phun thuốc an toàn"
+      ]
+    },
+    {
+      "cppId": "cpp-smartfarm-vn2000-gis-02",
+      "name": "CPP 2 — Quy đổi Sổ Đỏ VN-2000 & Bản đồ Quy hoạch 34 Tỉnh",
+      "deepLink": "smartfarm://aurora/regions?tab=vn2000",
+      "primaryAudience": "Kỹ sư trắc địa, địa chính nông lâm và chủ trang trại đo ranh đất",
+      "screenshotsFocus": [
+        "Quy đổi bảng tọa độ góc ranh Sổ đỏ VN-2000 sang WGS84 (7 tham số Helmert)",
+        "Tra cứu Kinh tuyến trục L0 của 34 tỉnh mới sau sáp nhập & 63 tỉnh gốc",
+        "Chồng lớp bản đồ KML, KMZ, GeoJSON trực tiếp trên thực địa"
+      ]
+    },
+    {
+      "cppId": "cpp-smartfarm-3d-rtk-cad-03",
+      "name": "CPP 3 — Địa hình 3D, Thủy văn Ngập lụt & Trạm đo GNSS RTK",
+      "deepLink": "smartfarm://aurora/datumapp?tab=flood",
+      "primaryAudience": "Kỹ sư thủy lợi, thiết kế san lấp lô vườn, người dùng máy RTK/Drone",
+      "screenshotsFocus": [
+        "Mô phỏng mực nước dâng & Sóng 3-Octave (DatumRiverSlopeWater)",
+        "Mặt cắt địa hình Hermite Spline & Đường đồng mức Marching Squares",
+        "Giải mã NMEA-0183 GNSS RTK, Bố trí điểm thực địa (Stakeout) & Xuất AutoCAD DXF"
+      ]
+    }
+  ],
+  "campaigns": [
+    {
+      "campaignName": "VN_SmartFarm_01_Brand_Exact",
+      "campaignType": "BRAND",
+      "dailyBudgetUsd": 25.0,
+      "targetCpaUsd": 1.2,
+      "searchMatch": false,
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keywords": [
+        {
+          "text": "smartfarm aurora",
+          "matchType": "EXACT",
+          "currentCpt": 0.65,
+          "impressions": 1420,
+          "taps": 310,
+          "installs": 195
+        },
+        {
+          "text": "vwing smartfarm",
+          "matchType": "EXACT",
+          "currentCpt": 0.6,
+          "impressions": 890,
+          "taps": 215,
+          "installs": 140
+        },
+        {
+          "text": "dji smartfarm",
+          "matchType": "EXACT",
+          "currentCpt": 0.85,
+          "impressions": 2650,
+          "taps": 340,
+          "installs": 145
+        }
+      ]
+    },
+    {
+      "campaignName": "VN_SmartFarm_02_Generic_Satellite_NDVI",
+      "campaignType": "GENERIC_GEE",
+      "dailyBudgetUsd": 45.0,
+      "targetCpaUsd": 2.1,
+      "searchMatch": false,
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keywords": [
+        {
+          "text": "bản đồ vệ tinh nông nghiệp",
+          "matchType": "EXACT",
+          "currentCpt": 0.9,
+          "impressions": 3200,
+          "taps": 290,
+          "installs": 135
+        },
+        {
+          "text": "chỉ số ndvi",
+          "matchType": "EXACT",
+          "currentCpt": 0.85,
+          "impressions": 1950,
+          "taps": 210,
+          "installs": 112
+        },
+        {
+          "text": "chăm sóc sầu riêng",
+          "matchType": "EXACT",
+          "currentCpt": 0.75,
+          "impressions": 4100,
+          "taps": 395,
+          "installs": 182
+        }
+      ]
+    },
+    {
+      "campaignName": "VN_SmartFarm_03_Generic_VN2000_GIS",
+      "campaignType": "GENERIC_GIS",
+      "dailyBudgetUsd": 40.0,
+      "targetCpaUsd": 1.85,
+      "searchMatch": false,
+      "cppId": "cpp-smartfarm-vn2000-gis-02",
+      "keywords": [
+        {
+          "text": "chuyển tọa độ vn2000",
+          "matchType": "EXACT",
+          "currentCpt": 0.95,
+          "impressions": 5400,
+          "taps": 610,
+          "installs": 340
+        },
+        {
+          "text": "đo diện tích đất",
+          "matchType": "EXACT",
+          "currentCpt": 0.8,
+          "impressions": 6200,
+          "taps": 540,
+          "installs": 215
+        },
+        {
+          "text": "đọc file kml quy hoạch",
+          "matchType": "EXACT",
+          "currentCpt": 0.7,
+          "impressions": 2800,
+          "taps": 260,
+          "installs": 148
+        }
+      ]
+    },
+    {
+      "campaignName": "VN_SmartFarm_04_Technical_3D_RTK",
+      "campaignType": "GENERIC_3D_RTK",
+      "dailyBudgetUsd": 30.0,
+      "targetCpaUsd": 2.4,
+      "searchMatch": false,
+      "cppId": "cpp-smartfarm-3d-rtk-cad-03",
+      "keywords": [
+        {
+          "text": "đo rtk gnss",
+          "matchType": "EXACT",
+          "currentCpt": 1.1,
+          "impressions": 1500,
+          "taps": 180,
+          "installs": 88
+        },
+        {
+          "text": "đường đồng mức địa hình",
+          "matchType": "EXACT",
+          "currentCpt": 0.85,
+          "impressions": 1250,
+          "taps": 140,
+          "installs": 69
+        }
+      ]
+    },
+    {
+      "campaignName": "VN_SmartFarm_05_Discovery_Broad_SearchMatch",
+      "campaignType": "DISCOVERY",
+      "dailyBudgetUsd": 30.0,
+      "targetCpaUsd": 2.5,
+      "searchMatch": true,
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keywords": [
+        {
+          "text": "nông nghiệp thông minh",
+          "matchType": "BROAD",
+          "currentCpt": 0.7,
+          "impressions": 4800,
+          "taps": 220,
+          "installs": 68
+        },
+        {
+          "text": "bản đồ quy hoạch đất đai",
+          "matchType": "BROAD",
+          "currentCpt": 0.8,
+          "impressions": 5100,
+          "taps": 190,
+          "installs": 32
+        }
+      ]
+    }
+  ],
+  "bidOptimizationRecommendations": [
+    {
+      "campaign": "VN_SmartFarm_01_Brand_Exact",
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keyword": "smartfarm aurora",
+      "matchType": "EXACT",
+      "ttrPct": 21.83,
+      "crPct": 62.9,
+      "actualCpaUsd": 1.03,
+      "targetCpaUsd": 1.2,
+      "currentCptUsd": 0.65,
+      "recommendedCptUsd": 0.75,
+      "action": "TĂNG BID (+SCALE)"
+    },
+    {
+      "campaign": "VN_SmartFarm_01_Brand_Exact",
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keyword": "vwing smartfarm",
+      "matchType": "EXACT",
+      "ttrPct": 24.16,
+      "crPct": 65.12,
+      "actualCpaUsd": 0.92,
+      "targetCpaUsd": 1.2,
+      "currentCptUsd": 0.6,
+      "recommendedCptUsd": 0.75,
+      "action": "TĂNG BID (+SCALE)"
+    },
+    {
+      "campaign": "VN_SmartFarm_01_Brand_Exact",
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keyword": "dji smartfarm",
+      "matchType": "EXACT",
+      "ttrPct": 12.83,
+      "crPct": 42.65,
+      "actualCpaUsd": 1.99,
+      "targetCpaUsd": 1.2,
+      "currentCptUsd": 0.85,
+      "recommendedCptUsd": 0.64,
+      "action": "GIẢM BID (-OPTIMIZE CPA)"
+    },
+    {
+      "campaign": "VN_SmartFarm_02_Generic_Satellite_NDVI",
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keyword": "bản đồ vệ tinh nông nghiệp",
+      "matchType": "EXACT",
+      "ttrPct": 9.06,
+      "crPct": 46.55,
+      "actualCpaUsd": 1.93,
+      "targetCpaUsd": 2.1,
+      "currentCptUsd": 0.9,
+      "recommendedCptUsd": 0.98,
+      "action": "TĂNG BID (+SCALE)"
+    },
+    {
+      "campaign": "VN_SmartFarm_02_Generic_Satellite_NDVI",
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keyword": "chỉ số ndvi",
+      "matchType": "EXACT",
+      "ttrPct": 10.77,
+      "crPct": 53.33,
+      "actualCpaUsd": 1.59,
+      "targetCpaUsd": 2.1,
+      "currentCptUsd": 0.85,
+      "recommendedCptUsd": 1.06,
+      "action": "TĂNG BID (+SCALE)"
+    },
+    {
+      "campaign": "VN_SmartFarm_02_Generic_Satellite_NDVI",
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keyword": "chăm sóc sầu riêng",
+      "matchType": "EXACT",
+      "ttrPct": 9.63,
+      "crPct": 46.08,
+      "actualCpaUsd": 1.63,
+      "targetCpaUsd": 2.1,
+      "currentCptUsd": 0.75,
+      "recommendedCptUsd": 0.94,
+      "action": "TĂNG BID (+SCALE)"
+    },
+    {
+      "campaign": "VN_SmartFarm_03_Generic_VN2000_GIS",
+      "cppId": "cpp-smartfarm-vn2000-gis-02",
+      "keyword": "chuyển tọa độ vn2000",
+      "matchType": "EXACT",
+      "ttrPct": 11.3,
+      "crPct": 55.74,
+      "actualCpaUsd": 1.7,
+      "targetCpaUsd": 1.85,
+      "currentCptUsd": 0.95,
+      "recommendedCptUsd": 1.03,
+      "action": "TĂNG BID (+SCALE)"
+    },
+    {
+      "campaign": "VN_SmartFarm_03_Generic_VN2000_GIS",
+      "cppId": "cpp-smartfarm-vn2000-gis-02",
+      "keyword": "đo diện tích đất",
+      "matchType": "EXACT",
+      "ttrPct": 8.71,
+      "crPct": 39.81,
+      "actualCpaUsd": 2.01,
+      "targetCpaUsd": 1.85,
+      "currentCptUsd": 0.8,
+      "recommendedCptUsd": 0.74,
+      "action": "GIẢM BID (-OPTIMIZE CPA)"
+    },
+    {
+      "campaign": "VN_SmartFarm_03_Generic_VN2000_GIS",
+      "cppId": "cpp-smartfarm-vn2000-gis-02",
+      "keyword": "đọc file kml quy hoạch",
+      "matchType": "EXACT",
+      "ttrPct": 9.29,
+      "crPct": 56.92,
+      "actualCpaUsd": 1.23,
+      "targetCpaUsd": 1.85,
+      "currentCptUsd": 0.7,
+      "recommendedCptUsd": 0.88,
+      "action": "TĂNG BID (+SCALE)"
+    },
+    {
+      "campaign": "VN_SmartFarm_04_Technical_3D_RTK",
+      "cppId": "cpp-smartfarm-3d-rtk-cad-03",
+      "keyword": "đo rtk gnss",
+      "matchType": "EXACT",
+      "ttrPct": 12.0,
+      "crPct": 48.89,
+      "actualCpaUsd": 2.25,
+      "targetCpaUsd": 2.4,
+      "currentCptUsd": 1.1,
+      "recommendedCptUsd": 1.17,
+      "action": "TĂNG BID (+SCALE)"
+    },
+    {
+      "campaign": "VN_SmartFarm_04_Technical_3D_RTK",
+      "cppId": "cpp-smartfarm-3d-rtk-cad-03",
+      "keyword": "đường đồng mức địa hình",
+      "matchType": "EXACT",
+      "ttrPct": 11.2,
+      "crPct": 49.29,
+      "actualCpaUsd": 1.72,
+      "targetCpaUsd": 2.4,
+      "currentCptUsd": 0.85,
+      "recommendedCptUsd": 1.06,
+      "action": "TĂNG BID (+SCALE)"
+    },
+    {
+      "campaign": "VN_SmartFarm_05_Discovery_Broad_SearchMatch",
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keyword": "nông nghiệp thông minh",
+      "matchType": "BROAD",
+      "ttrPct": 4.58,
+      "crPct": 30.91,
+      "actualCpaUsd": 2.26,
+      "targetCpaUsd": 2.5,
+      "currentCptUsd": 0.7,
+      "recommendedCptUsd": 0.77,
+      "action": "TĂNG BID (+SCALE)"
+    },
+    {
+      "campaign": "VN_SmartFarm_05_Discovery_Broad_SearchMatch",
+      "cppId": "cpp-smartfarm-gee-durian-01",
+      "keyword": "bản đồ quy hoạch đất đai",
+      "matchType": "BROAD",
+      "ttrPct": 3.73,
+      "crPct": 16.84,
+      "actualCpaUsd": 4.75,
+      "targetCpaUsd": 2.5,
+      "currentCptUsd": 0.8,
+      "recommendedCptUsd": 0.6,
+      "action": "GIẢM BID (-OPTIMIZE CPA)"
+    }
+  ],
+  "discoveryNegativeKeywords": [
+    {
+      "text": "bản đồ vệ tinh nông nghiệp",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    },
+    {
+      "text": "chuyển tọa độ vn2000",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    },
+    {
+      "text": "chăm sóc sầu riêng",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    },
+    {
+      "text": "chỉ số ndvi",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    },
+    {
+      "text": "dji smartfarm",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    },
+    {
+      "text": "smartfarm aurora",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    },
+    {
+      "text": "vwing smartfarm",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    },
+    {
+      "text": "đo diện tích đất",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    },
+    {
+      "text": "đo rtk gnss",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    },
+    {
+      "text": "đường đồng mức địa hình",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    },
+    {
+      "text": "đọc file kml quy hoạch",
+      "matchType": "EXACT",
+      "reason": "Đã chạy Exact ở chiến dịch chuyên biệt"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+// Install the design preview beside the user's existing VWING app.
+gradle.beforeProject { project ->
+    project.plugins.withId('com.android.application') {
+        project.androidComponents.finalizeDsl { android ->
+            android.productFlavors.getByName('satellite').applicationId = 'com.example.test_tablet.gispreview'
+        }
+    }
+}

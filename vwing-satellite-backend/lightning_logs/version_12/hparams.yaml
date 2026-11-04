@@ -1,0 +1,124 @@
+config:
+  workers: 0
+  devices: 1
+  accelerator: cpu
+  num_nodes: 1
+  strategy: auto
+  precision: 32-true
+  sync_batchnorm: false
+  use_distributed_sampler: true
+  batch_size: 1
+  matmul_precision: highest
+  architecture: retinanet
+  num_classes: 1
+  label_dict: null
+  nms_thresh: 0.05
+  score_thresh: 0.1
+  detections_per_img: 300
+  topk_candidates: 1000
+  model:
+    name: weecology/deepforest-bird
+    revision: main
+  log_root: ./lightning_logs
+  path_to_raster: null
+  patch_size: 400
+  patch_overlap: 0.05
+  annotations_xml: null
+  rgb_dir: null
+  path_to_rgb: null
+  skip_empty: true
+  train:
+    csv_file: null
+    root_dir: null
+    lr: 0.001
+    optimizer:
+      type: SGD
+      weight_decay: 0.0
+      momentum: 0.9
+      betas:
+      - 0.9
+      - 0.999
+    scheduler:
+      type: null
+      params:
+        T_max: 10
+        eta_min: 1.0e-05
+        lr_lambda: 0.95 ** epoch
+        step_size: 30
+        gamma: 0.1
+        milestones:
+        - 50
+        - 100
+        mode: min
+        factor: 0.1
+        patience: 10
+        threshold: 0.0001
+        threshold_mode: rel
+        cooldown: 0
+        min_lr: 0.0
+        eps: 1.0e-08
+    epochs: 1
+    fast_dev_run: false
+    preload_images: false
+    validate_coordinates: true
+    augmentations:
+    - HorizontalFlip:
+        p: 0.5
+  validation:
+    csv_file: null
+    root_dir: null
+    preload_images: false
+    validate_coordinates: true
+    size: null
+    iou_threshold: 0.4
+    val_accuracy_interval: 20
+    lr_plateau_target: val_loss
+    augmentations: []
+  predict:
+    pin_memory: false
+  cropmodel:
+    architecture: resnet50
+    batch_size: 4
+    num_workers: 0
+    lr: 0.0001
+    scheduler:
+      type: ReduceLROnPlateau
+      params:
+        T_max: 10
+        eta_min: 1.0e-05
+        lr_lambda: 0.95 ** epoch
+        step_size: 30
+        gamma: 0.1
+        milestones:
+        - 50
+        - 100
+        mode: min
+        factor: 0.5
+        patience: 5
+        threshold: 0.0001
+        threshold_mode: rel
+        cooldown: 0
+        min_lr: 0.0
+        eps: 1.0e-08
+    balance_classes: false
+    resize:
+    - 224
+    - 224
+    resize_interpolation: bilinear
+    normalize: null
+    expand: 0
+  point:
+    backbone: pvt_v2_b3
+    score_integration_radius: 5
+    nms_distance_thresh: 5.0
+    distance_threshold: 10.0
+    density_sigma: 5.0
+    mae_weight: 1.0
+    ot_weight: 0.1
+    density_l1_weight: 0.01
+    count_cls_weight: 1.0
+    sinkhorn_reg: 1.0
+    num_of_iter_in_ot: 100
+    losses: null
+    norm_cood: false
+    enforce_count: true

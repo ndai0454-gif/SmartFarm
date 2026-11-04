@@ -1,0 +1,11 @@
+earthengine-api==1.7.48
+eemont==2025.7.1
+fastapi==0.143.0
+httpx==0.28.1
+hydrafloods==2023.10.14
+numpy==2.5.4
+pydantic==2.14.1
+pytest==9.1.1
+spyndex==0.12.0
+uvicorn==0.54.0
+rustgis==0.3.0

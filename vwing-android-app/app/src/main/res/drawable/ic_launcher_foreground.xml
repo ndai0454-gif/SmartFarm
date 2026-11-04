@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Chỉ vẽ duy nhất hình chiếc lá ở trung tâm (không vẽ thêm ô vuông lồng bên trong) -->
+    <path
+        android:pathData="M72,36C72,36 70.5,58.5 55,68.4C43.6,75.6 32.4,74.1 32.4,74.1C32.4,74.1 31,61.3 39.5,51.5C49.4,40.2 72,36 72,36Z"
+        android:strokeColor="#A8DF65"
+        android:strokeWidth="4.5"
+        android:strokeLineJoin="round"
+        android:strokeLineCap="round" />
+    <path
+        android:pathData="M30,78L56.5,51.5"
+        android:strokeColor="#A8DF65"
+        android:strokeWidth="4.5"
+        android:strokeLineCap="round" />
+</vector>

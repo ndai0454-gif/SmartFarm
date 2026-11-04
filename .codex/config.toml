@@ -1,0 +1,3 @@
+[mcp_servers.mobile-mcp]
+command = "node"
+args = ['E:\tools\mobile-mcp\lib\index.js']

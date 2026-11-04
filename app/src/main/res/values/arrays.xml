@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="com.google.firebase.crashlytics.build_ids_arch">
+        <item>aarch64</item>
+        <item>aarch64</item>
+        <item>aarch64</item>
+        <item>aarch64</item>
+        <item>aarch64</item>
+        <item>aarch64</item>
+    </array>
+    <array name="com.google.firebase.crashlytics.build_ids_build_id">
+        <item>5a2fbd4a6139622c07d1d81052d1c97f194c6e06</item>
+        <item>b1950a2a3b00f1c4</item>
+        <item>96e421d1285da8a7cc020af3a295ae7bffddc923</item>
+        <item>c778974a92d920e3aebe25f26926e396dddf5d26</item>
+        <item>0da82722c95ec8827f133f0d1abfb38f0e6fc085</item>
+        <item>1d1b20f9dd2c256d95cec205b02927fab6c2f67e</item>
+    </array>
+    <array name="com.google.firebase.crashlytics.build_ids_lib">
+        <item>libagnative.so</item>
+        <item>libjsi.so</item>
+        <item>libyuv_util.so</item>
+        <item>libyuv.so</item>
+        <item>libc++_shared.so</item>
+        <item>libPPAL_AG.so</item>
+    </array>
+    <array name="exo_controls_playback_speeds">
+        <item>0.25x</item>
+        <item>0.5x</item>
+        <item>0.75x</item>
+        <item>Normal</item>
+        <item>1.25x</item>
+        <item>1.5x</item>
+        <item>2x</item>
+    </array>
+</resources>

@@ -1,0 +1,28 @@
+{
+  "name": "VWing — Nông nghiệp Chính xác & Viễn thám GEE",
+  "short_name": "VWing",
+  "description": "Bảng điều khiển nông nghiệp thông minh: Viễn thám GEE Sentinel-2, quy đổi tọa độ Sổ đỏ VN-2000, mô hình địa hình 3D & khí tượng Bảo Lộc.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#07141D",
+  "theme_color": "#07141D",
+  "lang": "vi",
+  "dir": "ltr",
+  "categories": ["productivity", "utilities", "weather"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='42' fill='%2307141d'/%3E%3Ccircle cx='96' cy='96' r='68' fill='none' stroke='%234ADE80' stroke-width='9'/%3E%3Cpath d='M42 72 Q69 58 96 72 T150 72 M38 96 Q67 82 96 96 T154 96 M42 120 Q69 106 96 120 T150 120' fill='none' stroke='%2338EF7D' stroke-width='9' stroke-linecap='round'/%3E%3C/svg%3E",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%2307141d'/%3E%3Ccircle cx='256' cy='256' r='180' fill='none' stroke='%234ADE80' stroke-width='24'/%3E%3Cpath d='M112 192 Q184 154 256 192 T400 192 M102 256 Q179 218 256 256 T410 256 M112 320 Q184 282 256 320 T400 320' fill='none' stroke='%2338EF7D' stroke-width='24' stroke-linecap='round'/%3E%3C/svg%3E",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

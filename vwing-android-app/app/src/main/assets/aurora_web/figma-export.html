@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>SmartFarm · Giao diện tham khảo</title><link rel="stylesheet" href="styles.css"><script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script></head>
+<body><div class="app"><aside><a class="brand" href="#home"><strong>SMART<span>FARM</span></strong><small>GIAO DIỆN THAM KHẢO</small></a><nav id="nav" aria-label="Điều hướng chính"></nav><div class="aside-note">DJI SmartFarm · 4.20.0<br>Bản dựng từ tài nguyên project</div></aside><div class="workspace"><header><div class="crumb">Không gian làm việc <span>/</span> <b id="crumb">Tổng quan</b></div><button class="account" data-go="profile"><span class="avatar">23</span><span>Group 23<small>Tài khoản minh họa</small></span></button></header><main id="main"></main><footer>Bản prototype độc lập · Dữ liệu minh họa · Chưa kết nối tài khoản, drone hoặc dịch vụ DJI</footer></div></div><dialog id="dialog"></dialog><div id="toast" role="status"></div><script src="app.js"></script><script>
+const captureHash=location.hash;const routes=['home','land','device','records','replay','team','jobs','profile'];
+const wrap=document.createElement('div');
+for(const r of routes){location.hash=r;render(); const c=document.querySelector('.app').cloneNode(true); c.querySelector('aside').style.position='absolute';c.style.position='relative';c.style.width='1440px';c.style.minHeight='950px';c.style.marginBottom='100px';wrap.appendChild(c);}
+document.body.replaceChildren(wrap);location.hash=captureHash;
+</script></body></html>
+
+
+
