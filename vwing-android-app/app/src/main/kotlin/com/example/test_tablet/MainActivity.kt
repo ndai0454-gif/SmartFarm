@@ -33,12 +33,20 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppRoot() {
-    var tool by rememberSaveable { mutableStateOf<Tool?>(null) }
     val activity = androidx.compose.ui.platform.LocalContext.current as? ComponentActivity
-    androidx.compose.runtime.LaunchedEffect(tool) {
-        // Giao diện sáng (VWing, FarmInsights) dùng biểu tượng thanh trạng thái tối; FlightOps nền tối dùng biểu tượng sáng.
+    val initialTool = when (activity?.intent?.getStringExtra("export_tool")) {
+        "farmer" -> Tool.Farmer
+        "ops" -> Tool.Ops
+        else -> null
+    }
+    val startLandingExtra = activity?.intent?.getBooleanExtra("export_landing", false) ?: false
+    var tool by rememberSaveable { mutableStateOf<Tool?>(initialTool) }
+    val isProTheme = com.example.test_tablet.ui.vwing.VC.isPro
+    androidx.compose.runtime.LaunchedEffect(tool, isProTheme) {
+        // Tự động đồng bộ biểu tượng thanh trạng thái theo chế độ nền Sáng (Free Daylight) hoặc Tối (Enterprise Aurora / FlightOps).
         val transparent = android.graphics.Color.TRANSPARENT
-        val style = if (tool == Tool.Ops) androidx.activity.SystemBarStyle.dark(transparent) else androidx.activity.SystemBarStyle.light(transparent, transparent)
+        val useDarkBar = tool == Tool.Ops || (tool == null && isProTheme)
+        val style = if (useDarkBar) androidx.activity.SystemBarStyle.dark(transparent) else androidx.activity.SystemBarStyle.light(transparent, transparent)
         activity?.enableEdgeToEdge(style, style)
     }
 
@@ -46,7 +54,7 @@ fun AppRoot() {
         null -> VWingApp(
             onOpenFarmer = { tool = Tool.Farmer },
             onOpenOps = { tool = Tool.Ops },
-            startOnLanding = false,
+            startOnLanding = startLandingExtra,
         )
         Tool.Farmer -> FarmTheme {
             FarmerApp(onExit = { tool = null })

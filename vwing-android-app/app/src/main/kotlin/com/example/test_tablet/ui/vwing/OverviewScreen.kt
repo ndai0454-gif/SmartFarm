@@ -80,6 +80,8 @@ import com.example.test_tablet.data.vwing.activeTrees
 import com.example.test_tablet.data.vwing.summary
 import com.example.test_tablet.data.vwing.todayWork
 import com.example.test_tablet.data.vwing.treeByCode
+import com.example.test_tablet.data.vwing.treesNeedingVisit
+import com.example.test_tablet.data.vwing.treesNeedingVisitCount
 import com.example.test_tablet.data.vwing.yieldCalc
 import com.example.test_tablet.data.vwing.zoneNames
 
@@ -98,7 +100,7 @@ fun OverviewScreen(c: VCtx) {
     val staleMeasures = com.example.test_tablet.data.vwing.Env.reminders(d).size
     val pendingDetections = d.imagery.sumOf { s -> s.detections.count { it.status == com.example.test_tablet.data.vwing.DetStatus.PENDING } }
     val totalItems = w.total + staleMeasures + (if (pendingDetections > 0) 1 else 0)
-    val needs = s.byCondition.getValue(Condition.NEEDS_CHECK)
+    val needs = d.treesNeedingVisitCount()
     val hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
     val greeting = when { hour < 11 -> "Chào buổi sáng"; hour < 14 -> "Chào buổi trưa"; hour < 18 -> "Chào buổi chiều"; else -> "Chào buổi tối" }
 
@@ -109,10 +111,17 @@ fun OverviewScreen(c: VCtx) {
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
-    // BẢNG ĐIỀU KHIỂN CHÍNH AURORA LIQUID-GLASS (TỐI ƯU TABLET TRƯỚC, ĐIỆN THOẠI SAU)
-    // Tinh gọn 6 tầng thẻ cũ thành 1 khung Aurora Weather & SmartFarm duy nhất
+    // BẢNG ĐIỀU KHIỂN CHÍNH SMARTFARM (TỐI ƯU TABLET TRƯỚC, ĐIỆN THOẠI SAU)
     // ═══════════════════════════════════════════════════════════════════════════
     AuroraSmartFarmDashboard(c)
+    Spacer(Modifier.height(12.dp))
+
+    // Dải Motion Graphics Telemetry (Radar vệ tinh GEE xoay 360° + Sóng sinh trưởng NDVI + Bộ đếm số động)
+    MotionFarmTelemetryBanner(c = c)
+    Spacer(Modifier.height(12.dp))
+
+    // Banner Bảng giá 2 gói tài khoản: Basic Account (149K / 1.499K) & Pro Account (499K / 4.999K)
+    AccountTierPricingBanner(c = c, inDialog = false)
     Spacer(Modifier.height(14.dp))
 
     // Taste Skill §5 Divided KPI Strip: 4 thông số cốt lõi người nông dân quan tâm nhất về vườn
@@ -120,39 +129,41 @@ fun OverviewScreen(c: VCtx) {
     val latestPh = com.example.test_tablet.data.vwing.Env.latestLab(d)?.lab?.firstOrNull { it.name.trim().equals("ph", true) }?.value
     val stableCount = s.byCondition.getValue(Condition.STABLE)
     val estTons = y.estKg?.let { fmtNum(it / 1000.0, 2) } ?: "2,76"
+    val shOv = AppStrings.shell(VUi.country)
+    val cardsOv = AppStrings.cards(VUi.country)
     TasteKpiStrip(
         cells = listOf(
             TasteKpiCell(
-                label = if (c.simpleMode) "Nước trong đất" else "Độ ẩm đất tầng rễ",
+                label = if (c.simpleMode) shOv.kpiWaterLabel else "Độ ẩm đất tầng rễ",
                 value = latestMoist?.let { fmtNum(it, 0) } ?: "64",
                 unit = "%",
-                sub = if (c.simpleMode) "Đủ ẩm · Chưa cần tưới" else "Tầng 0–30 cm ổn định",
+                sub = if (c.simpleMode) shOv.kpiWaterSub else "Tầng 0–30 cm ổn định",
                 onClick = { c.nav.top("env") },
             ),
             TasteKpiCell(
-                label = if (c.simpleMode) "Độ tốt của đất" else "Độ pH đất",
+                label = if (c.simpleMode) shOv.kpiSoilLabel else "Độ pH đất",
                 value = latestPh?.let { fmtNum(it, 1) } ?: "6,2",
                 unit = "pH",
                 sub = if ((latestPh ?: 6.2) in 5.5..6.8) {
-                    if (c.simpleMode) "Đất tốt · Không bị chua" else "Đạt ngưỡng tối ưu (5,5–6,8)"
+                    if (c.simpleMode) shOv.kpiSoilOk else "Đạt ngưỡng tối ưu (5,5–6,8)"
                 } else {
                     "Cần bón vôi cân bằng"
                 },
                 onClick = { c.nav.top("env") },
             ),
             TasteKpiCell(
-                label = if (c.simpleMode) "Sức khỏe vườn cây" else "Cây sinh trưởng ổn định",
+                label = if (c.simpleMode) shOv.kpiHealthLabel else "Cây sinh trưởng ổn định",
                 value = "$stableCount/${s.totalTrees}",
-                unit = "cây khỏe",
-                sub = if (needs > 0) "$needs cây cần bác ra thăm" else "Toàn bộ cây đều khỏe",
+                unit = shOv.kpiHealthUnit,
+                sub = if (needs > 0) shOv.kpiHealthNeeds(needs) else shOv.kpiHealthAllOk,
                 accentColor = if (needs > 0) VC.amber else VC.mint,
                 onClick = { c.nav.top("map") },
             ),
             TasteKpiCell(
-                label = if (c.simpleMode) "Ước thu vụ này" else "Sản lượng dự kiến",
+                label = if (c.simpleMode) cardsOv.kpiYieldLabel else "Sản lượng dự kiến",
                 value = estTons,
-                unit = "tấn",
-                sub = y.revenue?.let { "Khoảng ${fmtNum(it / 1_000_000.0, 1)} triệu ₫" } ?: "Theo số trái trên cây",
+                unit = cardsOv.kpiYieldUnit,
+                sub = y.revenue?.let { "~${fmtNum(it / 1_000_000.0, 1)}M ₫" } ?: cardsOv.kpiYieldSub,
                 onClick = { c.nav.top("yield") },
             ),
         ),
@@ -160,12 +171,12 @@ fun OverviewScreen(c: VCtx) {
         modifier = Modifier.padding(bottom = 14.dp),
     )
 
-    c.store.loadError?.let { Notice(it, VC.red, Modifier.padding(bottom = 10.dp)) { TextButton({ c.store.dismissLoadError() }) { Text("Đóng", color = VC.text2) } } }
+    c.store.loadError?.let { Notice(it, VC.red, Modifier.padding(bottom = 10.dp)) { TextButton({ c.store.dismissLoadError() }) { Text(AppStrings.forCountry(VUi.country).closeLabel, color = VC.text2) } } }
 
-    // Danh sách cây ưu tiên kiểm tra để xử lý nhanh 1 chạm
-    val flagged = d.activeTrees.map { it to d.effectiveCondition(it) }
-        .filter { it.second == Condition.NEEDS_CHECK || it.second == Condition.WATCH || it.first in w.overdueTrees }
+    // Danh sách cây ưu tiên kiểm tra để xử lý nhanh 1 chạm (đồng nhất toàn app qua treesNeedingVisit)
+    val flagged = d.treesNeedingVisit()
         .sortedByDescending { it.second.ordinal }
+    val cardsList = AppStrings.cards(VUi.country)
 
     if (c.simpleMode) {
         // ═══════════════════════════════════════════════════════════════════════
@@ -179,15 +190,15 @@ fun OverviewScreen(c: VCtx) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
-                    Eyebrow(if (flagged.isEmpty()) "Vườn cây hôm nay" else "Cây cần ra thăm hôm nay (${flagged.size} cây)")
+                    Eyebrow(if (flagged.isEmpty()) cardsList.orchardToday else cardsList.treesToVisitToday(flagged.size))
                     Text(
-                        if (flagged.isEmpty()) "Tất cả cây trong vườn đều đang khỏe mạnh." else "Chạm vào từng cây để xem vị trí và cách chăm sóc",
+                        if (flagged.isEmpty()) cardsList.allTreesHealthy else cardsList.tapTreeHint,
                         color = VC.muted,
                         fontSize = 13.sp,
                     )
                 }
                 VButton(
-                    "Quét QR gốc cây",
+                    cardsList.scanQrBtn,
                     { scanning = true },
                     primary = false,
                     icon = Icons.Filled.QrCodeScanner,
@@ -195,7 +206,7 @@ fun OverviewScreen(c: VCtx) {
             }
             Spacer(Modifier.height(10.dp))
             if (flagged.isEmpty()) {
-                EmptyNote("Hôm nay không có cây nào cần xử lý.", Icons.Filled.TaskAlt)
+                EmptyNote(cardsList.noTreesToday, Icons.Filled.TaskAlt)
             } else {
                 flagged.take(4).forEachIndexed { i, (t, cond) ->
                     val open = d.openIssuesFor(t.id).firstOrNull()
@@ -211,13 +222,13 @@ fun OverviewScreen(c: VCtx) {
                                 .padding(vertical = 6.dp),
                         ) {
                             Text(
-                                "Cây ${t.code} · ${t.zone}",
+                                "${cardsList.treePrefix} ${t.code} · ${t.zone}",
                                 color = VC.text,
                                 fontSize = 15.5.sp,
                                 fontWeight = FontWeight.Bold,
                             )
                             Text(
-                                if (open != null) "Tình trạng: ${open.symptom}" else "Tình trạng: ${cond.label}",
+                                if (open != null) "${cardsList.statusPrefix} ${open.symptom}" else "${cardsList.statusPrefix} ${cond.label}",
                                 color = if (open != null || cond == Condition.NEEDS_CHECK) VC.amber else VC.muted,
                                 fontSize = 13.5.sp,
                                 maxLines = 1,

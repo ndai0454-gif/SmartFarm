@@ -249,7 +249,7 @@ fun DeepLabV3PlusHubCard(
         Spacer(Modifier.height(10.dp))
 
         // Backbone selector (from VainF/DeepLabV3Plus-Pytorch network/modeling.py)
-        Text("CHỌN MẠNG BACKBONE DEEPLABV3+ (network/modeling.py):", color = VC.text2, fontSize = 11.5.sp, fontWeight = FontWeight.Bold)
+        Text("CHỌN MẠNG BACKBONE DEEPLABV3+ (network/modeling.py):", color = VC.text2, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(6.dp))
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -267,7 +267,7 @@ fun DeepLabV3PlusHubCard(
                 ) {
                     Column {
                         Text(bb.shortName, color = if (active) VC.mint else VC.text, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("ASPP ${bb.asppRates} · mIoU ${bb.miouPct}%", color = VC.text2, fontSize = 10.5.sp)
+                        Text("ASPP ${bb.asppRates} · mIoU ${bb.miouPct}%", color = VC.text2, fontSize = 12.sp)
                     }
                 }
             }
@@ -394,13 +394,13 @@ fun DeepLabV3PlusHubCard(
                 Text(
                     "✓ Đã cắt khít Đa giác Khoanh vùng (${openPts.size} đỉnh · ${fmtNum(areaHa, 2)} ha)",
                     color = Color(0xFF00E676),
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 Text(
                     "Model: ${backbone.id} · OS=${backbone.outputStride} · Boundary F1=${backbone.boundaryF1Pct}%",
                     color = Color.White,
-                    fontSize = 10.sp,
+                    fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace,
                 )
             }
@@ -437,9 +437,9 @@ fun DeepLabV3PlusHubCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(layerLbl, color = VC.text, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                    Text(rawVal, color = VC.muted, fontSize = 11.sp, modifier = Modifier.padding(horizontal = 6.dp))
-                    Text(pureVal, color = Color(0xFF00E676), fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(layerLbl, color = VC.text, fontSize = 12.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text(rawVal, color = VC.muted, fontSize = 12.sp, modifier = Modifier.padding(horizontal = 6.dp))
+                    Text(pureVal, color = Color(0xFF00E676), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 }
             }
         }
@@ -463,9 +463,9 @@ fun DeepLabV3PlusHubCard(
                 Column(Modifier.weight(1f)) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(cls.nameVi, color = VC.text, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("${cls.sharePct}% (${fmtNum(clsHa, 2)} ha)", color = Color(cls.colorInt), fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold)
+                        Text("${cls.sharePct}% (${fmtNum(clsHa, 2)} ha)", color = Color(cls.colorInt), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                     }
-                    Text("${cls.target3dLayers} · ${cls.calibratedMetricVi}", color = VC.text2, fontSize = 11.sp)
+                    Text("${cls.target3dLayers} · ${cls.calibratedMetricVi}", color = VC.text2, fontSize = 12.sp)
                 }
             }
         }

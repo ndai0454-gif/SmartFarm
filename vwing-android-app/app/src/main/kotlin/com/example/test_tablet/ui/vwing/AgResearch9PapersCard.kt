@@ -468,7 +468,7 @@ fun AgResearch9PapersCard(
                                 Text(
                                     "🌐 Mở cổng",
                                     color = Color(0xFF07150D),
-                                    fontSize = 11.5.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))

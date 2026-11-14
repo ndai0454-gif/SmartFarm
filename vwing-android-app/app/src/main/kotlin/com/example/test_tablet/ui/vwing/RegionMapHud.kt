@@ -784,21 +784,21 @@ class RegionHudState(
             val hb = te.healthBreakdown
             out += RegionHudBadge(
                 category = "Hình học & Cây",
-                label = "Số cây AI & GEE detect",
+                label = "Số cây ước tính (AI & GEE)",
                 value = "~${te.estimatedTrees} cây",
-                sub = "Google Sat 0,3m (${te.highresDetectedCrowns} tán) × GEE S2 (${te.spectralEstimatedTrees} cây)",
+                sub = "Ước tính từ ảnh vệ tinh: Google Sat 0,3m (${te.highresDetectedCrowns} tán) × GEE S2 (${te.spectralEstimatedTrees} cây)",
                 color = VC.lime,
                 icon = "🌳",
-                explanation = "Kết hợp tách đỉnh vòm tán trên ảnh vệ tinh Google Satellite 0,3 m/px (Zoom 19) và mặt nạ tán quang phổ GEE Sentinel-2 10m.",
+                explanation = "Số cây ước tính kết hợp giữa thuật toán tách đỉnh vòm tán trên ảnh vệ tinh 0,3 m/px (Zoom 19) và mặt nạ tán quang phổ GEE Sentinel-2 10m.",
             )
             out += RegionHudBadge(
                 category = "Hình học & Cây",
-                label = "Độ chính xác Detect cây",
+                label = "Điểm tin cậy ước tính",
                 value = "${fmtNum(te.overallAccuracyPct, 1)}%",
-                sub = "Khớp chéo ${fmtNum(te.crossValidationAgreementPct, 1)}% · Sai số vị trí ±${fmtNum(te.spatialPrecisionM, 2)} m",
+                sub = "Khớp chéo ${fmtNum(te.crossValidationAgreementPct, 1)}% · Độ lệch ước tính ±${fmtNum(te.spatialPrecisionM, 2)} m",
                 color = VC.mint,
                 icon = "🎯",
-                explanation = "Độ tin cậy tổng hợp giữa thuật toán tách vòm tán 0,3m (${fmtNum(te.crownDetectionConfidencePct, 1)}%) và quang phổ GEE (${fmtNum(te.spectralConfidencePct, 1)}%).",
+                explanation = "Điểm tin cậy nội bộ ước tính giữa thuật toán tách vòm tán 0,3m (${fmtNum(te.crownDetectionConfidencePct, 1)}%) và quang phổ GEE (${fmtNum(te.spectralConfidencePct, 1)}%). Cần kiểm chứng thực địa hoặc quét QR cây để đạt độ chính xác tuyệt đối.",
             )
             out += RegionHudBadge(
                 category = "Hình học & Cây",
@@ -1419,44 +1419,59 @@ fun DrawScope.drawRegionMetricsOnPolygon(
     measurer: TextMeasurer,
     dens: Float,
 ) {
-    if (analysisPoints.size < 3) return
+    if (analysisPoints.size < 2) return
     val screenPts = analysisPoints.map(ptTransform)
 
     // 0. Vẽ từng gốc cây GEE đếm được và Label mã cây ngay bên trong vùng khoanh
-    drawGeeTreesAndLabelsOnCanvas(
-        analysisPoints = analysisPoints,
-        hud = hud,
-        ptTransform = ptTransform,
-        measurer = measurer,
-        dens = dens,
-    )
+    if (analysisPoints.size >= 3) {
+        drawGeeTreesAndLabelsOnCanvas(
+            analysisPoints = analysisPoints,
+            hud = hud,
+            ptTransform = ptTransform,
+            measurer = measurer,
+            dens = dens,
+        )
+    }
 
-    // 1. Nhãn độ dài cạnh (m) và số đỉnh (chỉ hiện ở Chế độ Kỹ sư để bản đồ Nông dân không bị rối chữ)
-    if (!VUi.simpleMode) {
-        for (i in screenPts.indices) {
-            val a = screenPts[i]
-            val b = screenPts[(i + 1) % screenPts.size]
-            val distM = Geo.distanceM(analysisPoints[i], analysisPoints[(i + 1) % analysisPoints.size])
-            val mid = Offset((a.x + b.x) / 2f, (a.y + b.y) / 2f)
-            if ((b - a).getDistance() > 42f * dens) {
-                val edgeText = "${fmtNum(distM, 0)}m"
-                val m = measurer.measure(edgeText, TextStyle(color = Color(0xFFFFF59D), fontSize = 9f.sp, fontWeight = FontWeight.Bold))
-                val bgRect = Rect(
-                    mid.x - m.size.width / 2f - 3f * dens,
-                    mid.y - m.size.height / 2f - 1.5f * dens,
-                    mid.x + m.size.width / 2f + 3f * dens,
-                    mid.y + m.size.height / 2f + 1.5f * dens,
-                )
-                drawRoundRect(Color(0xBF0E1F15), bgRect.topLeft, bgRect.size, CornerRadius(4f * dens, 4f * dens))
-                drawText(m, topLeft = Offset(mid.x - m.size.width / 2f, mid.y - m.size.height / 2f))
+    // 1. Nhãn độ dài từng cạnh (m) và số thứ tự đỉnh (1, 2, 3...) luôn hiển thị ở cả Nông dân & Kỹ sư để minh bạch diện tích
+    val edgeCount = if (screenPts.size == 2) 1 else screenPts.size
+    for (i in 0 until edgeCount) {
+        val nextIdx = (i + 1) % screenPts.size
+        val a = screenPts[i]
+        val b = screenPts[nextIdx]
+        val distM = Geo.distanceM(analysisPoints[i], analysisPoints[nextIdx])
+        val mid = Offset((a.x + b.x) / 2f, (a.y + b.y) / 2f)
+        val pxDist = (b - a).getDistance()
+        if (pxDist > 22f * dens) {
+            val edgeText = if (pxDist > 78f * dens) {
+                "${i + 1}→${nextIdx + 1}: ${fmtNum(distM, 1)}m"
+            } else {
+                "${fmtNum(distM, 1)}m"
             }
-
-            drawCircle(Color(0xFF102218), radius = 7f * dens, center = a)
-            drawCircle(Color(0xFFF0B323), radius = 7f * dens, center = a, style = Stroke(1.8f * dens))
-            val vLabel = measurer.measure("${i + 1}", TextStyle(color = Color.White, fontSize = 8f.sp, fontWeight = FontWeight.ExtraBold))
-            drawText(vLabel, topLeft = Offset(a.x - vLabel.size.width / 2f, a.y - vLabel.size.height / 2f))
+            val m = measurer.measure(edgeText, TextStyle(color = Color(0xFFFFF59D), fontSize = 10.5f.sp, fontWeight = FontWeight.ExtraBold))
+            val padX = 4.5f * dens
+            val padY = 2f * dens
+            val bgRect = Rect(
+                mid.x - m.size.width / 2f - padX,
+                mid.y - m.size.height / 2f - padY,
+                mid.x + m.size.width / 2f + padX,
+                mid.y + m.size.height / 2f + padY,
+            )
+            drawRoundRect(Color(0xE6081810), bgRect.topLeft, bgRect.size, CornerRadius(5f * dens, 5f * dens))
+            drawRoundRect(Color(0xAAFFD54F), bgRect.topLeft, bgRect.size, CornerRadius(5f * dens, 5f * dens), style = Stroke(1.1f * dens))
+            drawText(m, topLeft = Offset(mid.x - m.size.width / 2f, mid.y - m.size.height / 2f))
         }
     }
+
+    for (i in screenPts.indices) {
+        val a = screenPts[i]
+        drawCircle(Color(0xFF102218), radius = 8.5f * dens, center = a)
+        drawCircle(Color(0xFFFFEA00), radius = 8.5f * dens, center = a, style = Stroke(2f * dens))
+        val vLabel = measurer.measure("${i + 1}", TextStyle(color = Color.White, fontSize = 9.5f.sp, fontWeight = FontWeight.ExtraBold))
+        drawText(vLabel, topLeft = Offset(a.x - vLabel.size.width / 2f, a.y - vLabel.size.height / 2f))
+    }
+
+    if (analysisPoints.size < 3) return
 
     // 2. Các viên thuốc nhỏ (Icon + Số) ngay tại tâm vùng đã khoanh (khi người dùng bật)
     if (hud == null || !hud.showIconsOnPolygon) return
@@ -1582,7 +1597,7 @@ fun BoxScope.RegionMapHudOverlay(
                 )
                 if (teAcc != null) {
                     Text(
-                        "🎯 Độ chính xác ${fmtNum(teAcc.overallAccuracyPct, 1)}% (±${fmtNum(teAcc.spatialPrecisionM, 2)}m)",
+                        "🎯 Điểm tin cậy ước tính ${fmtNum(teAcc.overallAccuracyPct, 1)}% (±${fmtNum(teAcc.spatialPrecisionM, 2)}m)",
                         color = Color(0xFF0B1911),
                         fontSize = 11.sp,
                         fontWeight = FontWeight.ExtraBold,
@@ -1738,11 +1753,12 @@ fun BoxScope.RegionMapHudOverlay(
     }
 
     // Cạnh dưới bản đồ: Thẻ Tình Hình Cây GEE đang chọn + Dải 1 hàng các Icon nhỏ + Số đo
+    // Chừa lề phải 54.dp để không che nút Zoom +/- mặc định của Google Maps
     Column(
         Modifier
             .align(Alignment.BottomCenter)
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 6.dp),
+            .padding(start = 8.dp, end = 54.dp, top = 6.dp, bottom = 6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         selectedGeeTree?.let { sp ->
@@ -1996,16 +2012,16 @@ fun GeeTreeStatusTableCard(
 
         Spacer(Modifier.height(10.dp))
 
-        // Khối Đánh Giá Độ Chính Xác Detect & Kiểm Chứng Chéo (Google Satellite 0,3 m/px × GEE Sentinel-2 10m)
+        // Khối Đánh Giá Điểm Tin Cậy Ước Tính & Kiểm Chứng Chéo (Google Satellite 0,3 m/px × GEE Sentinel-2 10m)
         if (df == null && te != null) Row(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             listOf(
                 Quadruple(
-                    "🎯 Độ chính xác Detect tổng hợp",
+                    "🎯 Điểm tin cậy ước tính",
                     "${fmtNum(te.overallAccuracyPct, 1)}%",
-                    "Sai số vị trí tâm tán ±${fmtNum(te.spatialPrecisionM, 2)} m",
+                    "Độ lệch tâm tán ước tính ±${fmtNum(te.spatialPrecisionM, 2)} m",
                     VC.lime,
                 ),
                 Quadruple(

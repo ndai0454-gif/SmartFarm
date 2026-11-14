@@ -50,6 +50,8 @@ object VUi {
     var unit by mutableStateOf(VUnit.VND)
     var searchOpen by mutableStateOf(false)
     var simpleMode by mutableStateOf(true)
+    var country by mutableStateOf(AppCountry.VN)
+    var countryPickerOpen by mutableStateOf(false)
 
     /** Người không xem được doanh thu (nhân viên, phi công) không bao giờ thấy đơn vị VND. */
     fun effectiveUnit(): VUnit = if (unit == VUnit.VND && !Access.canSeeSales) VUnit.TON else unit
@@ -70,6 +72,7 @@ fun PeriodSwitcher(modifier: Modifier = Modifier) {
             .padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(2.dp),
     ) {
+        val periodLabels = AppStrings.shell(VUi.country).periodLabels
         VPeriod.values().forEach { p ->
             val sel = p == VUi.period
             Box(
@@ -83,7 +86,7 @@ fun PeriodSwitcher(modifier: Modifier = Modifier) {
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    p.label,
+                    periodLabels.getOrElse(p.ordinal) { p.label },
                     color = if (sel) VC.text else VC.muted,
                     fontSize = 13.sp,
                     fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium,

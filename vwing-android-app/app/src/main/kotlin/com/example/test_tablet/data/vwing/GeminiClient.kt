@@ -321,7 +321,52 @@ Chỉ số GIS 7 tầng: NDVI 0.76, NDRE 0.38, Ẩm đất ${"%.0f".format(lates
             drafts = localBaseline.drafts,
             products = internetProducts,
             understood = true,
+            channel = ChatBotChannel.AGRI,
+            featureCards = Assistant.buildAgriFeatureCards(localBaseline, d),
         )
+    }
+
+    /**
+     * Gọi AI Hỗ trợ Kỹ thuật & Liên hệ Đội ngũ Phát triển (Thay thế SĐT & Email truyền thống).
+     */
+    fun askTechSupport(question: String, d: GardenData, cfg: GeminiConfig): AiAnswer {
+        val localTech = Assistant.answerTechSupport(question, d)
+        if (!cfg.enabled) return localTech
+
+        val apiKey = cfg.apiKey.trim().ifEmpty { DEV_ENV_GEMINI_API_KEY }
+        if (apiKey.length < 10) return localTech
+
+        val preferredModel = cfg.model.trim().ifEmpty { DEV_ENV_GEMINI_MODEL }
+        val sysPrompt = """
+Bạn là Trợ lý AI Hỗ trợ Kỹ thuật & Liên hệ Đội ngũ Phát triển 24/7 của ứng dụng VWing SmartFarm (thay thế hoàn toàn việc gọi SĐT hay gửi Email).
+QUY TẮC: Trả lời tối đa 4 dòng ngắn gọn, thân thiện, chính xác về:
+- Gói Basic Account (149.000đ/tháng | 1.499.000đ/năm) & Pro Account (499.000đ/tháng | 4.999.000đ/năm, mở khóa Aurora Liquid-Glass, GEE 7 chỉ số, Drone VRA).
+- Quét mã QR cây (3 chế độ: Hồ sơ 6 nhóm nội bộ, QR lưới 8m×8m, Truy xuất nguồn gốc người mua).
+- Bản đồ khoanh vườn vệ tinh Google Earth Engine (GEE) & đồng bộ SĐT đa nền tảng Điện thoại + Tablet.
+- Tiếp nhận phiếu báo lỗi / góp ý tính năng trực tiếp cho Đội ngũ Phát triển VWing.
+""".trimIndent()
+
+        val result = callGenerateContent(apiKey, preferredModel, sysPrompt, question)
+        if (result.isSuccess) {
+            val aiText = result.getOrThrow().trim()
+            if (aiText.isNotEmpty()) {
+                val lines = aiText.lines().map { it.trim() }.filter { it.isNotBlank() }.take(4)
+                val headline = lines.firstOrNull()?.removePrefix("#")?.removePrefix("*")?.trim() ?: localTech.summary
+                val facts = lines.drop(1).take(3).map {
+                    Fact(it.removePrefix("- ").removePrefix("* ").removePrefix("• "), FactKind.INFERENCE)
+                }.ifEmpty { localTech.facts }
+                return AiAnswer(
+                    question = question,
+                    asOf = Dates.now(),
+                    scope = localTech.scope,
+                    summary = headline,
+                    facts = facts,
+                    channel = ChatBotChannel.TECH_SUPPORT,
+                    featureCards = localTech.featureCards,
+                )
+            }
+        }
+        return localTech
     }
 
     private fun callGenerateContent(

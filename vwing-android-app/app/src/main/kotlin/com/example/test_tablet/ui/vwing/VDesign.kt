@@ -154,8 +154,26 @@ internal fun parseVnNumber(s: String): Double? {
 }
 
 
-/** Gợi ý biểu tượng theo nội dung nút để mọi nút đều có biểu tượng dễ hiểu (nút có biểu tượng riêng thì không dùng hàm này). */
+/** Phản hồi xúc giác xác nhận thành công (Lưu sổ vườn, Quét trúng mã QR, Đọc giọng nói). */
+fun performConfirmHaptic(view: android.view.View) {
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+        view.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM)
+    } else {
+        view.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
+    }
+}
+
+/** Kiểm tra chuỗi có bắt đầu bằng biểu tượng/emoji hay không để tránh gắn trùng cả Icon Vector lẫn Emoji trên cùng một nút. */
+fun hasLeadingSymbolOrEmoji(text: String): Boolean {
+    val trimmed = text.trimStart()
+    if (trimmed.isEmpty()) return false
+    val cp = trimmed.codePointAt(0)
+    return !Character.isLetterOrDigit(cp)
+}
+
+/** Gợi ý biểu tượng theo nội dung nút để mọi nút đều có biểu tượng dễ hiểu (nút có biểu tượng riêng hoặc đã có emoji đầu dòng thì không dùng hàm này). */
 fun inferIcon(text: String): ImageVector? {
+    if (hasLeadingSymbolOrEmoji(text)) return null
     val t = text.lowercase()
     fun has(vararg k: String) = k.any { t.contains(it) }
     return when {

@@ -18,9 +18,12 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -117,17 +120,25 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.test_tablet.R
 import com.example.test_tablet.data.vwing.Access
+import com.example.test_tablet.data.vwing.BillingCycle
 import com.example.test_tablet.data.vwing.PlanTier
 import com.example.test_tablet.data.vwing.UiSettings
 import com.example.test_tablet.data.vwing.UiSettingsStore
@@ -137,6 +148,7 @@ import com.example.test_tablet.data.vwing.Condition
 import com.example.test_tablet.data.vwing.Dates
 import com.example.test_tablet.data.vwing.activeTrees
 import com.example.test_tablet.data.vwing.normalizeCode
+import com.example.test_tablet.data.vwing.treesNeedingVisitCount
 import com.example.test_tablet.data.vwing.summary
 import com.example.test_tablet.data.vwing.todayWork
 import com.example.test_tablet.data.vwing.zoneNames
@@ -232,13 +244,17 @@ private val NAV = listOf(
 /** Bốn mục chính ở thanh dưới (Quét QR nằm chính giữa ở vị trí 3/5); các mục còn lại nằm trong "Thêm". */
 private val BOTTOM = listOf("overview", "map", "qr", "ai")
 
-private fun titleOf(head: String, simpleMode: Boolean = true) = when (head) {
-    "tree" -> "Hồ sơ cây"
-    "issue" -> "Chi tiết vấn đề"
-    "imageset" -> "Bộ ảnh"
-    "ndvi" -> if (simpleMode) "Sức khỏe lá cây" else "Chỉ số NDVI"
-    "drone" -> if (simpleMode) "Bay chụp & Phun thuốc tiết kiệm" else "Drone Đa phổ & Phun VRA"
-    else -> NAV.firstOrNull { it.route == head }?.let { if (simpleMode) it.farmerLabel else it.label } ?: "VWing"
+private fun titleOf(head: String, simpleMode: Boolean = true): String {
+    val sh = AppStrings.shell(VUi.country)
+    val fallback = when (head) {
+        "tree" -> "Hồ sơ cây"
+        "issue" -> "Chi tiết vấn đề"
+        "imageset" -> "Bộ ảnh"
+        "ndvi" -> if (simpleMode) "Sức khỏe lá cây" else "Chỉ số NDVI"
+        "drone" -> if (simpleMode) "Bay chụp & Phun thuốc tiết kiệm" else "Drone Đa phổ & Phun VRA"
+        else -> NAV.firstOrNull { it.route == head }?.let { if (simpleMode) it.farmerLabel else it.label } ?: "VWing"
+    }
+    return sh.fullLabel(head, fallback)
 }
 
 private fun activeHead(head: String) = when (head) { "tree" -> "map"; "issue" -> "issues"; "imageset", "ndvi" -> "imagery"; else -> head }
@@ -248,37 +264,77 @@ private fun activeHead(head: String) = when (head) { "tree" -> "map"; "issue" ->
 fun VWingApp(onOpenFarmer: () -> Unit, onOpenOps: () -> Unit, startOnLanding: Boolean = false) {
     VWingTheme {
         val context = LocalContext.current
+        val activity = context as? android.app.Activity
+        val intent = activity?.intent
         val store = remember { VWingStore.get(context) }
+        val exportRouteExtra = intent?.getStringExtra("export_route")
+        val exportDialogExtra = intent?.getStringExtra("export_dialog")
+        val exportTierExtra = intent?.getStringExtra("export_tier")
+        val exportLoginExtra = intent?.getBooleanExtra("export_login", false) ?: false
+        val exportWideExtra = if (intent?.hasExtra("export_wide") == true) intent.getBooleanExtra("export_wide", false) else null
+
+        val resolvedInitRoute = remember(exportRouteExtra) {
+            when (exportRouteExtra) {
+                null, "" -> "overview"
+                "tree" -> "tree|${store.data.activeTrees.firstOrNull()?.id ?: "t-a03"}"
+                "issue" -> "issue|${store.data.issues.firstOrNull()?.id ?: "iss-1"}"
+                else -> exportRouteExtra
+            }
+        }
         var showLanding by rememberSaveable { mutableStateOf(startOnLanding) }
         val stack = rememberSaveable(saver = listSaver<SnapshotStateList<String>, String>(save = { it.toList() }, restore = { it.toMutableStateList() })) {
-            mutableStateListOf("overview")
+            mutableStateListOf(resolvedInitRoute)
         }
         var selected by rememberSaveable { mutableStateOf<String?>(null) }
         val snack = remember { SnackbarHostState() }
         val scope = rememberCoroutineScope()
-        var showMore by remember { mutableStateOf(false) }
+        var showMore by remember { mutableStateOf(exportDialogExtra == "more") }
         val mapAnalysisSession = rememberSaveable(saver = MapAnalysisSession.Saver) { MapAnalysisSession() }
         val uiSettingsStore = remember { UiSettingsStore(context.filesDir) }
-        var uiSettings by remember { mutableStateOf(uiSettingsStore.load()) }
+        var uiSettings by remember {
+            val loaded = uiSettingsStore.load()
+            val tierOverride = when (exportTierExtra) {
+                "FREE" -> PlanTier.FREE
+                "PRO" -> PlanTier.ENTERPRISE
+                else -> loaded.planTier
+            }
+            mutableStateOf(loaded.copy(planTier = tierOverride))
+        }
         val simpleMode = uiSettings.simpleMode
         var phoneMode by rememberSaveable { mutableStateOf(false) }
         var paywallFeature by remember { mutableStateOf<VFeature?>(null) }
         var pendingLockedRoute by remember { mutableStateOf<String?>(null) }
-        var showPlanDialog by remember { mutableStateOf(false) }
-        var showFarmerAuthDialog by remember { mutableStateOf(false) }
+        var showPlanDialog by remember { mutableStateOf(exportDialogExtra == "plan") }
+        var showFarmerAuthDialog by remember { mutableStateOf(exportDialogExtra == "auth") }
         VUi.simpleMode = simpleMode
-        VC.isPro = (uiSettings.planTier == PlanTier.ENTERPRISE)
+        // Chế độ Nông dân (simpleMode = true) mặc định dùng giao diện sáng Daylight dễ đọc ngoài nắng;
+        // Chế độ Kỹ sư (simpleMode = false) trên gói Pro dùng giao diện tối Aurora.
+        VC.isPro = (exportTierExtra == "PRO") || (!simpleMode && uiSettings.planTier == PlanTier.ENTERPRISE)
+        if (exportDialogExtra == "search") {
+            VUi.searchOpen = true
+        }
 
         androidx.compose.runtime.LaunchedEffect(Unit) {
             com.example.test_tablet.data.vwing.FirebaseFarmerRepo.initializeAndAttachStore(context, store)
+            if (exportRouteExtra != null || exportDialogExtra != null) {
+                com.example.test_tablet.data.vwing.FirebaseFarmerRepo.dismissLoginGate()
+            }
         }
 
         val updateSettings: ((UiSettings) -> UiSettings) -> Unit = { transform ->
             val next = transform(uiSettings)
             uiSettings = next
             VUi.simpleMode = next.simpleMode
-            VC.isPro = (next.planTier == PlanTier.ENTERPRISE)
+            VC.isPro = (exportTierExtra == "PRO") || (!next.simpleMode && next.planTier == PlanTier.ENTERPRISE)
             uiSettingsStore.save(next)
+        }
+
+        val activeFarmerKey = com.example.test_tablet.data.vwing.FirebaseFarmerRepo.currentFarmer?.phoneKey
+        val activeFarmerTier = com.example.test_tablet.data.vwing.FirebaseFarmerRepo.currentFarmer?.planTier
+        androidx.compose.runtime.LaunchedEffect(activeFarmerKey, activeFarmerTier) {
+            if (exportTierExtra == null && activeFarmerTier != null && (uiSettings.planTier != activeFarmerTier || !uiSettings.simpleMode)) {
+                updateSettings { cur -> cur.copy(simpleMode = true, planTier = activeFarmerTier, enabledFeatures = emptySet(), disabledFeatures = emptySet()) }
+            }
         }
 
         val nav = remember(stack) {
@@ -311,9 +367,27 @@ fun VWingApp(onOpenFarmer: () -> Unit, onOpenOps: () -> Unit, startOnLanding: Bo
             return@VWingTheme
         }
 
+        if (exportLoginExtra || (exportRouteExtra == null && exportDialogExtra == null && com.example.test_tablet.data.vwing.FirebaseFarmerRepo.showLoginGate)) {
+            FarmerPhoneOtpLoginScreen(
+                store = store,
+                onLoginSuccess = { profile ->
+                    updateSettings { cur -> cur.copy(simpleMode = true, planTier = profile.planTier, enabledFeatures = emptySet(), disabledFeatures = emptySet()) }
+                    com.example.test_tablet.data.vwing.FirebaseFarmerRepo.dismissLoginGate()
+                    scope.launch {
+                        snack.showSnackbar("🎉 Đã mở sổ vườn của số ${profile.displayPhone}")
+                    }
+                },
+                onSkipDemo = {
+                    com.example.test_tablet.data.vwing.FirebaseFarmerRepo.dismissLoginGate()
+                },
+            )
+            return@VWingTheme
+        }
+
         BoxWithConstraints(
             Modifier
                 .fillMaxSize()
+                .semantics { testTagsAsResourceId = true }
                 .background(if (phoneMode) Color(0xFF04121B) else VC.bg)
                 .onPreviewKeyEvent { e ->
                     if (e.type == KeyEventType.KeyDown && e.isCtrlPressed && e.key == Key.K) { VUi.searchOpen = true; true } else false
@@ -321,7 +395,7 @@ fun VWingApp(onOpenFarmer: () -> Unit, onOpenOps: () -> Unit, startOnLanding: Bo
             contentAlignment = Alignment.TopCenter,
         ) {
             val isPhysicalTablet = maxWidth >= 600.dp
-            val wide = !phoneMode && maxWidth >= 840.dp
+            val wide = exportWideExtra ?: (!phoneMode && maxWidth >= 840.dp)
             val ctx = VCtx(
                 store, nav, wide, { m -> scope.launch { snack.showSnackbar(m) } }, selected, { selected = it }, onOpenFarmer, onOpenOps, mapAnalysisSession,
                 simpleMode, { v -> updateSettings { it.copy(simpleMode = v) } },
@@ -380,8 +454,17 @@ fun VWingApp(onOpenFarmer: () -> Unit, onOpenOps: () -> Unit, startOnLanding: Bo
                     snackbarHost = { SnackbarHost(snack) },
                     bottomBar = { if (!wide) BottomBar(active, nav, onMore = { showMore = true }) },
                     floatingActionButton = {
+                        val showQuickLogFab = nav.head in setOf(
+                            "records",
+                            "tree",
+                            "env",
+                            "weather",
+                            "disease",
+                            "yield",
+                            "market",
+                        )
                         AnimatedVisibility(
-                            visible = nav.head != "log" && nav.head != "map" && nav.head != "qr",
+                            visible = showQuickLogFab,
                             enter = scaleIn(tween(220, easing = FastOutSlowInEasing)) + fadeIn(tween(180)),
                             exit = scaleOut(tween(150)) + fadeOut(tween(110)),
                         ) {
@@ -390,7 +473,10 @@ fun VWingApp(onOpenFarmer: () -> Unit, onOpenOps: () -> Unit, startOnLanding: Bo
                                 containerColor = VC.pine,
                                 contentColor = Color.White,
                                 shape = RoundedCornerShape(16.dp),
-                                modifier = Modifier.border(1.dp, if (VC.isPro) VC.mint.copy(alpha = 0.55f) else VC.pine, RoundedCornerShape(16.dp)),
+                                modifier = Modifier
+                                    .testTag("fab_log_garden")
+                                    .semantics { contentDescription = if (simpleMode) "Ghi sổ vườn" else "Ghi hoạt động" }
+                                    .border(1.dp, if (VC.isPro) VC.mint.copy(alpha = 0.55f) else VC.pine, RoundedCornerShape(16.dp)),
                                 elevation = FloatingActionButtonDefaults.elevation(4.dp, 2.dp),
                                 icon = { Icon(Icons.Filled.Add, null, tint = if (VC.isPro) VC.mint else Color.White, modifier = Modifier.size(18.dp)) },
                                 text = { Text(if (simpleMode) "Ghi sổ vườn" else "Ghi hoạt động", fontWeight = FontWeight.SemiBold, fontSize = 14.sp) },
@@ -441,8 +527,8 @@ fun VWingApp(onOpenFarmer: () -> Unit, onOpenOps: () -> Unit, startOnLanding: Bo
                                                 end = if (wide) 24.dp else 14.dp,
                                                 top = if (wide) 20.dp else 10.dp,
                                                 // Sửa lỗi nội dung bị nút Ghi hoạt động (FAB) đè lên: chừa đủ chiều cao
-                                                // cho thanh điều hướng dưới (~80dp) + FAB (~64dp) ở màn dọc, chỉ FAB ở ngang.
-                                                bottom = if (wide) 120.dp else 152.dp,
+                                                // cho FAB ở cuối trang (chiều cao thanh điều hướng dưới đã được Scaffold pad xử lý).
+                                                bottom = if (wide) 110.dp else 116.dp,
                                             )
                                         ) {
                                             Screens(routed)
@@ -456,6 +542,19 @@ fun VWingApp(onOpenFarmer: () -> Unit, onOpenOps: () -> Unit, startOnLanding: Bo
             }
 
             if (VUi.searchOpen) QuickSearch(ctx) { VUi.searchOpen = false }
+            if (VUi.countryPickerOpen) {
+                CountryPickerDialog(
+                    current = VUi.country,
+                    onSelect = { chosen ->
+                        VUi.country = chosen
+                        AppLocaleStore.save(context, chosen)
+                        java.util.Locale.setDefault(chosen.toLocale())
+                        VUi.countryPickerOpen = false
+                        ctx.toast(AppStrings.forCountry(chosen).switchedToast(chosen))
+                    },
+                    onDismiss = { VUi.countryPickerOpen = false },
+                )
+            }
 
             if (showMore) {
                 ModalBottomSheet(onDismissRequest = { showMore = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = VC.card, shape = RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp)) {
@@ -533,7 +632,7 @@ private fun QuickSearch(c: VCtx, onClose: () -> Unit) {
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Icon(n.icon, null, tint = VC.lime, modifier = Modifier.size(24.dp))
-                    Text(n.label, color = VC.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                    Text(AppStrings.shell(VUi.country).fullLabel(n.route, n.label), color = VC.text, fontSize = 16.sp, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -547,10 +646,10 @@ private fun Screens(c: VCtx) {
         "workflow" -> AuroraWorkflowScreen(c)
         "map" -> BoundaryPickerScreen(c, isDialog = false)
         "qr" -> QrScannerScreen(c)
-        "tree" -> TreeProfileScreen(c, c.nav.arg)
+        "tree" -> TreeProfileScreen(c, c.d.activeTrees.firstOrNull { it.id == c.nav.arg }?.id ?: c.d.activeTrees.firstOrNull()?.id ?: c.nav.arg)
         "records" -> RecordsScreen(c)
         "issues" -> IssuesScreen(c, c.nav.arg.ifEmpty { "issues" })
-        "issue" -> IssueDetailScreen(c, c.nav.arg)
+        "issue" -> IssueDetailScreen(c, c.d.issues.firstOrNull { it.id == c.nav.arg }?.id ?: c.d.issues.firstOrNull()?.id ?: c.nav.arg)
         "yield" -> YieldScreen(c)
         "market" -> MarketScreen(c)
         "weather" -> WeatherScreen(c)
@@ -621,8 +720,176 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
     val canBack = c.nav.stack.size > 1
     val onOverview = c.nav.head == "overview"
     val showControls = c.wide && onOverview && !c.simpleMode
-    val work = d.todayWork()
-    val btnSize = 48.dp
+    val needsVisitCount = d.treesNeedingVisitCount()
+    val btnSize = if (c.wide) 48.dp else 42.dp
+    val currentFarmer = com.example.test_tablet.data.vwing.FirebaseFarmerRepo.currentFarmer
+    val isEnt = c.uiSettings.planTier == PlanTier.ENTERPRISE
+
+    if (!c.wide) {
+        // Bố cục 2 hàng cho Điện thoại (360×800dp & 411×914dp): chuẩn vùng chạm ≥44–46dp, hiển thị đầy đủ không cắt chữ
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                if (canBack) {
+                    IconButton({ c.nav.pop() }, Modifier.size(48.dp)) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Quay lại", tint = VC.text, modifier = Modifier.size(22.dp))
+                    }
+                } else {
+                    Box(Modifier.size(48.dp).bounceClick(onClick = onLogoClick), contentAlignment = Alignment.Center) {
+                        LogoPlate(26.dp)
+                    }
+                }
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        titleOf(c.nav.head, c.simpleMode),
+                        color = VC.text,
+                        fontFamily = VDisplayFont,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        if (c.simpleMode) "${d.garden.name} · ${d.garden.location.ifBlank { Dates.fmt(Dates.now()) }}"
+                        else "${d.garden.name} · ${Dates.fmt(Dates.now())}",
+                        color = VC.muted,
+                        fontSize = 12.sp,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
+                CircleIconButton({ VUi.countryPickerOpen = true }, size = 48.dp) {
+                    Text(VUi.country.flag, fontSize = 20.sp)
+                }
+                CircleIconButton({ c.nav.top("issues|issues") }, dot = needsVisitCount > 0, size = 48.dp) {
+                    Icon(Icons.Filled.NotificationsNone, "Cây cần thăm ($needsVisitCount)", tint = VC.text, modifier = Modifier.size(20.dp))
+                }
+            }
+
+            // Hàng SĐT · Gói · Chế độ chỉ hiện ở Tổng quan và Cài đặt: các màn khác nhường ~50dp chiều cao cho nội dung.
+            // (Đổi số điện thoại, gói cước và chế độ Nông dân/Kỹ sư đều có sẵn trong Cài đặt vườn.)
+            if (onOverview || c.nav.head == "setup") Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    Modifier
+                        .weight(1.15f)
+                        .heightIn(min = 48.dp)
+                        .testTag("top_phone_auth")
+                        .semantics { contentDescription = "Tài khoản SĐT nông dân" }
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (currentFarmer != null) VC.pine else VC.card)
+                        .border(
+                            1.dp,
+                            if (currentFarmer != null) VC.lime.copy(alpha = 0.65f) else VC.mint.copy(alpha = 0.48f),
+                            RoundedCornerShape(12.dp),
+                        )
+                        .bounceClick { c.openFarmerAuth() }
+                        .padding(horizontal = 6.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        Icons.Outlined.Dashboard,
+                        contentDescription = null,
+                        tint = if (currentFarmer != null) (if (VC.isPro) VC.lime else Color.White) else VC.text2,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (currentFarmer != null) currentFarmer.displayPhone else "Nhập SĐT",
+                        color = if (currentFarmer != null) (if (VC.isPro) VC.lime else Color.White) else VC.text,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
+
+                Row(
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 48.dp)
+                        .testTag("top_plan_tier")
+                        .semantics { contentDescription = if (isEnt) "Pro Account 499.000đ" else "Basic Account 149.000đ" }
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (isEnt) VC.pine else VC.card)
+                        .border(1.dp, if (isEnt) VC.gold.copy(alpha = 0.65f) else VC.border, RoundedCornerShape(12.dp))
+                        .bounceClick { c.requestFeature(null) }
+                        .padding(horizontal = 6.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Icon(
+                        if (isEnt) Icons.Filled.AutoAwesome else Icons.Outlined.AutoAwesome,
+                        contentDescription = null,
+                        tint = if (isEnt) VC.gold else VC.mint,
+                        modifier = Modifier.size(14.dp),
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (isEnt) "Pro · 499K" else "Basic · 149K",
+                        color = if (isEnt) VC.gold else VC.mint,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
+
+                Row(
+                    Modifier
+                        .weight(0.92f)
+                        .heightIn(min = 48.dp)
+                        .testTag("top_mode_switch")
+                        .semantics { contentDescription = if (c.simpleMode) "Chế độ Nông dân" else "Chế độ Kỹ sư" }
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(if (c.simpleMode) VC.card else VC.pine)
+                        .border(1.dp, if (c.simpleMode) VC.border else VC.mint.copy(alpha = 0.65f), RoundedCornerShape(12.dp))
+                        .bounceClick {
+                            val next = !c.simpleMode
+                            if (!next && !c.isFeatureEnabled(VFeature.ENGINEER_MODE)) {
+                                c.requestFeature(VFeature.ENGINEER_MODE)
+                            } else {
+                                c.setSimpleMode(next)
+                                c.toast(if (next) "Chế độ Nông dân: ưu tiên kết luận rõ ràng." else "Chế độ Kỹ sư: hiển thị đầy đủ chỉ số GIS & OBIA.")
+                            }
+                        }
+                        .padding(horizontal = 6.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    Box(
+                        Modifier
+                            .size(7.dp)
+                            .clip(CircleShape)
+                            .background(if (c.simpleMode) VC.lime else VC.mint)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        if (c.simpleMode) "Nông dân" else "Kỹ sư",
+                        color = if (c.simpleMode) VC.text else Color.White,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+        return
+    }
+
     Row(
         Modifier
             .fillMaxWidth()
@@ -635,7 +902,7 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
             else if (!c.wide) Box(Modifier.size(48.dp).bounceClick(onClick = onLogoClick), contentAlignment = Alignment.Center) { LogoPlate(28.dp) }
             else Spacer(Modifier.size(1.dp))
         }
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f).widthIn(min = 140.dp)) {
             Text(
                 titleOf(c.nav.head, c.simpleMode),
                 color = VC.text,
@@ -646,19 +913,21 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
             Text(
-                if (onOverview) "${d.garden.name} · ${Dates.fmt(Dates.now())}" else d.garden.name + if (d.isSample) " · dữ liệu mẫu" else "",
+                if (onOverview) "${d.garden.name} · ${Dates.fmt(Dates.now())}"
+                else if (c.simpleMode) "${d.garden.name} · ${d.garden.location.ifBlank { Dates.fmt(Dates.now()) }}"
+                else d.garden.name + if (d.isSample) " · dữ liệu mẫu" else "",
                 color = VC.muted,
                 fontSize = 12.5.sp,
                 maxLines = 1,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             )
         }
-        if (showControls) PeriodSwitcher()
         Row(
-            if (showControls) Modifier.weight(1f) else Modifier,
+            Modifier.horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.End),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (showControls) PeriodSwitcher()
             if (c.canTogglePhoneMode && !c.simpleMode) {
                 Row(
                     Modifier
@@ -671,9 +940,9 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
                             c.setPhoneMode(next)
                             c.toast(if (next) "Đã chuyển sang bố cục Điện thoại (≤420dp)." else "Đã chuyển về bố cục Máy tính bảng.")
                         }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                        .padding(horizontal = 10.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     Icon(
                         Icons.Outlined.Layers,
@@ -682,9 +951,9 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
                         modifier = Modifier.size(16.dp),
                     )
                     Text(
-                        if (c.phoneMode) "Khung Tablet" else if (c.wide) "Khung Điện thoại" else "ĐT",
+                        if (c.phoneMode) "Tablet" else "Khung ĐT",
                         color = if (c.phoneMode) Color.White else VC.text,
-                        fontSize = 13.sp,
+                        fontSize = 12.5.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
                     )
@@ -695,6 +964,8 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
             Row(
                 Modifier
                     .heightIn(min = 48.dp)
+                    .testTag("top_phone_auth")
+                    .semantics { contentDescription = "Tài khoản SĐT nông dân" }
                     .clip(RoundedCornerShape(14.dp))
                     .background(if (currentFarmer != null) VC.pine else VC.card)
                     .border(
@@ -703,22 +974,24 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
                         RoundedCornerShape(14.dp),
                     )
                     .bounceClick { c.openFarmerAuth() }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 9.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                Text(
-                    if (currentFarmer != null) "📱" else "📲",
-                    fontSize = 13.sp,
+                Icon(
+                    Icons.Outlined.Dashboard,
+                    contentDescription = null,
+                    tint = if (currentFarmer != null) (if (VC.isPro) VC.lime else Color.White) else VC.text2,
+                    modifier = Modifier.size(15.dp),
                 )
                 Text(
                     if (currentFarmer != null) {
-                        if (c.wide) "${currentFarmer.phoneDisplay} · 📍" else currentFarmer.phoneDisplay
+                        currentFarmer.phoneDisplay
                     } else {
-                        if (c.wide) "Đăng nhập SĐT · Map" else "SĐT · Map"
+                        if (c.wide) "Số điện thoại" else "SĐT"
                     },
                     color = if (currentFarmer != null) (if (VC.isPro) VC.lime else Color.White) else VC.text,
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                 )
@@ -728,28 +1001,30 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
             Row(
                 Modifier
                     .heightIn(min = 48.dp)
+                    .testTag("top_plan_tier")
+                    .semantics { contentDescription = if (isEnt) "Pro Account 499.000đ" else "Basic Account 149.000đ" }
                     .clip(RoundedCornerShape(14.dp))
                     .background(if (isEnt) VC.pine else VC.card)
                     .border(1.dp, if (isEnt) VC.gold.copy(alpha = 0.65f) else VC.border, RoundedCornerShape(14.dp))
                     .bounceClick { c.requestFeature(null) }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
-                Text(
-                    if (isEnt) "✦" else "🌱",
-                    color = if (isEnt) VC.gold else VC.mint,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
+                Icon(
+                    if (isEnt) Icons.Filled.AutoAwesome else Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = if (isEnt) VC.gold else VC.mint,
+                    modifier = Modifier.size(15.dp),
                 )
                 Text(
                     if (c.wide) {
-                        if (isEnt) "Enterprise" else "Gói Free"
+                        if (isEnt) "Pro Account · 499K" else "Basic Account · 149K"
                     } else {
-                        if (isEnt) "Pro" else "Free"
+                        if (isEnt) "Pro · 499K" else "Basic · 149K"
                     },
                     color = if (isEnt) VC.gold else VC.mint,
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                 )
@@ -758,6 +1033,8 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
             Row(
                 Modifier
                     .heightIn(min = 48.dp)
+                    .testTag("top_mode_switch")
+                    .semantics { contentDescription = if (c.simpleMode) "Chế độ Nông dân" else "Chế độ Kỹ sư" }
                     .clip(RoundedCornerShape(14.dp))
                     .background(if (c.simpleMode) VC.card else VC.pine)
                     .border(1.dp, if (c.simpleMode) VC.border else VC.mint.copy(alpha = 0.65f), RoundedCornerShape(14.dp))
@@ -770,9 +1047,9 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
                             c.toast(if (next) "Chế độ Nông dân: ưu tiên kết luận rõ ràng." else "Chế độ Kỹ sư: hiển thị đầy đủ chỉ số GIS & OBIA.")
                         }
                     }
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 9.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                horizontalArrangement = Arrangement.spacedBy(5.dp),
             ) {
                 Box(
                     Modifier
@@ -780,18 +1057,19 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
                         .clip(CircleShape)
                         .background(if (c.simpleMode) VC.lime else VC.mint)
                 )
+                val shMode = AppStrings.shell(VUi.country)
                 Text(
                     if (c.wide) {
-                        if (c.simpleMode) "Chế độ Nông dân" else "Chế độ Kỹ sư"
+                        if (c.simpleMode) shMode.farmerFull else shMode.engineerFull
                     } else {
-                        if (c.simpleMode) "Nông dân" else "Kỹ sư"
+                        if (c.simpleMode) shMode.farmerShort else shMode.engineerShort
                     },
                     color = if (c.simpleMode) VC.text else Color.White,
-                    fontSize = 13.sp,
+                    fontSize = 12.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                 )
-                if (c.simpleMode && !c.isFeatureEnabled(VFeature.ENGINEER_MODE)) {
+                if (c.wide && c.simpleMode && !c.isFeatureEnabled(VFeature.ENGINEER_MODE)) {
                     Box(
                         Modifier
                             .clip(RoundedCornerShape(6.dp))
@@ -803,9 +1081,9 @@ private fun Header(c: VCtx, active: String, onLogoClick: () -> Unit = {}) {
                     }
                 }
             }
-            CircleIconButton({ VUi.searchOpen = true }, size = btnSize) { Icon(Icons.Filled.Search, "Tìm nhanh (Ctrl+K)", tint = VC.text, modifier = Modifier.size(21.dp)) }
+            CircleIconButton({ VUi.countryPickerOpen = true }, size = btnSize) { Text(VUi.country.flag, fontSize = 20.sp) }
             if (showControls) UnitPill()
-            CircleIconButton({ c.nav.top("issues|issues") }, dot = work.total > 0, size = btnSize) { Icon(Icons.Filled.NotificationsNone, "Việc cần chú ý", tint = VC.text, modifier = Modifier.size(21.dp)) }
+            CircleIconButton({ c.nav.top("issues|issues") }, dot = needsVisitCount > 0, size = btnSize) { Icon(Icons.Filled.NotificationsNone, "Cây cần thăm ($needsVisitCount)", tint = VC.text, modifier = Modifier.size(21.dp)) }
             if (c.wide) Box(
                 Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(VC.pine).border(1.dp, VC.mint.copy(alpha = 0.45f), RoundedCornerShape(14.dp)).bounceClick { c.openFarmerAuth() },
                 contentAlignment = Alignment.Center,
@@ -851,7 +1129,7 @@ private fun RailItem(
             modifier = Modifier.size(18.dp),
         )
         Text(
-            if (simpleMode) n.farmerLabel else n.label,
+            AppStrings.shell(VUi.country).fullLabel(n.route, if (simpleMode) n.farmerLabel else n.label),
             color = if (sel) Color.White else VC.text2,
             fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium,
             fontSize = 14.sp,
@@ -898,7 +1176,7 @@ private fun RailItem(
 @Composable
 private fun Sidebar(active: String, nav: VNav, c: VCtx, onLogoClick: () -> Unit = {}) {
     val sum = c.d.summary()
-    val work = c.d.todayWork()
+    val needsVisitCount = c.d.treesNeedingVisitCount()
     val stablePct = if (sum.totalTrees == 0) 0 else Math.round(sum.byCondition.getValue(Condition.STABLE) * 100f / sum.totalTrees)
     var showSecondaryInFarmerMode by rememberSaveable { mutableStateOf(false) }
     Column(
@@ -929,10 +1207,11 @@ private fun Sidebar(active: String, nav: VNav, c: VCtx, onLogoClick: () -> Unit 
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(if (c.uiSettings.planTier == PlanTier.ENTERPRISE) VC.pine else VC.elevated)
                                 .border(1.dp, if (c.uiSettings.planTier == PlanTier.ENTERPRISE) VC.gold.copy(alpha = 0.55f) else VC.border, RoundedCornerShape(6.dp))
+                                .bounceClick { c.requestFeature(null) }
                                 .padding(horizontal = 5.dp, vertical = 1.dp)
                         ) {
                             Text(
-                                if (c.uiSettings.planTier == PlanTier.ENTERPRISE) "✦ PRO" else "FREE",
+                                if (c.uiSettings.planTier == PlanTier.ENTERPRISE) "✦ PRO 499K" else "BASIC 149K",
                                 color = if (c.uiSettings.planTier == PlanTier.ENTERPRISE) VC.gold else VC.mint,
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
@@ -961,7 +1240,7 @@ private fun Sidebar(active: String, nav: VNav, c: VCtx, onLogoClick: () -> Unit 
                     modifier = Modifier.padding(top = 6.dp, bottom = 4.dp, start = 10.dp),
                 )
                 mainItems.forEach { n ->
-                    val badge = if (n.route == "issues") work.total else 0
+                    val badge = if (n.route == "issues") needsVisitCount else 0
                     val locked = VFeature.forRoute(n.route)?.let { !c.isFeatureEnabled(it) } ?: false
                     RailItem(n, n.route == active, simpleMode = true, badgeCount = badge, locked = locked) { nav.top(n.route) }
                 }
@@ -1000,7 +1279,7 @@ private fun Sidebar(active: String, nav: VNav, c: VCtx, onLogoClick: () -> Unit 
                         modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 10.dp),
                     )
                     items.forEach { n ->
-                        val badge = if (n.route == "issues") work.total else 0
+                        val badge = if (n.route == "issues") needsVisitCount else 0
                         val locked = VFeature.forRoute(n.route)?.let { !c.isFeatureEnabled(it) } ?: false
                         RailItem(n, n.route == active, simpleMode = false, badgeCount = badge, locked = locked) { nav.top(n.route) }
                     }
@@ -1027,85 +1306,92 @@ private fun BottomBar(active: String, nav: VNav, onMore: () -> Unit) {
         unselectedIconColor = VC.muted,
         unselectedTextColor = VC.muted,
     )
-    NavigationBar(
-        containerColor = if (isPro) Color(0xFF061621).copy(alpha = 0.96f) else Color.White,
-        tonalElevation = 0.dp,
-        modifier = Modifier
-            .height(80.dp)
-            .border(1.dp, VC.border),
-    ) {
-        BOTTOM.map { r -> NAV.first { it.route == r } }.forEach { n ->
-            val sel = n.route == active
-            val isCenterQr = n.route == "qr"
+    Column(Modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(VC.border))
+        NavigationBar(
+            containerColor = if (isPro) Color(0xFF061621).copy(alpha = 0.96f) else Color.White,
+            tonalElevation = 0.dp,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            BOTTOM.map { r -> NAV.first { it.route == r } }.forEach { n ->
+                val sel = n.route == active
+                val isCenterQr = n.route == "qr"
+                NavigationBarItem(
+                    selected = sel,
+                    onClick = {
+                        view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
+                        nav.top(n.route)
+                    },
+                    modifier = Modifier
+                        .testTag("nav_${n.route}")
+                        .semantics { contentDescription = n.short },
+                    icon = {
+                        if (isCenterQr) {
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(14.dp))
+                                    .background(
+                                        if (isPro) {
+                                            if (sel) VC.pine else Color(0xFF0F2E24)
+                                        } else {
+                                            if (sel) Color(0xFFE2ECE7) else Color(0xFFEEF5F1)
+                                        }
+                                    )
+                                    .border(
+                                        1.dp,
+                                        if (isPro) {
+                                            if (sel) VC.lime else VC.mint.copy(alpha = 0.55f)
+                                        } else {
+                                            if (sel) VC.pine.copy(alpha = 0.45f) else Color(0xFFC8DCD2)
+                                        },
+                                        RoundedCornerShape(14.dp),
+                                    )
+                                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Icon(
+                                    if (sel) n.iconOn else n.icon,
+                                    n.short,
+                                    tint = if (isPro) VC.lime else VC.pine,
+                                    modifier = Modifier.size(24.dp),
+                                )
+                            }
+                        } else {
+                            Icon(if (sel) n.iconOn else n.icon, n.short, Modifier.size(24.dp))
+                        }
+                    },
+                    label = {
+                        Text(
+                            AppStrings.shell(VUi.country).shortLabel(n.route, n.short),
+                            fontSize = 10.5.sp,
+                            letterSpacing = (-0.35).sp,
+                            fontWeight = if (sel || isCenterQr) FontWeight.Bold else FontWeight.Medium,
+                            color = if (isPro) {
+                                if (sel) Color.White else if (isCenterQr) VC.lime else VC.muted
+                            } else {
+                                if (sel || isCenterQr) VC.pine else VC.muted
+                            },
+                            maxLines = 1,
+                            softWrap = false,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
+                    },
+                    colors = colors,
+                )
+            }
+            val moreSel = active !in BOTTOM
+            val shMore = AppStrings.shell(VUi.country)
             NavigationBarItem(
-                selected = sel,
+                selected = moreSel,
                 onClick = {
                     view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
-                    nav.top(n.route)
+                    onMore()
                 },
-                icon = {
-                    if (isCenterQr) {
-                        Box(
-                            Modifier
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(
-                                    if (isPro) {
-                                        if (sel) VC.pine else Color(0xFF0F2E24)
-                                    } else {
-                                        if (sel) Color(0xFFE2ECE7) else Color(0xFFEEF5F1)
-                                    }
-                                )
-                                .border(
-                                    1.dp,
-                                    if (isPro) {
-                                        if (sel) VC.lime else VC.mint.copy(alpha = 0.55f)
-                                    } else {
-                                        if (sel) VC.pine.copy(alpha = 0.45f) else Color(0xFFC8DCD2)
-                                    },
-                                    RoundedCornerShape(14.dp),
-                                )
-                                .padding(horizontal = 12.dp, vertical = 4.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Icon(
-                                if (sel) n.iconOn else n.icon,
-                                n.short,
-                                tint = if (isPro) VC.lime else VC.pine,
-                                modifier = Modifier.size(24.dp),
-                            )
-                        }
-                    } else {
-                        Icon(if (sel) n.iconOn else n.icon, n.short, Modifier.size(24.dp))
-                    }
-                },
-                label = {
-                    Text(
-                        n.short,
-                        fontSize = 12.sp,
-                        fontWeight = if (sel || isCenterQr) FontWeight.Bold else FontWeight.Medium,
-                        color = if (isPro) {
-                            if (sel) Color.White else if (isCenterQr) VC.lime else VC.muted
-                        } else {
-                            if (sel || isCenterQr) VC.pine else VC.muted
-                        },
-                        maxLines = 1,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                    )
-                },
+                icon = { Icon(if (moreSel) Icons.Filled.MoreHoriz else Icons.Outlined.MoreHoriz, shMore.more, Modifier.size(24.dp)) },
+                label = { Text(shMore.more, fontSize = 11.2.sp, letterSpacing = (-0.25).sp, fontWeight = if (moreSel) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1, softWrap = false) },
                 colors = colors,
             )
         }
-        val moreSel = active !in BOTTOM
-        NavigationBarItem(
-            selected = moreSel,
-            onClick = {
-                view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)
-                onMore()
-            },
-            icon = { Icon(if (moreSel) Icons.Filled.MoreHoriz else Icons.Outlined.MoreHoriz, "Thêm", Modifier.size(24.dp)) },
-            label = { Text("Thêm", fontSize = 12.sp, fontWeight = if (moreSel) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1) },
-            colors = colors,
-        )
     }
 }
 
@@ -1118,21 +1404,28 @@ private fun MoreSheet(active: String, c: VCtx, onPick: (String) -> Unit) {
             .verticalScroll(rememberScrollState())
             .padding(start = 20.dp, end = 20.dp, bottom = 32.dp),
     ) {
-        Row(
+        val sh = AppStrings.shell(VUi.country)
+        FlowRow(
             Modifier.fillMaxWidth().padding(bottom = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("Tất cả phân hệ", color = VC.text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Text(
+                AppStrings.tr(if (c.simpleMode) "Tất cả mục trong sổ vườn" else "Tất cả phân hệ"),
+                color = VC.text,
+                fontSize = 17.5.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(top = 6.dp),
+            )
             VButton(
-                if (c.uiSettings.planTier == PlanTier.ENTERPRISE) "✦ Gói Enterprise (Bật/Tắt)" else "🌱 Gói Free · Mở khóa Pro",
+                if (c.uiSettings.planTier == PlanTier.ENTERPRISE) "✦ Pro Account · 499K" else AppStrings.tr("🌱 Basic · 149K ➔ Mở Pro"),
                 { c.requestFeature(null) },
                 primary = false,
             )
         }
         val groups = visibleNav().filter { it.route !in BOTTOM && it.route != "setup" }.groupBy { it.section }
         groups.forEach { (section, items) ->
-            Text(humanize(section), color = VC.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp, top = 8.dp))
+            Text(humanize(sh.sectionLabel(section)), color = VC.muted, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(bottom = 8.dp, top = 8.dp))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp), maxItemsInEachRow = 3, modifier = Modifier.padding(bottom = 8.dp)) {
                 items.forEachIndexed { i, n ->
                     val sel = n.route == active
@@ -1163,7 +1456,7 @@ private fun MoreSheet(active: String, c: VCtx, onPick: (String) -> Unit) {
                                 }
                             }
                         }
-                        Text(n.short, color = if (sel) Color.White else VC.text, fontSize = 13.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
+                        Text(sh.shortLabel(n.route, n.short), color = if (sel) Color.White else VC.text, fontSize = 13.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, maxLines = 1)
                     }
                 }
                 val extra = (3 - items.size % 3) % 3
@@ -1173,150 +1466,393 @@ private fun MoreSheet(active: String, c: VCtx, onPick: (String) -> Unit) {
     }
 }
 
+/**
+ * Banner đặc sắc giới thiệu & so sánh 2 gói tài khoản chính thức của SmartFarm:
+ * - **Basic Account**: `149.000 đ / tháng` | `1.499.000 đ / năm` (Tiết kiệm 289.000 đ/năm)
+ * - **Pro Account**: `499.000 đ / tháng` | `4.999.000 đ / năm` (Tiết kiệm 989.000 đ/năm)
+ *
+ * Dùng trực tiếp trên màn hình Tổng quan (`OverviewScreen`, `inDialog = false`) và trong hộp thoại
+ * Quản lý Gói Dịch Vụ (`PlanManagerDialog`, `inDialog = true`).
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PlanManagerDialog(
+fun AccountTierPricingBanner(
     c: VCtx,
-    paywallFeature: VFeature?,
-    onDismiss: () -> Unit,
-    onUnlockedFeature: () -> Unit,
+    inDialog: Boolean = false,
+    onPlanActivated: (() -> Unit)? = null,
 ) {
     val ui = c.uiSettings
     val isEnt = ui.planTier == PlanTier.ENTERPRISE
+    val cycle = ui.billingCycle
+    val isYearly = cycle == BillingCycle.YEARLY
     val todayStr = Dates.fmt(Dates.today())
     val remainingAi = ui.remainingAiQuestions(todayStr)
+    var expandedOnHome by rememberSaveable { mutableStateOf(c.wide) }
+    val showFullCards = inDialog || expandedOnHome
 
-    Dialog(onDismissRequest = onDismiss) {
+    val bannerBg = Brush.linearGradient(
+        colors = if (isEnt) {
+            listOf(Color(0xFF061B26), Color(0xFF0B2E24), Color(0xFF061822))
+        } else {
+            listOf(Color(0xFF0A281E), Color(0xFF123D2C), Color(0xFF082219))
+        }
+    )
+
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .testTag(if (inDialog) "dialog_account_pricing_banner" else "home_account_pricing_banner")
+            .clip(RoundedCornerShape(22.dp))
+            .background(bannerBg)
+            .border(
+                1.5.dp,
+                if (isEnt) Color(0xFFEAB308).copy(alpha = 0.72f) else Color(0xFFA8DF65).copy(alpha = 0.58f),
+                RoundedCornerShape(22.dp),
+            )
+            .padding(if (c.wide) 18.dp else 14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        // 1. Header của Banner + Nút chuyển đổi Chu kỳ Month / Year (trên điện thoại xếp dọc 100% chiều ngang để không bao giờ bóp chữ)
+        val headerTextBlock: @Composable (Modifier) -> Unit = { blkMod ->
+            Column(blkMod, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0xFFEAB308))
+                            .padding(horizontal = 9.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            "✦ SMARTFARM MEMBERSHIP",
+                            color = Color(0xFF071B12),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                        )
+                    }
+                    Box(
+                        Modifier
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(Color(0xFFA8DF65).copy(alpha = 0.20f))
+                            .border(1.dp, Color(0xFFA8DF65).copy(alpha = 0.55f), RoundedCornerShape(999.dp))
+                            .padding(horizontal = 9.dp, vertical = 3.dp),
+                    ) {
+                        Text(
+                            if (isEnt) "ĐANG DÙNG: PRO ACCOUNT" else "ĐANG DÙNG: BASIC ACCOUNT",
+                            color = Color(0xFFA8DF65),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                        )
+                    }
+                }
+                Text(
+                    "Nâng tầm Quản trị Vườn Thông Minh: Basic Account & Pro Account",
+                    color = Color.White,
+                    fontFamily = VDisplayFont,
+                    fontSize = if (c.wide) 19.sp else 16.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                )
+                Text(
+                    "Chọn gói theo Tháng (Month) linh hoạt hoặc theo Năm (Year) tiết kiệm tới 989.000 đ/năm.",
+                    color = Color.White.copy(alpha = 0.84f),
+                    fontSize = 12.5.sp,
+                )
+            }
+        }
+
+        val cycleToggleRow: @Composable (Modifier) -> Unit = { rowMod ->
+            Row(
+                rowMod,
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = if (c.wide) Arrangement.spacedBy(8.dp) else Arrangement.SpaceBetween,
+            ) {
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(Color.Black.copy(alpha = 0.32f))
+                        .border(1.dp, Color.White.copy(alpha = 0.20f), RoundedCornerShape(14.dp))
+                        .padding(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    BillingCycle.entries.forEach { bc ->
+                        val activeCycle = cycle == bc
+                        Box(
+                            Modifier
+                                .heightIn(min = 40.dp)
+                                .clip(RoundedCornerShape(11.dp))
+                                .background(
+                                    if (activeCycle) {
+                                        if (bc == BillingCycle.YEARLY) Color(0xFFEAB308) else Color(0xFFA8DF65)
+                                    } else {
+                                        Color.Transparent
+                                    }
+                                )
+                                .bounceClick {
+                                    c.updateUiSettings { it.copy(billingCycle = bc) }
+                                }
+                                .padding(horizontal = 11.dp, vertical = 6.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                if (bc == BillingCycle.MONTHLY) "Month (Tháng)" else "Year (Năm -17%)",
+                                color = if (activeCycle) Color(0xFF071B12) else Color.White.copy(alpha = 0.86f),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+
+                if (!inDialog) {
+                    Box(
+                        Modifier
+                            .heightIn(min = 40.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color.White.copy(alpha = 0.12f))
+                            .border(1.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                            .bounceClick { expandedOnHome = !expandedOnHome }
+                            .padding(horizontal = 11.dp, vertical = 7.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (expandedOnHome) "Thu gọn" else "Chi tiết 2 gói",
+                            color = Color.White,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                        )
+                    }
+                }
+            }
+        }
+
+        if (c.wide) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                headerTextBlock(Modifier.weight(1f))
+                cycleToggleRow(Modifier)
+            }
+        } else {
+            Column(
+                Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                headerTextBlock(Modifier.fillMaxWidth())
+                cycleToggleRow(Modifier.fillMaxWidth())
+            }
+        }
+
+        // 2. Bảng niêm yết chuẩn: ITEM | Month | Year (luôn hiển thị rõ ràng với Tabular Numerals)
         Column(
             Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(22.dp))
-                .background(VC.card)
-                .border(1.dp, VC.border, RoundedCornerShape(22.dp))
-                .padding(20.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF04131B).copy(alpha = 0.82f))
+                .border(1.dp, Color.White.copy(alpha = 0.16f), RoundedCornerShape(14.dp)),
         ) {
+            // Dòng tiêu đề bảng
             Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                Modifier
+                    .fillMaxWidth()
+                    .background(Color.White.copy(alpha = 0.08f))
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        "Gói Dịch Vụ & Bật/Tắt Chức Năng",
-                        color = VC.text,
-                        fontFamily = VDisplayFont,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        "Chọn gói Free (Nông dân) hoặc Enterprise, hoặc gạt On/Off từng tính năng (Feature Flags).",
-                        color = VC.text2,
-                        fontSize = 13.sp,
-                    )
-                }
-                VButton("Đóng", onDismiss, primary = false)
+                Text(
+                    "ITEM",
+                    color = Color(0xFFA8DF65),
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    modifier = Modifier.weight(1.2f),
+                )
+                Text(
+                    if (c.wide) "Month (Tháng)" else "Month",
+                    color = if (!isYearly) Color(0xFFA8DF65) else Color.White.copy(alpha = 0.78f),
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(0.95f),
+                )
+                Text(
+                    if (c.wide) "Year (Năm ★)" else "Year ★",
+                    color = if (isYearly) Color(0xFFEAB308) else Color.White.copy(alpha = 0.78f),
+                    fontSize = 11.5.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    maxLines = 1,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1.05f),
+                )
             }
 
-            if (paywallFeature != null && !c.isFeatureEnabled(paywallFeature)) {
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Color(0xFF143528))
-                        .border(1.dp, VC.gold, RoundedCornerShape(14.dp))
-                        .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Box(
-                            Modifier
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(VC.gold)
-                                .padding(horizontal = 8.dp, vertical = 2.dp),
-                        ) {
-                            Text("✦ TÍNH NĂNG ENTERPRISE", color = Color(0xFF0A2218), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                        Text(
-                            paywallFeature.title,
-                            color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                    }
-                    Text(
-                        paywallFeature.summary,
-                        color = Color.White.copy(alpha = 0.88f),
-                        fontSize = 13.5.sp,
-                    )
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Box(
-                            Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(VC.gold)
-                                .bounceClick {
-                                    c.updateUiSettings {
-                                        it.copy(
-                                            planTier = PlanTier.ENTERPRISE,
-                                            enabledFeatures = emptySet(),
-                                            disabledFeatures = emptySet(),
-                                        )
-                                    }
-                                    c.toast("Đã kích hoạt Gói Enterprise — mở khóa toàn bộ chức năng!")
-                                    onUnlockedFeature()
-                                }
-                                .padding(vertical = 10.dp, horizontal = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                "✦ Mở khóa Gói Enterprise",
-                                color = Color(0xFF0A2218),
-                                fontSize = 13.5.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                        }
-                        Box(
-                            Modifier
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(Color.White.copy(alpha = 0.14f))
-                                .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
-                                .bounceClick {
-                                    c.updateUiSettings { it.toggleFeatureOverride(paywallFeature, true) }
-                                    c.toast("Đã bật riêng: ${paywallFeature.title}")
-                                    onUnlockedFeature()
-                                }
-                                .padding(vertical = 10.dp, horizontal = 12.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                "Chỉ bật tính năng này",
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Hai thẻ gói cước: Free vs Enterprise
+            // Dòng 1: Basic Account | 149.000 đ | 1.499.000 đ
             Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                Modifier
+                    .fillMaxWidth()
+                    .background(if (!isEnt) Color(0xFF1B7A4E).copy(alpha = 0.26f) else Color.Transparent)
+                    .bounceClick {
+                        c.updateUiSettings {
+                            it.copy(
+                                planTier = PlanTier.FREE,
+                                simpleMode = true,
+                                enabledFeatures = emptySet(),
+                                disabledFeatures = emptySet(),
+                            )
+                        }
+                        c.toast("Đã chọn ${PlanTier.FREE.itemName} (${PlanTier.FREE.priceFor(cycle)}${cycle.unitVi}).")
+                        onPlanActivated?.invoke()
+                    }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
+                Column(Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        if (!isEnt) "🌱 Basic Account ✓" else "🌱 Basic Account",
+                        color = Color.White,
+                        fontSize = if (c.wide) 14.sp else 13.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                    )
+                    Text(
+                        "Nông hộ · 100 cây QR",
+                        color = Color.White.copy(alpha = 0.72f),
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                    )
+                }
+                Text(
+                    PlanTier.FREE.monthlyPriceVi,
+                    color = if (!isYearly) Color(0xFFA8DF65) else Color.White,
+                    fontFamily = VDisplayFont,
+                    fontSize = if (c.wide) 15.sp else 13.5.sp,
+                    fontWeight = if (!isYearly) FontWeight.ExtraBold else FontWeight.SemiBold,
+                    style = TextStyle(fontFeatureSettings = "tnum"),
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    modifier = Modifier.weight(0.95f),
+                )
                 Column(
-                    Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (!isEnt) VC.active else VC.bg)
-                        .border(1.5.dp, if (!isEnt) VC.pine else VC.border, RoundedCornerShape(14.dp))
+                    Modifier.weight(1.05f),
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    Text(
+                        PlanTier.FREE.yearlyPriceVi,
+                        color = if (isYearly) Color(0xFFEAB308) else Color.White,
+                        fontFamily = VDisplayFont,
+                        fontSize = if (c.wide) 15.sp else 13.5.sp,
+                        fontWeight = if (isYearly) FontWeight.ExtraBold else FontWeight.SemiBold,
+                        style = TextStyle(fontFeatureSettings = "tnum"),
+                        textAlign = TextAlign.End,
+                        maxLines = 1,
+                    )
+                    Text(
+                        "Tiết kiệm 289K",
+                        color = Color(0xFFA8DF65),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
+                }
+            }
+
+            Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.12f)))
+
+            // Dòng 2: Pro Account | 499.000 đ | 4.999.000 đ
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(if (isEnt) Color(0xFFEAB308).copy(alpha = 0.18f) else Color.Transparent)
+                    .bounceClick {
+                        c.updateUiSettings {
+                            it.copy(
+                                planTier = PlanTier.ENTERPRISE,
+                                enabledFeatures = emptySet(),
+                                disabledFeatures = emptySet(),
+                            )
+                        }
+                        c.toast("Đã kích hoạt ${PlanTier.ENTERPRISE.itemName} (${PlanTier.ENTERPRISE.priceFor(cycle)}${cycle.unitVi})!")
+                        onPlanActivated?.invoke()
+                    }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1.2f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                        if (isEnt) "✦ Pro Account ✓" else "✦ Pro Account",
+                        color = Color(0xFFEAB308),
+                        fontSize = if (c.wide) 14.sp else 13.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                    )
+                    Text(
+                        "Vệ tinh GEE + Drone",
+                        color = Color.White.copy(alpha = 0.78f),
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                    )
+                }
+                Text(
+                    PlanTier.ENTERPRISE.monthlyPriceVi,
+                    color = if (!isYearly) Color(0xFFEAB308) else Color.White,
+                    fontFamily = VDisplayFont,
+                    fontSize = if (c.wide) 15.sp else 13.5.sp,
+                    fontWeight = if (!isYearly) FontWeight.ExtraBold else FontWeight.SemiBold,
+                    style = TextStyle(fontFeatureSettings = "tnum"),
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                    modifier = Modifier.weight(0.95f),
+                )
+                Column(
+                    Modifier.weight(1.05f),
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    Text(
+                        PlanTier.ENTERPRISE.yearlyPriceVi,
+                        color = Color(0xFFEAB308),
+                        fontFamily = VDisplayFont,
+                        fontSize = if (c.wide) 15.sp else 13.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        style = TextStyle(fontFeatureSettings = "tnum"),
+                        textAlign = TextAlign.End,
+                        maxLines = 1,
+                    )
+                    Text(
+                        "Tiết kiệm 989K",
+                        color = Color(0xFFEAB308),
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                    )
+                }
+            }
+        }
+
+        // 3. Hai Thẻ Gói Tài Khoản Đặc Sắc (Basic Account vs Pro Account)
+        if (showFullCards) {
+            val basicCard: @Composable (Modifier) -> Unit = { cardMod ->
+                Column(
+                    cardMod
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color(0xFFF5F8F6), Color(0xFFEAF2EE))
+                            )
+                        )
+                        .border(
+                            width = if (!isEnt) 2.dp else 1.dp,
+                            color = if (!isEnt) Color(0xFFA8DF65) else Color.White.copy(alpha = 0.25f),
+                            shape = RoundedCornerShape(16.dp),
+                        )
                         .bounceClick {
                             c.updateUiSettings {
                                 it.copy(
@@ -1326,32 +1862,114 @@ private fun PlanManagerDialog(
                                     disabledFeatures = emptySet(),
                                 )
                             }
-                            c.toast("Đã chuyển về Gói Free (Nông dân).")
+                            c.toast("Đã kích hoạt Basic Account (${PlanTier.FREE.priceFor(cycle)}${cycle.unitVi}).")
+                            onPlanActivated?.invoke()
                         }
                         .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
                 ) {
                     Row(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("🌱 Gói Free", color = VC.mint, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                        if (!isEnt) Tag("ĐANG DÙNG · TRẮNG", VC.mint)
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                "🌱 Basic Account",
+                                color = Color(0xFF0F5132),
+                                fontFamily = VDisplayFont,
+                                fontSize = 16.5.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                            )
+                        }
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(if (!isEnt) Color(0xFF0F5132) else Color(0xFFD6E3DC))
+                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                        ) {
+                            Text(
+                                if (!isEnt) "✓ ĐANG KÍCH HOẠT" else "GÓI CƠ BẢN",
+                                color = if (!isEnt) Color.White else Color(0xFF0F5132),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                            )
+                        }
                     }
-                    Text("Giao diện Trắng sáng ban ngày · Nông hộ (0đ)", color = VC.text2, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
-                    Text("• Tối đa ${VFeature.FREE_MAX_TREES} cây · Quét QR gốc cây", color = VC.text, fontSize = 12.5.sp)
-                    Text("• Thời tiết & lời khuyên tưới/phun mỗi sáng", color = VC.text, fontSize = 12.5.sp)
-                    Text("• Sổ tay làm vườn, Thu hoạch & Giá bán", color = VC.text, fontSize = 12.5.sp)
-                    Text("• Hỏi Kỹ sư AI (${VFeature.FREE_MAX_AI_PER_DAY} câu/ngày · còn $remainingAi câu)", color = VC.text, fontSize = 12.5.sp)
-                }
 
+                    // Mức giá nổi bật theo chu kỳ đang chọn + đối chiếu chu kỳ còn lại
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            PlanTier.FREE.priceFor(cycle),
+                            color = Color(0xFF0D1F17),
+                            fontFamily = VDisplayFont,
+                            fontSize = 23.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            style = TextStyle(fontFeatureSettings = "tnum"),
+                        )
+                        Text(
+                            cycle.unitVi,
+                            color = Color(0xFF3E5649),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 3.dp),
+                        )
+                    }
+                    Text(
+                        if (isYearly) "Month: 149.000 đ/tháng · Ưu đãi năm tiết kiệm 289.000 đ"
+                        else "Year: 1.499.000 đ/năm (Chỉ ~125.000 đ/tháng · Tiết kiệm 289.000 đ)",
+                        color = Color(0xFF1B7A4E),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = TextStyle(fontFeatureSettings = "tnum"),
+                    )
+
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFFD0DED6)))
+
+                    Text("• Giao diện Trắng sáng ban ngày chống chói ngoài nắng", color = Color(0xFF0D1F17), fontSize = 12.5.sp)
+                    Text("• Quản lý tối đa ${VFeature.FREE_MAX_TREES} cây QR & hồ sơ chăm sóc tận gốc", color = Color(0xFF0D1F17), fontSize = 12.5.sp)
+                    Text("• Dự báo thời tiết 6 ngày, lịch tưới nước, bón phân & thu hoạch", color = Color(0xFF0D1F17), fontSize = 12.5.sp)
+                    Text("• Hỏi Kỹ sư AI (${VFeature.FREE_MAX_AI_PER_DAY} câu/ngày · còn $remainingAi câu) & lưu sổ theo SĐT", color = Color(0xFF0D1F17), fontSize = 12.5.sp)
+
+                    Spacer(Modifier.height(2.dp))
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 44.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(if (!isEnt) Color(0xFF0F5132) else Color(0xFFE2ECE7))
+                            .border(1.dp, Color(0xFF0F5132).copy(alpha = 0.35f), RoundedCornerShape(11.dp))
+                            .padding(vertical = 9.dp, horizontal = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (!isEnt) "✓ Đang dùng Basic Account (${PlanTier.FREE.priceFor(cycle)})"
+                            else "Chọn Basic Account · ${PlanTier.FREE.priceFor(cycle)}${cycle.unitVi}",
+                            color = if (!isEnt) Color.White else Color(0xFF0F5132),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                        )
+                    }
+                }
+            }
+
+            val proCard: @Composable (Modifier) -> Unit = { cardMod ->
                 Column(
-                    Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(if (isEnt) Color(0xFF143528) else VC.bg)
-                        .border(1.5.dp, if (isEnt) VC.gold else VC.border, RoundedCornerShape(14.dp))
+                    cardMod
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(
+                            Brush.verticalGradient(
+                                colors = listOf(Color(0xFF0B2A22), Color(0xFF071A24))
+                            )
+                        )
+                        .border(
+                            width = if (isEnt) 2.dp else 1.2.dp,
+                            color = if (isEnt) Color(0xFFEAB308) else Color(0xFFEAB308).copy(alpha = 0.55f),
+                            shape = RoundedCornerShape(16.dp),
+                        )
                         .bounceClick {
                             c.updateUiSettings {
                                 it.copy(
@@ -1360,10 +1978,11 @@ private fun PlanManagerDialog(
                                     disabledFeatures = emptySet(),
                                 )
                             }
-                            c.toast("Đã kích hoạt Gói Pro (Enterprise) — Giao diện Aurora Liquid-Glass!")
+                            c.toast("Đã kích hoạt Pro Account (${PlanTier.ENTERPRISE.priceFor(cycle)}${cycle.unitVi}) — Mở khóa toàn bộ công nghệ!")
+                            onPlanActivated?.invoke()
                         }
                         .padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(7.dp),
                 ) {
                     Row(
                         Modifier.fillMaxWidth(),
@@ -1371,151 +1990,415 @@ private fun PlanManagerDialog(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            "✦ Enterprise (Pro)",
-                            color = if (isEnt) Color(0xFFA8DF65) else VC.text,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
+                            "✦ Pro Account",
+                            color = Color(0xFFEAB308),
+                            fontFamily = VDisplayFont,
+                            fontSize = 16.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
                         )
-                        if (isEnt) Tag("ĐANG DÙNG · PRO", Color(0xFFA8DF65))
+                        Box(
+                            Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(Color(0xFFEAB308))
+                                .padding(horizontal = 8.dp, vertical = 3.dp),
+                        ) {
+                            Text(
+                                if (isEnt) "✦ ĐANG KÍCH HOẠT" else "★ ĐẶC SẮC NHẤT",
+                                color = Color(0xFF071B12),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                            )
+                        }
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            PlanTier.ENTERPRISE.priceFor(cycle),
+                            color = Color.White,
+                            fontFamily = VDisplayFont,
+                            fontSize = 23.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            style = TextStyle(fontFeatureSettings = "tnum"),
+                        )
+                        Text(
+                            cycle.unitVi,
+                            color = Color(0xFFA8DF65),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 3.dp),
+                        )
                     }
                     Text(
-                        "Giao diện Aurora Liquid-Glass · Trang trại & Kỹ sư",
-                        color = if (isEnt) Color.White.copy(alpha = 0.85f) else VC.text2,
-                        fontSize = 12.5.sp,
-                        fontWeight = FontWeight.SemiBold,
+                        if (isYearly) "Month: 499.000 đ/tháng · Ưu đãi năm tiết kiệm 989.000 đ"
+                        else "Year: 4.999.000 đ/năm (Chỉ ~416.000 đ/tháng · Tiết kiệm 989.000 đ)",
+                        color = Color(0xFFEAB308),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Bold,
+                        style = TextStyle(fontFeatureSettings = "tnum"),
                     )
-                    val itemColor = if (isEnt) Color.White else VC.text
-                    Text("• Không giới hạn số cây & câu hỏi AI", color = itemColor, fontSize = 12.5.sp)
-                    Text("• Vệ tinh GEE, NDVI & Địa tầng 3D 7 tầng", color = itemColor, fontSize = 12.5.sp)
-                    Text("• Drone đa phổ OBIA & Phun thuốc VRA", color = itemColor, fontSize = 12.5.sp)
-                    Text("• Nhập/Xuất Excel, GIS & Đồng bộ nhóm", color = itemColor, fontSize = 12.5.sp)
+
+                    Box(Modifier.fillMaxWidth().height(1.dp).background(Color.White.copy(alpha = 0.16f)))
+
+                    Text("• Giao diện Aurora Liquid-Glass & Chế độ Kỹ sư GIS chuyên sâu", color = Color.White, fontSize = 12.5.sp)
+                    Text("• Không giới hạn số lượng cây gắn QR, lô canh tác & hỏi AI 24/7", color = Color.White, fontSize = 12.5.sp)
+                    Text("• Vệ tinh Google Earth Engine (7 chỉ số) & Địa tầng 3D 7 tầng", color = Color.White, fontSize = 12.5.sp)
+                    Text("• Bay Drone đa phổ OBIA, Phun thuốc VRA & Đồng bộ nhóm Cloud", color = Color.White, fontSize = 12.5.sp)
+
+                    Spacer(Modifier.height(2.dp))
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 44.dp)
+                            .clip(RoundedCornerShape(11.dp))
+                            .background(Color(0xFFEAB308))
+                            .padding(vertical = 9.dp, horizontal = 12.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            if (isEnt) "✦ Đang dùng Pro Account (${PlanTier.ENTERPRISE.priceFor(cycle)})"
+                            else "✦ Nâng cấp Pro Account · ${PlanTier.ENTERPRISE.priceFor(cycle)}${cycle.unitVi}",
+                            color = Color(0xFF071B12),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                        )
+                    }
                 }
             }
 
-            // Bảng gạt On/Off từng chức năng (Feature Flags)
+            if (c.wide) {
+                Row(
+                    Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    basicCard(Modifier.weight(1f).fillMaxHeight())
+                    proCard(Modifier.weight(1f).fillMaxHeight())
+                }
+            } else {
+                Column(
+                    Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    basicCard(Modifier.fillMaxWidth())
+                    proCard(Modifier.fillMaxWidth())
+                }
+            }
+        }
+
+        if (!inDialog) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    "💡 Chạm vào dòng hoặc thẻ bất kỳ để chuyển nhanh Basic ⇄ Pro hoặc mở bảng Feature Flags.",
+                    color = Color.White.copy(alpha = 0.78f),
+                    fontSize = 11.5.sp,
+                    modifier = Modifier.weight(1f).padding(end = 8.dp),
+                )
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(Color.White.copy(alpha = 0.14f))
+                        .border(1.dp, Color.White.copy(alpha = 0.28f), RoundedCornerShape(10.dp))
+                        .bounceClick { c.requestFeature(null) }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                ) {
+                    Text(
+                        "Tùy chỉnh Feature Flags",
+                        color = Color(0xFFA8DF65),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PlanManagerDialog(
+    c: VCtx,
+    paywallFeature: VFeature?,
+    onDismiss: () -> Unit,
+    onUnlockedFeature: () -> Unit,
+) {
+    val ui = c.uiSettings
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .background(Color(0xB8020A10))
+                .padding(horizontal = if (c.wide) 40.dp else 12.dp, vertical = if (c.wide) 24.dp else 14.dp),
+            contentAlignment = Alignment.Center,
+        ) {
             Column(
                 Modifier
+                    .widthIn(max = 920.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(VC.bg)
-                    .border(1.dp, VC.border, RoundedCornerShape(14.dp))
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(VC.card)
+                    .border(1.dp, VC.border, RoundedCornerShape(24.dp))
+                    .padding(if (c.wide) 22.dp else 16.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Row(
                     Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(Modifier.weight(1f)) {
+                    Column(Modifier.weight(1f).padding(end = 10.dp)) {
                         Text(
-                            "Bảng điều khiển Feature Flags (On / Off từng chức năng)",
+                            "Gói Tài Khoản & Bật/Tắt Chức Năng",
                             color = VC.text,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontFamily = VDisplayFont,
+                            fontSize = if (c.wide) 21.sp else 18.sp,
+                            fontWeight = FontWeight.ExtraBold,
                         )
                         Text(
-                            "Bạn có thể bật/tắt độc lập từng mô-đun để kiểm thử hoặc tùy biến gói dịch vụ cho khách hàng.",
-                            color = VC.muted,
-                            fontSize = 12.sp,
+                            "Basic Account (149.000 đ/tháng · 1.499.000 đ/năm) & Pro Account (499.000 đ/tháng · 4.999.000 đ/năm).",
+                            color = VC.text2,
+                            fontSize = 12.5.sp,
                         )
                     }
-                    if (ui.enabledFeatures.isNotEmpty() || ui.disabledFeatures.isNotEmpty()) {
-                        VButton(
-                            "Đặt lại mặc định gói",
-                            {
-                                c.updateUiSettings {
-                                    val resetSimple = if (it.planTier == PlanTier.FREE) true else it.simpleMode
-                                    it.copy(
-                                        simpleMode = resetSimple,
-                                        enabledFeatures = emptySet(),
-                                        disabledFeatures = emptySet(),
-                                    )
-                                }
-                                c.toast("Đã khôi phục cấu hình mặc định của ${ui.planTier.label}.")
-                            },
-                            primary = false,
+                    VButton("Đóng", onDismiss, primary = false)
+                }
+
+                if (paywallFeature != null && !c.isFeatureEnabled(paywallFeature)) {
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(Color(0xFF143528))
+                            .border(1.dp, VC.gold, RoundedCornerShape(14.dp))
+                            .padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(VC.gold)
+                                    .padding(horizontal = 8.dp, vertical = 2.dp),
+                            ) {
+                                Text("✦ TÍNH NĂNG PRO ACCOUNT", color = Color(0xFF0A2218), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                            Text(
+                                paywallFeature.title,
+                                color = Color.White,
+                                fontSize = 15.5.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                        }
+                        Text(
+                            paywallFeature.summary,
+                            color = Color.White.copy(alpha = 0.88f),
+                            fontSize = 13.5.sp,
                         )
+                        FlowRow(
+                            Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Box(
+                                Modifier
+                                    .weight(1f)
+                                    .widthIn(min = 180.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(VC.gold)
+                                    .bounceClick {
+                                        c.updateUiSettings {
+                                            it.copy(
+                                                planTier = PlanTier.ENTERPRISE,
+                                                enabledFeatures = emptySet(),
+                                                disabledFeatures = emptySet(),
+                                            )
+                                        }
+                                        c.toast("Đã kích hoạt Pro Account — mở khóa toàn bộ chức năng!")
+                                        onUnlockedFeature()
+                                    }
+                                    .padding(vertical = 10.dp, horizontal = 12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    "✦ Mở khóa Pro Account (${PlanTier.ENTERPRISE.priceFor(ui.billingCycle)}${ui.billingCycle.unitVi})",
+                                    color = Color(0xFF0A2218),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                )
+                            }
+                            Box(
+                                Modifier
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color.White.copy(alpha = 0.14f))
+                                    .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                                    .bounceClick {
+                                        c.updateUiSettings { it.toggleFeatureOverride(paywallFeature, true) }
+                                        c.toast("Đã bật riêng: ${paywallFeature.title}")
+                                        onUnlockedFeature()
+                                    }
+                                    .padding(vertical = 10.dp, horizontal = 12.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    "Chỉ bật tính năng này",
+                                    color = Color.White,
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                            }
+                        }
                     }
                 }
 
-                VFeature.entries.forEach { feat ->
-                    val enabled = ui.isFeatureEnabled(feat)
-                    val isOverridden = (feat.key in ui.enabledFeatures) || (feat.key in ui.disabledFeatures)
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(VC.card)
-                            .border(1.dp, if (enabled) VC.pine.copy(alpha = 0.35f) else VC.border, RoundedCornerShape(10.dp))
-                            .padding(horizontal = 12.dp, vertical = 9.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                // Banner Bảng giá Month/Year & 2 thẻ Basic Account vs Pro Account
+                AccountTierPricingBanner(
+                    c = c,
+                    inDialog = true,
+                    onPlanActivated = {
+                        if (paywallFeature != null && c.uiSettings.planTier == PlanTier.ENTERPRISE) {
+                            onUnlockedFeature()
+                        }
+                    },
+                )
+
+                // Bảng gạt On/Off từng chức năng (Feature Flags)
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(VC.bg)
+                        .border(1.dp, VC.border, RoundedCornerShape(14.dp))
+                        .padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    FlowRow(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            ) {
-                                Text(
-                                    feat.title,
-                                    color = VC.text,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.Bold,
-                                )
-                                Box(
-                                    Modifier
-                                        .clip(RoundedCornerShape(6.dp))
-                                        .background(if (enabled) VC.mint.copy(alpha = 0.16f) else VC.amber.copy(alpha = 0.16f))
-                                        .border(1.dp, if (enabled) VC.mint.copy(alpha = 0.45f) else VC.amber.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
-                                        .padding(horizontal = 6.dp, vertical = 1.dp),
-                                ) {
-                                    Text(
-                                        if (enabled) "ĐANG BẬT" else "PRO · TẮT",
-                                        color = if (enabled) VC.mint else VC.amber,
-                                        fontSize = 10.sp,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                }
-                                if (isOverridden) {
-                                    Text(
-                                        "(Tùy chỉnh)",
-                                        color = VC.muted,
-                                        fontSize = 11.sp,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                }
-                            }
+                        Column(Modifier.weight(1f).widthIn(min = 200.dp)) {
                             Text(
-                                feat.summary,
-                                color = VC.text2,
+                                "Bảng điều khiển Feature Flags (On / Off từng chức năng)",
+                                color = VC.text,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Text(
+                                "Bạn có thể bật/tắt độc lập từng mô-đun để kiểm thử hoặc tùy biến gói dịch vụ cho khách hàng.",
+                                color = VC.muted,
                                 fontSize = 12.sp,
                             )
-                            Text(
-                                "Khi ở gói Free: ${feat.freeLimitNote}",
-                                color = VC.muted,
-                                fontSize = 11.5.sp,
+                        }
+                        if (ui.enabledFeatures.isNotEmpty() || ui.disabledFeatures.isNotEmpty()) {
+                            VButton(
+                                "Đặt lại mặc định gói",
+                                {
+                                    c.updateUiSettings {
+                                        val resetSimple = if (it.planTier == PlanTier.FREE) true else it.simpleMode
+                                        it.copy(
+                                            simpleMode = resetSimple,
+                                            enabledFeatures = emptySet(),
+                                            disabledFeatures = emptySet(),
+                                        )
+                                    }
+                                    c.toast("Đã khôi phục cấu hình mặc định của ${ui.planTier.itemName}.")
+                                },
+                                primary = false,
                             )
                         }
-                        Switch(
-                            checked = enabled,
-                            onCheckedChange = { next ->
-                                c.updateUiSettings { cur ->
-                                    val updated = cur.toggleFeatureOverride(feat, next)
-                                    if (feat == VFeature.ENGINEER_MODE && !next) {
-                                        updated.copy(simpleMode = true)
-                                    } else {
-                                        updated
+                    }
+
+                    VFeature.entries.forEach { feat ->
+                        val enabled = ui.isFeatureEnabled(feat)
+                        val isOverridden = (feat.key in ui.enabledFeatures) || (feat.key in ui.disabledFeatures)
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(VC.card)
+                                .border(1.dp, if (enabled) VC.pine.copy(alpha = 0.35f) else VC.border, RoundedCornerShape(10.dp))
+                                .padding(horizontal = 12.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                FlowRow(
+                                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                ) {
+                                    Text(
+                                        feat.title,
+                                        color = VC.text,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    Box(
+                                        Modifier
+                                            .clip(RoundedCornerShape(6.dp))
+                                            .background(if (enabled) VC.mint.copy(alpha = 0.16f) else VC.amber.copy(alpha = 0.16f))
+                                            .border(1.dp, if (enabled) VC.mint.copy(alpha = 0.45f) else VC.amber.copy(alpha = 0.45f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 6.dp, vertical = 1.dp),
+                                    ) {
+                                        Text(
+                                            if (enabled) "ĐANG BẬT" else "PRO · TẮT",
+                                            color = if (enabled) VC.mint else VC.amber,
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
+                                    if (isOverridden) {
+                                        Text(
+                                            "(Tùy chỉnh)",
+                                            color = VC.muted,
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Medium,
+                                        )
                                     }
                                 }
-                            },
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = Color.White,
-                                checkedTrackColor = VC.pine,
-                                uncheckedThumbColor = VC.muted,
-                                uncheckedTrackColor = VC.elevated,
-                            ),
-                        )
+                                Text(
+                                    feat.summary,
+                                    color = VC.text2,
+                                    fontSize = 12.sp,
+                                )
+                                Text(
+                                    "Basic Account: ${feat.freeLimitNote}",
+                                    color = VC.muted,
+                                    fontSize = 11.5.sp,
+                                )
+                            }
+                            Switch(
+                                checked = enabled,
+                                onCheckedChange = { next ->
+                                    c.updateUiSettings { cur ->
+                                        val updated = cur.toggleFeatureOverride(feat, next)
+                                        if (feat == VFeature.ENGINEER_MODE && !next) {
+                                            updated.copy(simpleMode = true)
+                                        } else {
+                                            updated
+                                        }
+                                    }
+                                },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = VC.pine,
+                                    uncheckedThumbColor = VC.muted,
+                                    uncheckedTrackColor = VC.elevated,
+                                ),
+                            )
+                        }
                     }
                 }
             }

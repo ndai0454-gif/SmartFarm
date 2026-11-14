@@ -372,7 +372,7 @@ fun AuroraWorkflowScreen(c: VCtx) {
     ) {
         val modes = listOf(
             "NATIVE_6_STEPS" to "Quy trình 6 bước thực địa",
-            "LITE_CLASSIFY_OBIA" to "Phân lớp phủ OBIA (Lite Classify v1.2)",
+            "LITE_CLASSIFY_OBIA" to "VWing OBIA Studio (Phân lớp phủ)",
         )
         modes.forEach { (key, label) ->
             val sel = workspaceTab == key
@@ -468,7 +468,7 @@ fun AuroraWorkflowScreen(c: VCtx) {
                         Text(
                             if (done) "✓" else "$num",
                             color = if (sel) VC.onLime else if (done) Color.White else VC.text2,
-                            fontSize = 11.5.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                             style = androidx.compose.ui.text.TextStyle(fontFeatureSettings = "tnum"),
                         )
@@ -668,7 +668,7 @@ fun AuroraWorkflowScreen(c: VCtx) {
                     ) {
                         Text(name, color = VC.text2, fontSize = 12.5.sp, fontWeight = FontWeight.Bold)
                         Text(value, color = VC.lime, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold)
-                        Text(note, color = VC.muted, fontSize = 11.5.sp)
+                        Text(note, color = VC.muted, fontSize = 12.sp)
                     }
                 }
             }
@@ -1085,7 +1085,7 @@ fun AuroraWorkflowScreen(c: VCtx) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     trendList.forEachIndexed { idx, p ->
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("N-${6 - idx}", color = VC.muted, fontSize = 11.sp)
+                            Text("N-${6 - idx}", color = VC.muted, fontSize = 12.sp)
                             Text("${fmtNum(p / 1000.0, 1)}k", color = if (idx == trendList.lastIndex) VC.lime else VC.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                     }
@@ -1357,7 +1357,7 @@ fun AuroraWorkflowScreen(c: VCtx) {
                     )
                     Text("• Định mức: $npkGram gam/gốc", color = VC.text2, fontSize = 13.sp)
                     Text("• Tổng toàn vườn ($totalTreesCount cây): ${fmtNum(totalNpkKg, 1)} kg", color = VC.text, fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
-                    Text("• Bài báo: WASI (2024) & SOFRI (2023)", color = VC.muted, fontSize = 11.5.sp)
+                    Text("• Bài báo: WASI (2024) & SOFRI (2023)", color = VC.muted, fontSize = 12.sp)
                 }
 
                 Column(
@@ -1379,7 +1379,7 @@ fun AuroraWorkflowScreen(c: VCtx) {
                     )
                     Text("• Lưu lượng phun: ${fmtNum(sprayLitersPerTree, 1)} Lít/cây", color = VC.text2, fontSize = 13.sp)
                     Text("• Tổng vườn: ${fmtInt(totalSprayLiters.roundToInt())} Lít ($tanks20L bình 20L ≈ ${fmtNum(drums200L, 1)} phuy 200L)", color = VC.text, fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
-                    Text("• Bài báo: Drenth & Guest (2023) - IPM", color = VC.muted, fontSize = 11.5.sp)
+                    Text("• Bài báo: Drenth & Guest (2023) - IPM", color = VC.muted, fontSize = 12.sp)
                 }
 
                 if (c.wide) {
@@ -1396,7 +1396,7 @@ fun AuroraWorkflowScreen(c: VCtx) {
                         Text("Tưới nhỏ giọt / Béc bù áp tầng rễ L5", color = VC.text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
                         Text("• Lưu lượng: $irrigLitersPerTree Lít/gốc/lần", color = VC.text2, fontSize = 13.sp)
                         Text("• Tổng toàn vườn: ${fmtNum(totalIrrigM3, 2)} m³ nước/lần", color = VC.text, fontSize = 13.5.sp, fontWeight = FontWeight.Bold)
-                        Text("• Bài báo: FAO Paper No. 56 (Allen et al.)", color = VC.muted, fontSize = 11.5.sp)
+                        Text("• Bài báo: FAO Paper No. 56 (Allen et al.)", color = VC.muted, fontSize = 12.sp)
                     }
                 }
             }

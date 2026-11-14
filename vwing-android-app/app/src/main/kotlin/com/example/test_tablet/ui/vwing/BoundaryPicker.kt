@@ -8,6 +8,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -91,28 +93,28 @@ const val MAX_BOUNDARY_HA = 500.0
 enum class GeePickerClarityMode(val layerId: String, val chipLabel: String, val descriptionVi: String) {
     SATELLITE_CLEAR(
         "NONE",
-        "🛰️ Vệ tinh Gốc (Rõ 100%)",
-        "Nhìn xuyên thấu 100% ảnh vệ tinh gốc không bị lớp màu che khuất; chỉ hiện viền vàng sắc nét để đặt đỉnh chính xác.",
+        "🛰️ Ảnh vệ tinh rõ nét",
+        "Hiển thị ảnh vệ tinh rõ ràng kèm đường viền vàng để bác chấm các góc vườn chính xác.",
     ),
     GEE_TRUE_COLOR(
         "GEE_CLARITY_TRUE_COLOR",
-        "🌍 GEE Thực tế Tăng nét",
-        "Google Earth Engine Sentinel-2 SR lọc sạch mây + tăng tương phản vòm tán (CLAHE) giúp nhìn rõ từng hàng cây, bờ lô, đường nội đồng.",
+        "🌍 Ảnh thực tế tăng nét",
+        "Làm rõ từng hàng cây, bờ lô và lối đi trong vườn để bác dễ nhìn ranh đất.",
     ),
     GEE_FALSE_COLOR_NIR(
         "GEE_FALSE_COLOR_NIR",
-        "🌿 GEE Hồng ngoại (Tách ranh)",
-        "Tổ hợp hồng ngoại cận nhiệt GEE (B8-B4-B3): tán cây sống hiện đỏ hồng rực rỡ, tách biệt hoàn toàn với đường đất, bờ rào, mái tôn.",
+        "🌿 Nổi bật tán cây (Tách ranh)",
+        "Tán cây hiện rõ để bác phân biệt ranh vườn với đường đất, bờ rào và nhà cửa.",
     ),
     GEE_CANOPY_CROWN(
         "GEE_CANOPY_CROWN_HD",
-        "🌳 GEE Tách Vòm Tán & Hàng Cây",
-        "Làm nổi bật từng vòm tán cây lâu năm màu xanh ngọc từ GEE NDVI + Dynamic World 10m trên nền bán trong suốt.",
+        "🌳 Nhìn rõ vòm tán cây",
+        "Làm nổi bật từng tán cây lâu năm trong vườn trên nền bản đồ.",
     ),
     GEE_MOISTURE(
         "GEE_MOISTURE_WATER",
-        "💧 GEE Ẩm độ & Ao tưới",
-        "Nhận diện nhanh ao hồ tưới, kênh mương và độ ẩm tán cây từ băng hồng ngoại sóng ngắn GEE Sentinel-2 (NDMI/NDWI).",
+        "💧 Độ ẩm đất & Ao tưới",
+        "Nhận diện nhanh ao hồ tưới, kênh mương và vùng đất ẩm trong vườn.",
     ),
 }
 
@@ -306,7 +308,6 @@ fun BoundaryPickerScreen(
 
     val problem = boundaryProblem(pts)
     val area = if (pts.size >= 3) Geo.polygonAreaHa(pts) else 0.0
-    val presetLabels = remember { listOf("Chọn tọa độ vườn thực tế tại Việt Nam…") + VIETNAM_GARDEN_PRESETS.map { "${it.name} (${it.regionLabel})" } }
     val activeGeeLayer = remember(geeClarity, clarityMode) {
         geeClarity?.layers?.firstOrNull { it.layerId == clarityMode.layerId }
     }
@@ -327,77 +328,32 @@ fun BoundaryPickerScreen(
     }
 
     Column(rootMod) {
-        Column(Modifier.fillMaxWidth().background(VC.card).padding(horizontal = 14.dp, vertical = 6.dp)) {
-            if (isDialog) {
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(
-                        "Chọn vùng vườn · Google Earth Engine HD",
-                        color = VC.text,
-                        fontSize = 17.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        maxLines = 1,
-                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f).padding(end = 8.dp),
-                    )
-                    if (geeLoading) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                            CircularProgressIndicator(Modifier.size(14.dp), color = VC.mint, strokeWidth = 2.dp)
-                            Text("Đang tải GEE…", color = VC.mint, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                        }
-                    }
-                }
-            }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    if (keyOk) "Chạm lên bản đồ để đặt từng đỉnh quanh ranh vườn (≥3 đỉnh), kéo đỉnh để chỉnh."
-                    else "Chưa có khóa Google Maps: nhập tọa độ các đỉnh, mỗi dòng \"vĩ độ, kinh độ\".",
-                    color = VC.text2,
-                    fontSize = 12.5.sp,
-                    maxLines = 2,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(top = 2.dp),
-                )
-                if (!isDialog && geeLoading) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
-                        CircularProgressIndicator(Modifier.size(14.dp), color = VC.mint, strokeWidth = 2.dp)
-                        Text("Đang tải GEE…", color = VC.mint, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                    }
-                }
-            }
-                VPicker(
-                    "Hoặc nạp nhanh vùng vườn thực tế Việt Nam",
-                    presetLabels,
-                    presetSource ?: presetLabels.first(),
-                    { picked ->
-                        val idx = presetLabels.indexOf(picked) - 1
-                        if (idx in VIETNAM_GARDEN_PRESETS.indices) {
-                            val pr = VIETNAM_GARDEN_PRESETS[idx]
-                            presetSource = picked
-                            pts.clear(); pts.addAll(pr.points)
-                            manual = pr.points.joinToString("\n") { "${it.lat}, ${it.lng}" }
-                            if (keyOk && pr.points.isNotEmpty()) {
-                                val south = pr.points.minOf { it.lat }
-                                val west = pr.points.minOf { it.lng }
-                                val north = pr.points.maxOf { it.lat }
-                                val east = pr.points.maxOf { it.lng }
-                                scope.launch {
-                                    camera.animate(CameraUpdateFactory.newLatLngBounds(LatLngBounds(LatLng(south, west), LatLng(north, east)), 90))
-                                }
+        if (isDialog || !c.simpleMode) {
+            Column(Modifier.fillMaxWidth().background(VC.card).padding(horizontal = 12.dp, vertical = 4.dp)) {
+                if (isDialog) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "Chọn vùng vườn · Google Earth Engine HD",
+                            color = VC.text,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f).padding(end = 8.dp),
+                        )
+                        if (geeLoading) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                CircularProgressIndicator(Modifier.size(14.dp), color = VC.mint, strokeWidth = 2.dp)
+                                Text("Đang tải GEE…", color = VC.mint, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
                             }
-                            c.toast("Đã nạp tọa độ: ${pr.name} — đang tải lớp làm rõ Google Earth Engine…")
                         }
-                    },
-                    Modifier.padding(top = 4.dp),
-                )
-                // Tích hợp Bộ quy đổi Góc ranh Sổ đỏ VN-2000 ⇄ WGS84 & 34 Tỉnh sau sáp nhập (MobileLand GIS)
+                    }
+                }
+                // Tích hợp Bộ quy đổi Góc ranh Sổ đỏ VN-2000 ⇄ WGS84 & 34 Tỉnh sau sáp nhập (chỉ hiện ở Chế độ Kỹ sư)
                 var showVn2000Panel by remember { mutableStateOf(false) }
                 var vn2000Text by remember { mutableStateOf(com.example.test_tablet.data.vwing.Vn2000Converter.PRESETS_VN2000.first().coordsText) }
                 val vnProvinceOptions = remember {
@@ -405,21 +361,21 @@ fun BoundaryPickerScreen(
                         com.example.test_tablet.data.vwing.Vn2000Converter.CENTRAL_MERIDIANS_63.map { (k, v) -> "$k (63 tỉnh) · L0=$v°" }
                 }
                 var selectedVnProvince by remember { mutableStateOf(vnProvinceOptions.first()) }
-                Row(
-                    Modifier.fillMaxWidth().padding(top = 6.dp).horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                if (!c.simpleMode) Row(
+                    Modifier.fillMaxWidth().padding(top = if (isDialog) 4.dp else 0.dp).horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         if (showVn2000Panel) "📐 Ẩn bảng Góc ranh Sổ đỏ VN-2000" else "📐 Nhập Góc ranh Sổ đỏ VN-2000 & 34 Tỉnh mới",
                         color = Color.White,
-                        fontSize = 12.5.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.ExtraBold,
                         modifier = Modifier
                             .clip(RoundedCornerShape(8.dp))
                             .background(if (showVn2000Panel) VC.teal else VC.lime)
                             .clickable { showVn2000Panel = !showVn2000Panel }
-                            .padding(horizontal = 10.dp, vertical = 6.dp),
+                            .padding(horizontal = 9.dp, vertical = 5.dp),
                     )
                     com.example.test_tablet.data.vwing.Vn2000Converter.PRESETS_VN2000.forEach { pr ->
                         Text(
@@ -449,7 +405,34 @@ fun BoundaryPickerScreen(
                                         c.toast("Đã quy đổi ${converted.size} đỉnh VN-2000 (${pr.province}, L0=${pr.lon0}°) sang WGS84.")
                                     }
                                 }
-                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                                .padding(horizontal = 9.dp, vertical = 5.dp),
+                        )
+                    }
+                    VIETNAM_GARDEN_PRESETS.forEach { pr ->
+                        Text(
+                            "🌿 ${pr.name}",
+                            color = VC.text,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(VC.elevated)
+                                .clickable {
+                                    presetSource = "${pr.name} (${pr.regionLabel})"
+                                    pts.clear(); pts.addAll(pr.points)
+                                    manual = pr.points.joinToString("\n") { "${it.lat}, ${it.lng}" }
+                                    if (keyOk && pr.points.isNotEmpty()) {
+                                        val south = pr.points.minOf { it.lat }
+                                        val west = pr.points.minOf { it.lng }
+                                        val north = pr.points.maxOf { it.lat }
+                                        val east = pr.points.maxOf { it.lng }
+                                        scope.launch {
+                                            camera.animate(CameraUpdateFactory.newLatLngBounds(LatLngBounds(LatLng(south, west), LatLng(north, east)), 90))
+                                        }
+                                    }
+                                    c.toast("Đã nạp tọa độ: ${pr.name}")
+                                }
+                                .padding(horizontal = 9.dp, vertical = 5.dp),
                         )
                     }
                 }
@@ -506,9 +489,8 @@ fun BoundaryPickerScreen(
                         }
                     }
                 }
-                androidx.compose.foundation.layout.Spacer(Modifier
-                )
             }
+        }
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 if (keyOk) {
                     val measurer = androidx.compose.ui.text.rememberTextMeasurer()
@@ -619,7 +601,7 @@ fun BoundaryPickerScreen(
                         }
                         pts.forEachIndexed { i, p -> Vertex(i, p) { moved -> if (i < pts.size) { presetSource = null; pts[i] = moved } } }
                     }
-                    if (pickerHud != null && pts.size >= 3) {
+                    if (pts.size >= 2) {
                         androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
                             val camPos = camera.position
                             val proj = camera.projection
@@ -638,7 +620,7 @@ fun BoundaryPickerScreen(
                             }
                         }
                     }
-                    if (pickerHud != null) {
+                    if (pickerHud != null && !c.simpleMode) {
                         val todayStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(com.example.test_tablet.data.vwing.Dates.today())
                         val startStr = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(com.example.test_tablet.data.vwing.Dates.today() - 30L * 86_400_000)
                         RegionMapHudOverlay(
@@ -652,7 +634,7 @@ fun BoundaryPickerScreen(
                                 fetchGeeClarityForRing(pts.toList())
                             },
                         )
-                    } else {
+                    } else if (pickerHud == null) {
                         Column(Modifier.align(Alignment.TopStart).padding(12.dp).fillMaxWidth(.5f).background(VC.card.copy(alpha = .94f)).padding(10.dp)) {
                             PlaceSearchBox(near = camera.position.target.let { GeoPoint(it.latitude, it.longitude) }, onPick = { pl ->
                                 scope.launch {
@@ -663,52 +645,54 @@ fun BoundaryPickerScreen(
                             }, label = "Tìm địa điểm để bay tới")
                         }
                     }
-                    Row(
-                        Modifier
-                            .align(Alignment.BottomStart)
-                            .padding(start = 10.dp, bottom = 36.dp, end = 64.dp)
-                            .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            "🎯 Vị trí của tôi",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xD80A1D13))
-                                .clickable { ensure { locate() } }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                        )
-                        Text(
-                            "➕ Thêm đỉnh GPS",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xD80A1D13))
-                                .clickable { ensure { addHere() } }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                        )
-                        Text(
-                            "🔍 Phóng 19x",
-                            color = Color.White,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(18.dp))
-                                .background(Color(0xD80A1D13))
-                                .clickable {
-                                    scope.launch {
-                                        val target = if (pts.isNotEmpty()) LatLng(pts.sumOf { it.lat } / pts.size, pts.sumOf { it.lng } / pts.size) else camera.position.target
-                                        camera.animate(CameraUpdateFactory.newLatLngZoom(target, 19.2f))
+                    if (pickerHud == null || c.simpleMode) {
+                        Row(
+                            Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 8.dp, bottom = 12.dp, end = 58.dp)
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                AppStrings.tr(if (c.wide) "🎯 Vị trí của tôi" else "🎯 Vị trí"),
+                                color = Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(Color(0xD80A1D13))
+                                    .clickable { ensure { locate() } }
+                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                            )
+                            Text(
+                                AppStrings.tr(if (c.wide) "➕ Chấm vị trí đang đứng" else "➕ Chấm góc"),
+                                color = Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(Color(0xD80A1D13))
+                                    .clickable { ensure { addHere() } }
+                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                            )
+                            Text(
+                                AppStrings.tr("🔍 Phóng 19x"),
+                                color = Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(18.dp))
+                                    .background(Color(0xD80A1D13))
+                                    .clickable {
+                                        scope.launch {
+                                            val target = if (pts.isNotEmpty()) LatLng(pts.sumOf { it.lat } / pts.size, pts.sumOf { it.lng } / pts.size) else camera.position.target
+                                            camera.animate(CameraUpdateFactory.newLatLngZoom(target, 19.2f))
+                                        }
                                     }
-                                }
-                                .padding(horizontal = 12.dp, vertical = 8.dp),
-                        )
+                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                            )
+                        }
                     }
                 } else {
                     Column(Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState())) {
@@ -716,31 +700,74 @@ fun BoundaryPickerScreen(
                     }
                 }
             }
-            Column(Modifier.fillMaxWidth().background(VC.card).padding(horizontal = 14.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                // Thanh điều khiển Làm rõ khu vườn bằng Google Earth Engine API (luôn hiển thị để người dùng bật/tắt 1 chạm)
+            Column(Modifier.fillMaxWidth().background(VC.card).padding(horizontal = 10.dp, vertical = 5.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                // Thanh điều khiển Làm rõ khu vườn bằng Google Earth Engine API (cuộn ngang 1 dòng gọn gàng, không che khuất bản đồ)
                 Column(
                     Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(10.dp))
                         .background(Color(0xFF0A1D13))
-                        .padding(horizontal = 10.dp, vertical = 7.dp),
-                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                        .padding(horizontal = 8.dp, vertical = 5.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
                 ) {
                     Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        if (keyOk && pickerHud != null && !c.simpleMode) {
+                            Text(
+                                AppStrings.tr("🎯 Vị trí"),
+                                color = Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0x38FFFFFF))
+                                    .clickable { ensure { locate() } }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                            Text(
+                                AppStrings.tr("➕ Chấm góc"),
+                                color = Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0x38FFFFFF))
+                                    .clickable { ensure { addHere() } }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                            Text(
+                                "🔍 19x",
+                                color = Color.White,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0x38FFFFFF))
+                                    .clickable {
+                                        scope.launch {
+                                            val target = if (pts.isNotEmpty()) LatLng(pts.sumOf { it.lat } / pts.size, pts.sumOf { it.lng } / pts.size) else camera.position.target
+                                            camera.animate(CameraUpdateFactory.newLatLngZoom(target, 19.2f))
+                                        }
+                                    }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                            )
+                        }
                         Text(
-                            "🛰️ Làm rõ bằng GEE:",
+                            AppStrings.tr("🛰️ Chế độ:"),
                             color = Color(0xFF69F0AE),
-                            fontSize = 12.5.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier.padding(vertical = 2.dp),
                         )
                         GeePickerClarityMode.entries.forEach { mode ->
                             val selected = clarityMode == mode
                             Text(
-                                mode.chipLabel,
+                                AppStrings.tr(mode.chipLabel),
                                 color = if (selected) Color(0xFF07150D) else Color.White,
                                 fontSize = 12.sp,
                                 fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
@@ -755,11 +782,11 @@ fun BoundaryPickerScreen(
                                             fetchGeeClarityForRing(ringToScan, switchModeIfClear = false)
                                         }
                                     }
-                                    .padding(horizontal = 9.dp, vertical = 4.5.dp),
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
                             )
                         }
                         Text(
-                            if (geeLoading) "⏳ Đang quét GEE…" else "✨ Làm rõ vùng đang xem",
+                            AppStrings.tr(if (geeLoading) "⏳ Đang làm rõ…" else "✨ Làm rõ vùng xem"),
                             color = Color.White,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
@@ -772,32 +799,32 @@ fun BoundaryPickerScreen(
                                     fetchGeeClarityForRing(ringToScan, switchModeIfClear = true)
                                     c.toast("Đang gọi Google Earth Engine API để làm rõ khu vườn…")
                                 }
-                                .padding(horizontal = 9.dp, vertical = 4.5.dp),
+                                .padding(horizontal = 8.dp, vertical = 4.dp),
                         )
                     }
-                    Row(
-                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        val gc = geeClarity
-                        if (gc != null) {
-                            val modeTag = if (gc.simulated) "GEE MÔ PHỎNG" else "GEE LIVE"
-                            val dateTag = gc.bestSceneDate ?: "gần nhất"
-                            val cloudTag = gc.bestSceneCloudPct?.let { "mây ${fmtNum(it, 1)}%" } ?: "quang mây ${fmtNum(gc.clearSkyPct, 0)}%"
-                            Text(
-                                "✅ $modeTag ($dateTag · $cloudTag) · Tán ${fmtNum(gc.canopyCoverPct, 1)}% · ~${gc.estimatedTrees} cây · NDVI ${gc.meanNdvi?.let { fmtNum(it, 2) } ?: "—"}" +
-                                    (gc.elevationMeanM?.let { " · Cao độ ${fmtNum(it, 0)}m" } ?: ""),
-                                color = Color(0xFFB9F6CA),
-                                fontSize = 11.5.sp,
-                                fontWeight = FontWeight.SemiBold,
-                            )
-                        } else if (geeError != null) {
-                            Text("⚠ $geeError", color = Color(0xFFFFD166), fontSize = 11.5.sp)
-                        } else {
-                            Text(clarityMode.descriptionVi, color = Color.White.copy(alpha = 0.86f), fontSize = 11.5.sp)
-                        }
-                        if (clarityMode != GeePickerClarityMode.SATELLITE_CLEAR) {
+                    val gc = geeClarity
+                    if (gc != null) {
+                        val modeTag = if (gc.simulated) "GEE MÔ PHỎNG" else "GEE LIVE"
+                        val dateTag = gc.bestSceneDate ?: "gần nhất"
+                        val cloudTag = gc.bestSceneCloudPct?.let { "mây ${fmtNum(it, 1)}%" } ?: "quang mây ${fmtNum(gc.clearSkyPct, 0)}%"
+                        Text(
+                            "✅ $modeTag ($dateTag · $cloudTag) · Tán ${fmtNum(gc.canopyCoverPct, 1)}% · ~${gc.estimatedTrees} cây · NDVI ${gc.meanNdvi?.let { fmtNum(it, 2) } ?: "—"}" +
+                                (gc.elevationMeanM?.let { " · Cao độ ${fmtNum(it, 0)}m" } ?: ""),
+                            color = Color(0xFFB9F6CA),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            maxLines = 1,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        )
+                    } else if (geeError != null) {
+                        Text("⚠ $geeError", color = Color(0xFFFFD166), fontSize = 11.5.sp, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                    }
+                    if (clarityMode != GeePickerClarityMode.SATELLITE_CLEAR) {
+                        Row(
+                            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
                             listOf(0.55f to "Độ đậm 55%", 0.80f to "Độ đậm 80%", 0.95f to "Độ đậm 95%").forEach { (alphaVal, lbl) ->
                                 val activeAlpha = kotlin.math.abs(geeOpacity - alphaVal) < 0.08f
                                 Text(
@@ -816,7 +843,7 @@ fun BoundaryPickerScreen(
                     }
                 }
 
-                if (pickerHud != null && pts.size >= 3) {
+                if (pickerHud != null && pts.size >= 3 && !c.simpleMode) {
                     val detectedTrees = pickerHud.allGeeTreesInPolygon().ifEmpty {
                         geeClarity?.samplePoints?.filter { Geo.pointInPolygon(it.pos, pts) }.orEmpty()
                     }
@@ -826,9 +853,9 @@ fun BoundaryPickerScreen(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(10.dp))
                             .background(Color(0xFF0E2217))
-                            .padding(horizontal = 10.dp, vertical = 6.dp)
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
                             .horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
@@ -836,7 +863,7 @@ fun BoundaryPickerScreen(
                             else if (detectedTrees.isNotEmpty()) "🌳 GEE + Crown-NMS: ~${detectedTrees.size} tán cây"
                             else "🌲 Chưa quét DeepForest",
                             color = Color(0xFF69F0AE),
-                            fontSize = 12.5.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.ExtraBold,
                         )
                         com.example.test_tablet.data.vwing.DeepForestModelPreset.entries.forEach { preset ->
@@ -857,7 +884,7 @@ fun BoundaryPickerScreen(
                                             onDone = { msg -> c.toast(msg) },
                                         )
                                     }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    .padding(horizontal = 8.dp, vertical = 3.5.dp),
                             )
                         }
                         Text(
@@ -869,7 +896,7 @@ fun BoundaryPickerScreen(
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(if (pickerHud.showDeepForestBboxes) Color(0xFF388E3C) else Color(0x2EFFFFFF))
                                 .clickable { pickerHud.showDeepForestBboxes = !pickerHud.showDeepForestBboxes }
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                .padding(horizontal = 8.dp, vertical = 3.5.dp),
                         )
                         Text(
                             if (pickerHud.showDeepForestTileGrid) "🧩 Ẩn lưới Tile" else "🧩 Lưới cắt ảnh",
@@ -880,7 +907,7 @@ fun BoundaryPickerScreen(
                                 .clip(RoundedCornerShape(8.dp))
                                 .background(if (pickerHud.showDeepForestTileGrid) Color(0xFF00838F) else Color(0x2EFFFFFF))
                                 .clickable { pickerHud.showDeepForestTileGrid = !pickerHud.showDeepForestTileGrid }
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                .padding(horizontal = 8.dp, vertical = 3.5.dp),
                         )
                         Text(
                             if (pickerHud.deepForestAnnotateMode) "✋ Đang gán nhãn (${pickerHud.userAnnotatedBboxes.size})" else "➕ Gán nhãn mẫu (${pickerHud.userAnnotatedBboxes.size})",
@@ -894,7 +921,7 @@ fun BoundaryPickerScreen(
                                     pickerHud.deepForestAnnotateMode = !pickerHud.deepForestAnnotateMode
                                     c.toast(if (pickerHud.deepForestAnnotateMode) "Chạm vào tán cây trên Google Map để thêm khung mẫu Fine-tune." else "Đã quay lại chế độ đặt đỉnh ranh vườn.")
                                 }
-                                .padding(horizontal = 8.dp, vertical = 4.dp),
+                                .padding(horizontal = 8.dp, vertical = 3.5.dp),
                         )
                         Text(
                             if (pickerHud.deepForestFineTuneStage != null) "🎯 Đang huấn luyện…" else "🎯 Fine-tune (${pickerHud.userAnnotatedBboxes.size} nhãn)",
@@ -912,8 +939,51 @@ fun BoundaryPickerScreen(
                                         onDone = { msg -> c.toast(msg) },
                                     )
                                 }
-                                .padding(horizontal = 9.dp, vertical = 4.dp),
+                                .padding(horizontal = 8.dp, vertical = 3.5.dp),
                         )
+                    }
+                }
+                val openRing = Geo.open(pts)
+                val edgeDistances = if (openRing.size < 2) emptyList()
+                else if (openRing.size == 2) listOf(Triple(1, 2, Geo.distanceM(openRing[0], openRing[1])))
+                else openRing.indices.map { i ->
+                    val j = (i + 1) % openRing.size
+                    Triple(i + 1, j + 1, Geo.distanceM(openRing[i], openRing[j]))
+                }
+                val perimeterM = edgeDistances.sumOf { it.third }
+                val saoTayNguyen = fmtNum(area * 10.0, 1)
+                val m2Text = fmtInt((area * 10000.0).toInt())
+                if (edgeDistances.isNotEmpty()) {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            if (openRing.size >= 3) "${AppStrings.tr("📏 Chu vi:")} ${fmtNum(perimeterM, 1)} m"
+                            else "${AppStrings.tr("📏 Khoảng cách:")} ${fmtNum(perimeterM, 1)} m",
+                            color = Color(0xFF07150D),
+                            fontSize = 11.5.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFFFFD54F))
+                                .padding(horizontal = 7.dp, vertical = 2.5.dp),
+                        )
+                        edgeDistances.forEach { (fromIdx, toIdx, distM) ->
+                            Text(
+                                "${AppStrings.tr("Đỉnh")} $fromIdx→$toIdx: ${fmtNum(distM, 1)} m",
+                                color = VC.text,
+                                fontSize = 11.5.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(VC.elevated)
+                                    .padding(horizontal = 7.dp, vertical = 2.5.dp),
+                            )
+                        }
                     }
                 }
                 Row(
@@ -921,51 +991,45 @@ fun BoundaryPickerScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            if (pts.isEmpty()) "Chưa có đỉnh nào." else "${pts.size} đỉnh" + if (pts.size >= 3) " · ${fmtNum(area, 2)} ha" else "",
-                            color = VC.text, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, maxLines = 1,
-                        )
-                        val subStatus = problem?.takeIf { pts.isNotEmpty() }
-                            ?: existing?.let { "Lưu sẽ thay ranh vườn hiện có (${fmtNum(Geo.polygonAreaHa(it), 2)} ha)." }
-                        if (subStatus != null) {
-                            Text(
-                                subStatus,
-                                color = if (problem != null && pts.size >= 3) VC.red else VC.muted,
-                                fontSize = 12.sp,
-                                maxLines = 1,
-                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            )
-                        }
-                    }
+                    Text(
+                        if (pts.isEmpty()) AppStrings.tr("Chạm bản đồ để chấm góc vườn (≥3 đỉnh).")
+                        else if (problem != null && pts.size >= 3) "${pts.size} ${AppStrings.tr("góc")} · $problem"
+                        else "${pts.size} ${AppStrings.tr("góc vườn")}" + if (pts.size >= 3) " · ${fmtNum(area, 2)} ha (~$saoTayNguyen ${AppStrings.tr("sào")} · $m2Text m²)" else " · ${AppStrings.tr("Chấm thêm 1 đỉnh để khép kín diện tích")}",
+                        color = if (problem != null && pts.size >= 3) VC.red else VC.text,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(end = 6.dp),
+                    )
                     if (keyOk && pts.isNotEmpty()) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                "↶ Hoàn tác",
+                                AppStrings.tr("↶ Hoàn tác"),
                                 color = VC.text,
-                                fontSize = 12.5.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(VC.elevated)
                                     .clickable { presetSource = null; pts.removeAt(pts.lastIndex) }
-                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
                             )
                             Text(
-                                "🗑 Xóa hết",
+                                AppStrings.tr("🗑 Xóa"),
                                 color = VC.red,
-                                fontSize = 12.5.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(10.dp))
+                                    .clip(RoundedCornerShape(8.dp))
                                     .background(VC.red.copy(alpha = 0.10f))
                                     .clickable { presetSource = null; pts.clear() }
-                                    .padding(horizontal = 10.dp, vertical = 7.dp),
+                                    .padding(horizontal = 8.dp, vertical = 4.dp),
                             )
                         }
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                     if (isDialog) {
                         VButton("Hủy", onDismiss, modifier = Modifier.weight(1f), primary = false, icon = Icons.Filled.Close)
                     } else {

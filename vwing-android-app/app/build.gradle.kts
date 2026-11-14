@@ -101,6 +101,9 @@ android {
             assets.srcDirs("src/main/assets", "E:/New folder/SmartFarm/ui-prototype")
         }
     }
+    androidResources {
+        ignoreAssetsPatterns += listOf("!*figma*", "!*.zip", "!*.md", "!*preview*.png", "!*.mjs")
+    }
     testOptions {
         unitTests.isReturnDefaultValues = true
         unitTests.isIncludeAndroidResources = true      // Robolectric cần tài nguyên để dựng giao diện Compose trên JVM

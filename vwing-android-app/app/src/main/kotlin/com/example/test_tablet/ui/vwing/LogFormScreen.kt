@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.clickable
@@ -61,6 +62,7 @@ private val ACTIVITY_HINT = mapOf(
 @Composable
 fun LogFormScreen(c: VCtx, arg: String) {
     val d = c.d
+    val view = androidx.compose.ui.platform.LocalView.current
     val parts = arg.split('|')
     val preTree = parts.getOrNull(0)?.ifBlank { null }
     val preIssue = parts.getOrNull(1)?.ifBlank { null }
@@ -106,11 +108,56 @@ fun LogFormScreen(c: VCtx, arg: String) {
     val targetTrees = if (zoneMode) zoneTrees else foundTrees
     val cond = Condition.values().firstOrNull { it.label == condLabel }
 
+    fun submitLog() {
+        val dt = Dates.parse(date)
+        val k = if (kg.isBlank()) null else parseNum(kg)
+        err = when {
+            !zoneMode && missing.isNotEmpty() -> "Có mã cây chưa tồn tại: ${missing.joinToString(", ")}."
+            targetTrees.isEmpty() -> if (zoneMode) "Khu này chưa có cây nào." else "Nhập ít nhất một mã cây."
+            dt == null -> "Ngày không hợp lệ (dd/MM/yyyy)."
+            dt > Dates.today() -> "Ngày thực hiện không được ở tương lai."
+            (activity == "Bón phân" || activity == "Phun thuốc") && product.isBlank() -> "$activity cần ghi sản phẩm / vật tư."
+            activity == "Thu hoạch" && (k == null || k <= 0) -> "Nhập khối lượng thu hoạch lớn hơn 0 (kg)."
+            activity == "Kiểm tra" && note.isBlank() && photos.isEmpty() && cond == null -> "Ghi chú, ảnh hoặc tình trạng: cần ít nhất một thông tin quan sát."
+            createIssue && note.isBlank() -> "Nhập ghi chú mô tả biểu hiện để tạo vấn đề."
+            else -> null
+        }
+        if (err == null) {
+            val ev = Event(
+                id = draftId, treeIds = targetTrees.map { it.id }, scopeZone = if (zoneMode) zone else null,
+                type = when (activity) { "Kiểm tra" -> EventType.OBSERVATION; "Thu hoạch" -> EventType.HARVEST; else -> EventType.CARE },
+                activity = activity, occurredAt = dt!! + 12 * 3_600_000L, author = author.ifBlank { d.garden.operatorName }, note = note.trim(),
+                product = product.trim().ifEmpty { null }, dosage = dosage.trim().ifEmpty { null }, amountKg = k,
+                photos = photos.toList(), source = EvidenceSource.valueOf(source),
+                issueId = issueId.ifEmpty { null }, conditionSet = if (activity == "Kiểm tra") cond else null,
+            )
+            val r = c.store.addEvent(ev, fruits.toIntOrNull())
+            if (!r.ok) err = r.message
+            else {
+                performConfirmHaptic(view)
+                if (createIssue) c.store.addIssue(ev.treeIds, ev.scopeZone, note, if (cond == Condition.NEEDS_CHECK) Priority.HIGH else Priority.MEDIUM,
+                    author, Dates.daysAgo(-3), ev.id)
+                c.toast("Đã lưu ghi chép${if (createIssue) " và tạo vấn đề" else ""}.")
+                c.nav.pop()
+            }
+        }
+    }
+
     PageHeader(Icons.Filled.EditNote, "NHẬT KÝ CANH TÁC", "Ghi lại một lần chăm sóc", "Lưu thời gian, đối tượng, bằng chứng và (khi cần) vật tư để theo dõi cây theo thời gian. Dữ liệu lưu ngay trên thiết bị.")
 
-    VCard(Modifier.fillMaxWidth().widthIn(max = 760.dp)) {
+    VCard(Modifier.fillMaxWidth().widthIn(max = 760.dp).imePadding()) {
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Eyebrow("ÁP DỤNG CHO")
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Eyebrow("ÁP DỤNG CHO")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    VButton("Hủy", { c.nav.pop() }, primary = false)
+                    VButton("💾 Lưu ngay", { submitLog() })
+                }
+            }
             ChipRow(listOf(false, true), zoneMode, { if (it) "Cả khu vực" else "Từng cây" }, { zoneMode = it; err = null }, icon = { if (it) Icons.Filled.GridView else Icons.Filled.Park })
             if (zoneMode) {
                 VPicker("Khu vực", d.zoneNames(), zone, { zone = it })
@@ -153,10 +200,38 @@ fun LogFormScreen(c: VCtx, arg: String) {
                 "Thu hoạch" -> VField(kg, { kg = it; err = null }, "Khối lượng thu hoạch (kg) *", number = true)
             }
 
+            val quickNotes = when (activity) {
+                "Tưới nước" -> listOf("Đã tưới đủ ẩm gốc 45 phút", "Tưới nhỏ giọt buổi sáng, đất tơi xốp", "Khơi rãnh thoát nước gốc sau mưa")
+                "Bón phân" -> listOf("Đã bón NPK 16-16-8 đúng liều gốc", "Bón phân hữu cơ vi sinh quanh tán", "Bổ sung Canxi-Bo dưỡng bông/trái")
+                "Phun thuốc" -> listOf("Đã phun phòng nấm Phytophthora", "Phun trừ rầy xanh & nhện đỏ đợt đọt non", "Quét thuốc gốc đồng quanh cổ rễ")
+                "Cắt tỉa" -> listOf("Tỉa cành vượt & cành tăm trong tán", "Tỉa bớt bông/trái đeo chùm dày", "Dọn cỏ gốc thông thoáng")
+                "Thu hoạch" -> listOf("Cắt sầu riêng già chuẩn tuổi, cơm vàng", "Thu hoạch đợt 1, trái đều đẹp", "Phân loại trái loại 1 tại vườn")
+                else -> listOf("Lá xanh dày, đọt non khỏe mạnh", "Hơi vàng lá mép ngoài, cần theo dõi", "Đất quanh gốc đủ ẩm, không úng nước")
+            }
+            Text("Chạm chọn nhanh câu ghi chú (không cần gõ bàn phím):", color = VC.text2, fontSize = 13.5.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
+            FlowRow(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                quickNotes.forEach { qn ->
+                    VButton(
+                        text = "+ $qn",
+                        onClick = {
+                            note = if (note.isBlank()) qn else "${note.trimEnd()}; $qn"
+                            if (activity == "Bón phân" && product.isBlank()) product = "NPK 16-16-8 + Hữu cơ vi sinh"
+                            if (activity == "Phun thuốc" && product.isBlank()) product = "Aliette 800WG / Ridomil Gold"
+                            err = null
+                        },
+                        primary = false,
+                    )
+                }
+            }
+
             VField(note, { note = it; err = null }, "Ghi chú", singleLine = false, minLines = 2)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                VButton("Nói để ghi chú", speak, primary = false)
-                Text("Văn bản nhận dạng được thêm vào ô ghi chú; bạn xem và sửa trước khi lưu.", color = VC.muted, fontSize = 13.sp)
+                VButton("🎤 Nói để ghi chú", speak, primary = false)
+                Text("Bấm để nói bằng giọng tiếng Việt hoặc chạm các nút mẫu ở trên.", color = VC.muted, fontSize = 13.sp)
             }
 
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -186,39 +261,7 @@ fun LogFormScreen(c: VCtx, arg: String) {
             Spacer(Modifier.height(2.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 VButton("Hủy", { c.nav.pop() }, primary = false)
-                VButton("Lưu ghi chép", {
-                    val dt = Dates.parse(date)
-                    val k = if (kg.isBlank()) null else parseNum(kg)
-                    err = when {
-                        !zoneMode && missing.isNotEmpty() -> "Có mã cây chưa tồn tại: ${missing.joinToString(", ")}."
-                        targetTrees.isEmpty() -> if (zoneMode) "Khu này chưa có cây nào." else "Nhập ít nhất một mã cây."
-                        dt == null -> "Ngày không hợp lệ (dd/MM/yyyy)."
-                        dt > Dates.today() -> "Ngày thực hiện không được ở tương lai."
-                        (activity == "Bón phân" || activity == "Phun thuốc") && product.isBlank() -> "$activity cần ghi sản phẩm / vật tư."
-                        activity == "Thu hoạch" && (k == null || k <= 0) -> "Nhập khối lượng thu hoạch lớn hơn 0 (kg)."
-                        activity == "Kiểm tra" && note.isBlank() && photos.isEmpty() && cond == null -> "Ghi chú, ảnh hoặc tình trạng: cần ít nhất một thông tin quan sát."
-                        createIssue && note.isBlank() -> "Nhập ghi chú mô tả biểu hiện để tạo vấn đề."
-                        else -> null
-                    }
-                    if (err == null) {
-                        val ev = Event(
-                            id = draftId, treeIds = targetTrees.map { it.id }, scopeZone = if (zoneMode) zone else null,
-                            type = when (activity) { "Kiểm tra" -> EventType.OBSERVATION; "Thu hoạch" -> EventType.HARVEST; else -> EventType.CARE },
-                            activity = activity, occurredAt = dt!! + 12 * 3_600_000L, author = author.ifBlank { d.garden.operatorName }, note = note.trim(),
-                            product = product.trim().ifEmpty { null }, dosage = dosage.trim().ifEmpty { null }, amountKg = k,
-                            photos = photos.toList(), source = EvidenceSource.valueOf(source),
-                            issueId = issueId.ifEmpty { null }, conditionSet = if (activity == "Kiểm tra") cond else null,
-                        )
-                        val r = c.store.addEvent(ev, fruits.toIntOrNull())
-                        if (!r.ok) err = r.message
-                        else {
-                            if (createIssue) c.store.addIssue(ev.treeIds, ev.scopeZone, note, if (cond == Condition.NEEDS_CHECK) Priority.HIGH else Priority.MEDIUM,
-                                author, Dates.daysAgo(-3), ev.id)
-                            c.toast("Đã lưu ghi chép${if (createIssue) " và tạo vấn đề" else ""}.")
-                            c.nav.pop()
-                        }
-                    }
-                })
+                VButton("💾 Lưu vào sổ vườn", { submitLog() })
             }
 
         }

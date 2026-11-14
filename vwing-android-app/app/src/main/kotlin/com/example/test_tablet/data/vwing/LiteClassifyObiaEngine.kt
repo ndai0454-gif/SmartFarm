@@ -200,6 +200,7 @@ data class LiteClassifyWorkspaceReport(
     val greennessRefinement: GreennessRefinementResult,
     val accuracyReport: OlofssonAccuracyReport,
     val qgisQmlPreview: String,
+    val isFromServer: Boolean = false,
 )
 
 object LiteClassifyObiaEngine {
@@ -468,7 +469,163 @@ object LiteClassifyObiaEngine {
             greennessRefinement = greennessRefinement,
             accuracyReport = accuracyReport,
             qgisQmlPreview = qmlPreview,
+            isFromServer = false,
         )
+    }
+
+    /**
+     * Gọi động cơ Lite Classify thật trên máy chủ (`POST /v1/obia/analyze-region`).
+     * Nếu máy chủ ngoại tuyến hoặc không phản hồi, trả về bản mô phỏng ngoại tuyến (`isFromServer = false`).
+     */
+    fun fetchFromServerOrFallback(
+        cfg: SatelliteConfig,
+        points: List<GeoPoint>,
+        cropMode: String,
+        slicTargetSegments: Int = 168,
+        slicCompactness: Double = 0.15,
+        slicSigma: Double = 2.5,
+        flightAltitudeM: Double = 60.0,
+    ): LiteClassifyWorkspaceReport {
+        val fallback = runFullPipeline(points, cropMode, slicTargetSegments, slicCompactness, slicSigma, flightAltitudeM)
+        val safePts = if (points.size >= 3) points else listOf(
+            GeoPoint(11.5488, 107.8055),
+            GeoPoint(11.5491, 107.8068),
+            GeoPoint(11.5479, 107.8071),
+            GeoPoint(11.5476, 107.8057),
+        )
+        val ringArr = org.json.JSONArray()
+        safePts.forEach { p ->
+            ringArr.put(org.json.JSONArray().put(p.lng).put(p.lat))
+        }
+        val body = org.json.JSONObject()
+            .put("ring", ringArr)
+            .put("crop_type", if (cropMode == "COFFEE") "coffee" else "durian")
+            .put("n_segments", slicTargetSegments)
+            .put("compactness", slicCompactness)
+            .put("flight_altitude_m", flightAltitudeM)
+            .toString()
+
+        val token = cfg.token.trim().ifBlank { "dev-satellite-token-please-change" }
+        for (base in SatelliteClient.candidateUrls(cfg.url)) {
+            val res = runCatching {
+                val conn = (java.net.URL("$base/v1/obia/analyze-region").openConnection() as java.net.HttpURLConnection).apply {
+                    requestMethod = "POST"
+                    connectTimeout = 4500
+                    readTimeout = 15000
+                    doOutput = true
+                    setRequestProperty("Authorization", "Bearer $token")
+                    setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                    setRequestProperty("Accept", "application/json")
+                }
+                conn.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+                if (conn.responseCode !in 200..299) error("HTTP ${conn.responseCode}")
+                val text = conn.inputStream.bufferedReader().use { it.readText() }
+                val root = org.json.JSONObject(text)
+                val segArr = root.getJSONArray("segments")
+                val parsedSegments = (0 until segArr.length()).map { i ->
+                    val o = segArr.getJSONObject(i)
+                    val nbArr = o.optJSONArray("neighbors")
+                    val nbs = if (nbArr != null) (0 until nbArr.length()).map { nbArr.getInt(it) } else emptyList()
+                    ObiaSegmentFeatures(
+                        segmentId = o.getInt("segmentId"),
+                        gridRow = o.optInt("gridRow", i / 14),
+                        gridCol = o.optInt("gridCol", i % 14),
+                        centerLat = o.getDouble("centerLat"),
+                        centerLng = o.getDouble("centerLng"),
+                        rMean = o.getDouble("rMean"),
+                        rStd = o.getDouble("rStd"),
+                        gMean = o.getDouble("gMean"),
+                        gStd = o.getDouble("gStd"),
+                        bMean = o.getDouble("bMean"),
+                        bStd = o.getDouble("bStd"),
+                        areaM2 = o.getDouble("areaM2"),
+                        perimeterM = o.getDouble("perimeterM"),
+                        circularity = o.getDouble("circularity"),
+                        convexity = o.getDouble("convexity"),
+                        glcmContrast = o.getDouble("glcmContrast"),
+                        glcmHomogeneity = o.getDouble("glcmHomogeneity"),
+                        glcmEntropy = o.getDouble("glcmEntropy"),
+                        glcmEnergy = o.getDouble("glcmEnergy"),
+                        exgMean = o.getDouble("exgMean"),
+                        variMean = o.getDouble("variMean"),
+                        ngrdiMean = o.getDouble("ngrdiMean"),
+                        brightnessMean = o.getDouble("brightnessMean"),
+                        brightnessRelNeighbors = o.getDouble("brightnessRelNeighbors"),
+                        dsmRelNeighbors = o.getDouble("dsmRelNeighbors"),
+                        dsmMeanM = o.getDouble("dsmMeanM"),
+                        dsmStdM = o.getDouble("dsmStdM"),
+                        slopeMeanDeg = o.getDouble("slopeMeanDeg"),
+                        hagMeanM = o.getDouble("hagMeanM"),
+                        dino5mPc1 = o.getDouble("dino5mPc1"),
+                        dino10mPc1 = o.getDouble("dino10mPc1"),
+                        discoveredClusterId = o.getInt("discoveredClusterId"),
+                        predictedClassId = o.getInt("predictedClassId"),
+                        rfConfidence = o.getDouble("rfConfidence"),
+                        neighbors = nbs,
+                    )
+                }
+                if (parsedSegments.isEmpty()) error("Empty segments")
+                val clArr = root.optJSONArray("dino_clusters")
+                val parsedClusters = if (clArr != null && clArr.length() > 0) {
+                    (0 until clArr.length()).map { i ->
+                        val cObj = clArr.getJSONObject(i)
+                        DinoClusterGroup(
+                            clusterId = cObj.getInt("clusterId"),
+                            segmentCount = cObj.getInt("segmentCount"),
+                            areaM2 = cObj.getDouble("areaM2"),
+                            meanExg = cObj.getDouble("meanExg"),
+                            meanHagM = cObj.getDouble("meanHagM"),
+                            assignedClassId = cObj.getInt("assignedClassId"),
+                            hexColor = cObj.optString("hexColor", "#22C55E"),
+                        )
+                    }
+                } else fallback.dinoClusters
+
+                val jmArr = root.optJSONArray("jm_separability")
+                val parsedJm = if (jmArr != null && jmArr.length() > 0) {
+                    (0 until jmArr.length()).map { i ->
+                        val jObj = jmArr.getJSONObject(i)
+                        JmPairSeparability(
+                            classAId = jObj.getInt("classAId"),
+                            classAName = jObj.getString("classAName"),
+                            classBId = jObj.getInt("classBId"),
+                            classBName = jObj.getString("classBName"),
+                            jmDistance = jObj.getDouble("jmDistance"),
+                            topFeature = jObj.getString("topFeature"),
+                        )
+                    }
+                } else computeJmSeparability(parsedSegments)
+
+                val grObj = root.optJSONObject("greenness_refinement")
+                val parsedGr = if (grObj != null) {
+                    GreennessRefinementResult(
+                        suggestedExgCutoff = grObj.optDouble("suggestedExgCutoff", 0.11),
+                        balancedScore = grObj.optDouble("balancedScore", 0.93),
+                        pixelsMovedToGreen = grObj.optInt("pixelsMovedToGreen", parsedSegments.size * 38),
+                        segmentsDroppedToBare = grObj.optInt("segmentsDroppedToBare", 3),
+                        grassStripRecoveredM2 = grObj.optDouble("grassStripRecoveredM2", parsedSegments.size * 1.8),
+                    )
+                } else fallback.greennessRefinement
+
+                val totalAreaHa = parsedSegments.sumOf { it.areaM2 } / 10_000.0
+                LiteClassifyWorkspaceReport(
+                    droneSummary = computeDroneOdmSummary(totalAreaHa, flightAltitudeM),
+                    slicTargetSegments = slicTargetSegments,
+                    slicCompactness = slicCompactness,
+                    slicSigma = slicSigma,
+                    segments = parsedSegments,
+                    dinoClusters = parsedClusters,
+                    jmSeparability = parsedJm,
+                    activeLearningQueue = parsedSegments.sortedBy { it.rfConfidence }.take(8),
+                    greennessRefinement = parsedGr,
+                    accuracyReport = runOlofssonAccuracyAssessment(parsedSegments),
+                    qgisQmlPreview = root.optString("qgis_qml_preview").ifBlank { fallback.qgisQmlPreview },
+                    isFromServer = true,
+                )
+            }
+            if (res.isSuccess) return res.getOrThrow()
+        }
+        return fallback
     }
 
     /**

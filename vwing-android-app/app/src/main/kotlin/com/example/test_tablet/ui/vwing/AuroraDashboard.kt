@@ -72,6 +72,7 @@ import com.example.test_tablet.data.vwing.WeatherClient
 import com.example.test_tablet.data.vwing.activeTrees
 import com.example.test_tablet.data.vwing.summary
 import com.example.test_tablet.data.vwing.todayWork
+import com.example.test_tablet.data.vwing.treesNeedingVisitCount
 import com.example.test_tablet.data.vwing.yieldCalc
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -117,10 +118,18 @@ fun AuroraSmartFarmDashboard(
     val s = d.summary()
     val y = d.yieldCalc()
     val work = d.todayWork()
-    val needs = s.byCondition.getValue(Condition.NEEDS_CHECK)
+    val needs = d.treesNeedingVisitCount()
 
     // Tải dữ liệu thời tiết thực tế từ cache hoặc máy chủ :8000
-    val gardenPoint = remember(d) { WeatherClient.gardenPoint(d) }
+    LaunchedEffect(Unit) {
+        VUi.country = AppLocaleStore.load(context)
+    }
+    val activeCountry = VUi.country
+    val loc = AppStrings.forCountry(activeCountry)
+    val gardenPoint = remember(d, activeCountry) {
+        if (activeCountry == AppCountry.VN) WeatherClient.gardenPoint(d)
+        else com.example.test_tablet.data.vwing.GeoPoint(activeCountry.sampleLat, activeCountry.sampleLng)
+    }
     var weatherReport by remember(gardenPoint) {
         mutableStateOf(gardenPoint?.let { WeatherClient.loadCache(context.filesDir, it) })
     }
@@ -128,19 +137,22 @@ fun AuroraSmartFarmDashboard(
 
     LaunchedEffect(gardenPoint) {
         val pt = gardenPoint ?: return@LaunchedEffect
-        withContext(Dispatchers.IO) {
-            WeatherClient.refresh(SatelliteSettings(context.filesDir).load(), context.filesDir, pt)
-        }.onSuccess {
-            weatherReport = it
-            backendOnline = true
-        }.onFailure {
-            backendOnline = weatherReport != null
+        while (true) {
+            withContext(Dispatchers.IO) {
+                WeatherClient.refresh(SatelliteSettings(context.filesDir).load(), context.filesDir, pt)
+            }.onSuccess {
+                weatherReport = it
+                backendOnline = true
+            }.onFailure {
+                backendOnline = weatherReport != null
+            }
+            delay(3 * 60 * 1000L)
         }
     }
 
     // Chế độ hiển thị: false = Dữ liệu Vườn Tây Nguyên (mặc định), true = Aurora Reference (Central Jakarta)
     var referenceMode by rememberSaveable { mutableStateOf(false) }
-    var selectedDayIdx by rememberSaveable { mutableIntStateOf(3) }
+    var selectedDayIdx by rememberSaveable { mutableIntStateOf(0) }
 
     // Hiển thị tức thì theo chuẩn ibelick/ui-skills (fixing-motion-performance: không trễ entry animation, tắt specular sheen gây chói)
     val lineProgress = 1f
@@ -167,7 +179,7 @@ fun AuroraSmartFarmDashboard(
     val estTonText = y.estKg?.let { fmtNum(it / 1000.0, 2) + " tấn" } ?: "2,76 tấn"
     val estRevText = y.revenue?.let { fmtNum(it / 1_000_000.0, 1) + " tr ₫" } ?: "171,1 tr ₫"
 
-    val dayForecasts = remember(weatherReport, referenceMode, liveTemp, highTemp, lowTemp, rainProb, liveWind, liveHumidity, d.garden.location, s.totalTrees, needs) {
+    val dayForecasts = remember(weatherReport, referenceMode, activeCountry, liveTemp, highTemp, lowTemp, rainProb, liveWind, liveHumidity, d.garden.location, s.totalTrees, needs) {
         if (referenceMode) {
             listOf(
                 AuroraDayForecast("11°", AuroraIconKind.CLOUD, "Sunday", "Cloudy", "with Light Breeze", 14, 9, 25, "12 mph", "Overcast skies across Central Jakarta. High around 54°F, light east wind 12 mph."),
@@ -179,16 +191,15 @@ fun AuroraSmartFarmDashboard(
             )
         } else {
             val defaultDays = listOf(
-                AuroraDayForecast("21°", AuroraIconKind.CLOUD, "Thứ Bảy", "Nhiều mây", "Mưa rào nhẹ", 26, 19, 75, "3,2", "Đất đủ ẩm, trời mát — Rất thuận lợi để bón phân hữu cơ khu C & D."),
-                AuroraDayForecast("28°", AuroraIconKind.CLOUD2, "Chủ Nhật", "Nắng nhẹ", "& Trời ráo", 28, 20, 45, "3,8", "Buổi sáng nắng ráo — Hợp đi thăm vườn và tỉa cành thông thoáng."),
-                AuroraDayForecast("28°", AuroraIconKind.CLOUD2, "Thứ Hai", "Trời mát", "Mưa chiều", 28, 20, 68, "4,1", "Chiều có mưa rào nhẹ — Nên tỉa cành và quét thuốc gốc cây A-04 trong buổi sáng."),
-                AuroraDayForecast("${liveTemp}°", AuroraIconKind.HAIL, "Thứ Ba", "Mưa rào", "& Dông chiều", highTemp, lowTemp, rainProb, liveWind, "Hôm nay có mưa lớn (ẩm ${liveHumidity}%) — Khoan phun thuốc, ưu tiên khơi rãnh thoát nước gốc và thăm $needs cây (A-04, B-05, D-02)."),
-                AuroraDayForecast("29°", AuroraIconKind.SUN, "Thứ Tư", "Nắng ấm", "& Quang mây", 29, 19, 20, "2,8", "Nắng ráo sau đợt mưa — Rất hợp xịt phòng nấm bệnh và kiểm tra gốc cây."),
-                AuroraDayForecast("28°", AuroraIconKind.CLOUD, "Thứ Năm", "Trời mát", "Gió nhẹ êm", 28, 19, 35, "3,0", "Thời tiết mát mẻ — Thích hợp đi thăm lại cây B-05 sau đợt bón phân."),
+                AuroraDayForecast("${liveTemp}°", AuroraIconKind.CLOUD, AppStrings.weekdayLabel(activeCountry, null, 0), loc.cloudy1, loc.cloudy2, highTemp, lowTemp, rainProb, liveWind, loc.adviceMild(lowTemp, highTemp, rainProb)),
+                AuroraDayForecast("28°", AuroraIconKind.CLOUD2, AppStrings.weekdayLabel(activeCountry, null, 1), loc.sunClear1, loc.sunClear2, 28, 20, 45, "3,8", loc.adviceMild(20, 28, 45)),
+                AuroraDayForecast("28°", AuroraIconKind.CLOUD2, AppStrings.weekdayLabel(activeCountry, null, 2), loc.rain1, loc.rain2, 28, 20, 68, "4,1", loc.adviceRain(68, 20, 28, needs)),
+                AuroraDayForecast("27°", AuroraIconKind.HAIL, AppStrings.weekdayLabel(activeCountry, null, 3), loc.storm1, loc.storm2, 27, 19, 75, "3,5", loc.adviceRain(75, 19, 27, needs)),
+                AuroraDayForecast("29°", AuroraIconKind.SUN, AppStrings.weekdayLabel(activeCountry, null, 4), loc.sunClear1, loc.sunClear2, 29, 19, 20, "2,8", loc.adviceMild(19, 29, 20)),
+                AuroraDayForecast("28°", AuroraIconKind.CLOUD, AppStrings.weekdayLabel(activeCountry, null, 5), loc.cloudy1, loc.cloudy2, 28, 19, 35, "3,0", loc.adviceMild(19, 28, 35)),
             )
             val days = weatherReport?.days?.take(6)
             if (days != null && days.size >= 6) {
-                val labels = listOf("Thứ Bảy", "Chủ Nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm")
                 days.mapIndexed { idx, day ->
                     val icon = when (day.code) {
                         0, 1 -> AuroraIconKind.SUN
@@ -197,26 +208,26 @@ fun AuroraSmartFarmDashboard(
                         else -> AuroraIconKind.CLOUD
                     }
                     val (l1, l2) = when (day.code) {
-                        0, 1 -> "Nắng ấm" to "& Quang mây"
-                        2, 3 -> "Nhiều mây" to "& Nắng nhẹ"
-                        in 45..48 -> "Sương mù" to "Độ ẩm cao"
-                        in 51..67 -> "Mưa rào" to "Rải rác"
-                        in 80..82 -> "Mưa rào" to "& Gió mạnh"
-                        95, 96, 99 -> "Mưa rào" to "& Dông chiều"
+                        0, 1 -> loc.sunClear1 to loc.sunClear2
+                        2, 3 -> loc.cloudy1 to loc.cloudy2
+                        in 45..48 -> loc.fog1 to loc.fog2
+                        in 51..67 -> loc.rain1 to loc.rain2
+                        in 80..82 -> loc.heavyRain1 to loc.heavyRain2
+                        95, 96, 99 -> loc.storm1 to loc.storm2
                         else -> defaultDays[idx].line1 to defaultDays[idx].line2
                     }
                     val hi = day.high.roundToInt()
                     val lo = day.low.roundToInt()
                     val rain = day.rainChance?.roundToInt() ?: defaultDays[idx].rainProb
                     val farmerAdvice = when {
-                        rain >= 65 -> "Khả năng mưa ${rain}% (${lo}°–${hi}°C) — Khoan phun thuốc, ưu tiên khơi rãnh thoát nước gốc và thăm $needs cây cần chú ý."
-                        hi >= 31 -> "Trời nắng ấm ${hi}°C (mưa ${rain}%) — Kiểm tra giữ ẩm gốc buổi sáng sớm, thuận lợi tỉa cành."
-                        else -> "Trời mát ${lo}°–${hi}°C (mưa ${rain}%) — Thời tiết thuận lợi để đi thăm vườn, bón phân và chăm sóc cây."
+                        rain >= 65 -> loc.adviceRain(rain, lo, hi, needs)
+                        hi >= 31 -> loc.adviceHot(hi, rain)
+                        else -> loc.adviceMild(lo, hi, rain)
                     }
                     AuroraDayForecast(
-                        tempStr = "${hi}°",
+                        tempStr = if (idx == 0) "${liveTemp}°" else "${hi}°",
                         icon = icon,
-                        dayLabel = labels.getOrElse(idx) { day.date.takeLast(5) },
+                        dayLabel = AppStrings.weekdayLabel(activeCountry, day.date, idx),
                         line1 = l1,
                         line2 = l2,
                         high = hi,
@@ -241,10 +252,10 @@ fun AuroraSmartFarmDashboard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(if (c.wide) 30.dp else 26.dp))
-            .background(if (VC.isPro) Color(0xFF04121B) else Color.White)
+            .background(if (VC.isPro) Color(0xFF071A26) else Color.White)
             .border(
                 1.dp,
-                if (VC.isPro) Color.White.copy(alpha = 0.18f) else VC.border,
+                if (VC.isPro) Color.White.copy(alpha = 0.22f) else VC.border,
                 RoundedCornerShape(if (c.wide) 30.dp else 26.dp),
             )
     ) {
@@ -252,14 +263,15 @@ fun AuroraSmartFarmDashboard(
         val isTabletPortrait = !c.phoneMode && !isTabletLandscape && maxWidth >= 580.dp
 
         val healthyTrees = (s.totalTrees - needs).coerceAtLeast(0)
+        val cardsLoc = AppStrings.cards(activeCountry)
         val cardBData = if (referenceMode) {
             AuroraRowCardData("Indonesia", "North Jakarta", "Mostly Sunny", "12°", AuroraIconKind.CLOUD) { c.nav.top("weather") }
         } else {
             AuroraRowCardData(
-                "Khu A · Gần lối vào",
-                "Cây A-04 · Hơi vàng lá",
-                "Cần thăm gốc · Chạm để xem",
-                "${treeA04?.fruits ?: 46} trái",
+                cardsLoc.zoneA,
+                cardsLoc.treeA04,
+                cardsLoc.visitRoot,
+                "${treeA04?.fruits ?: 46}",
                 AuroraIconKind.CLOUD,
             ) {
                 treeA04?.let { c.selectTree(it.id); c.nav.push("tree|${it.id}") } ?: c.nav.top("issues|trees")
@@ -269,10 +281,10 @@ fun AuroraSmartFarmDashboard(
             AuroraRowCardData("Indonesia", "Bandung", "Cloudy", "10°", AuroraIconKind.CLOUD) { c.nav.top("weather") }
         } else {
             AuroraRowCardData(
-                "Khu B · Đất dốc",
-                "Cây B-05 · Mới bón phân",
-                "Đang hồi phục · Chạm để xem",
-                "${treeB05?.fruits ?: 46} trái",
+                cardsLoc.zoneB,
+                cardsLoc.treeB05,
+                cardsLoc.recovering,
+                "${treeB05?.fruits ?: 46}",
                 AuroraIconKind.CLOUD,
             ) {
                 treeB05?.let { c.selectTree(it.id); c.nav.push("tree|${it.id}") } ?: c.nav.top("issues|trees")
@@ -282,10 +294,10 @@ fun AuroraSmartFarmDashboard(
             AuroraRowCardData("Indonesia", "South Jakarta", "Sunny", "14°", AuroraIconKind.CLOUD2) { c.nav.top("weather") }
         } else {
             AuroraRowCardData(
-                "Dự kiến thu hoạch (${s.totalTrees} cây)",
-                "Ước thu $estTonText",
-                "Thu về khoảng $estRevText",
-                "$healthyTrees/${s.totalTrees} khỏe",
+                cardsLoc.estHarvestTitle(s.totalTrees),
+                cardsLoc.estHarvestVal(estTonText),
+                cardsLoc.estRevVal(estRevText),
+                "$healthyTrees/${s.totalTrees}",
                 AuroraIconKind.SUN,
             ) {
                 c.nav.top("yield")
@@ -363,8 +375,8 @@ fun AuroraSmartFarmDashboard(
                         if (embeddedInAppShell) {
                             AuroraStageStatusBar(
                                 titleText = if (referenceMode) "Aurora Weather Station · Central Jakarta" else "${d.garden.name} · ${fmtNum(d.garden.areaHa ?: 1.8)} ha",
-                                subText = if (referenceMode) "Operator: Calfin Danang · Live Telemetry" else "$healthyTrees/${s.totalTrees} cây khỏe · Đất đủ ẩm 64%",
-                                healthyBadgeText = "$healthyTrees/${s.totalTrees} cây khỏe",
+                                subText = if (referenceMode) "Operator: Calfin Danang · Live Telemetry" else "${AppStrings.shell(activeCountry).healthyBadge(healthyTrees, s.totalTrees)} · ${AppStrings.shell(activeCountry).soilMoistSub}",
+                                healthyBadgeText = AppStrings.shell(activeCountry).healthyBadge(healthyTrees, s.totalTrees),
                                 backendOnline = backendOnline,
                                 alertCount = needs,
                                 isCompact = false,
@@ -373,13 +385,14 @@ fun AuroraSmartFarmDashboard(
                             )
                         } else {
                             AuroraHeaderBar(
-                                helloText = if (referenceMode) "Welcome" else "Xin chào · ${d.garden.name} (${fmtNum(d.garden.areaHa ?: 1.8)} ha)",
-                                whoText = if (referenceMode) "Calfin Danang" else "${d.garden.operatorName} · ${d.garden.location}",
+                                helloText = if (referenceMode) "Welcome" else "${loc.hello} ${d.garden.name} (${fmtNum(d.garden.areaHa ?: 1.8)} ha)",
+                                whoText = if (referenceMode) "Calfin Danang" else "${d.garden.operatorName} · ${if (activeCountry == AppCountry.VN) d.garden.location else activeCountry.sampleLocation}",
                                 backendOnline = backendOnline,
                                 alertCount = work.total.coerceAtLeast(needs),
-                                operatorInitials = if (referenceMode) "CD" else "VN",
+                                operatorInitials = if (referenceMode) "CD" else activeCountry.countryCode,
+                                country = activeCountry,
                                 onAddLog = { c.nav.push("log") },
-                                onSearch = { VUi.searchOpen = true },
+                                onCountryPicker = { VUi.countryPickerOpen = true },
                                 onAlerts = { c.nav.top("issues|trees") },
                                 onProfile = { c.nav.top("setup") },
                             )
@@ -392,6 +405,7 @@ fun AuroraSmartFarmDashboard(
                             onOpenSatellite = { c.nav.top("env") },
                             onOpenAlerts = { c.nav.top("issues|trees") },
                             onOpenAi = { c.nav.top("ai") },
+                            onAddLog = { c.nav.push("log") },
                         )
 
                         Row(
@@ -483,20 +497,21 @@ fun AuroraSmartFarmDashboard(
                             )
                         } else {
                             AuroraHeaderBar(
-                                helloText = if (referenceMode) "Welcome" else "Xin chào · ${d.garden.name} (${fmtNum(d.garden.areaHa ?: 1.8)} ha)",
-                                whoText = if (referenceMode) "Calfin Danang" else "${d.garden.operatorName} · ${d.garden.location}",
+                                helloText = if (referenceMode) "Welcome" else "${loc.hello} ${d.garden.name} (${fmtNum(d.garden.areaHa ?: 1.8)} ha)",
+                                whoText = if (referenceMode) "Calfin Danang" else "${d.garden.operatorName} · ${if (activeCountry == AppCountry.VN) d.garden.location else activeCountry.sampleLocation}",
                                 backendOnline = backendOnline,
                                 alertCount = work.total.coerceAtLeast(needs),
-                                operatorInitials = if (referenceMode) "CD" else "VN",
+                                operatorInitials = if (referenceMode) "CD" else activeCountry.countryCode,
+                                country = activeCountry,
                                 onAddLog = { c.nav.push("log") },
-                                onSearch = { VUi.searchOpen = true },
+                                onCountryPicker = { VUi.countryPickerOpen = true },
                                 onAlerts = { c.nav.top("issues|trees") },
                                 onProfile = { c.nav.top("setup") },
                             )
                         }
 
                         AuroraHeroBlock(
-                            chipText = if (referenceMode) "Weather Forecast · ${activeDay.dayLabel}" else "Thời tiết hôm nay · ${activeDay.dayLabel}",
+                            chipText = if (referenceMode) "Weather Forecast · ${activeDay.dayLabel}" else "${loc.todayWord} · ${activeDay.dayLabel}",
                             modeBadgeText = if (c.simpleMode && !referenceMode) "" else if (referenceMode) "Mẫu Aurora ⇄ Vườn" else "Vườn Tây Nguyên ⇄ Mẫu",
                             line1 = activeDay.line1,
                             line2 = activeDay.line2,
@@ -513,6 +528,7 @@ fun AuroraSmartFarmDashboard(
                             onOpenSatellite = { c.nav.top("env") },
                             onOpenAlerts = { c.nav.top("issues|trees") },
                             onOpenAi = { c.nav.top("ai") },
+                            onAddLog = { c.nav.push("log") },
                         )
 
                         AuroraForecastStrip(
@@ -564,13 +580,14 @@ fun AuroraSmartFarmDashboard(
                         )
                     } else {
                         AuroraHeaderBar(
-                            helloText = if (referenceMode) "Welcome" else "Xin chào · ${d.garden.name}",
-                            whoText = if (referenceMode) "Calfin Danang" else "${d.garden.operatorName} · Bảo Lộc",
+                            helloText = if (referenceMode) "Welcome" else "${loc.hello} ${d.garden.name}",
+                            whoText = if (referenceMode) "Calfin Danang" else "${d.garden.operatorName} · ${if (activeCountry == AppCountry.VN) "Bảo Lộc" else activeCountry.sampleLocation}",
                             backendOnline = backendOnline,
                             alertCount = work.total.coerceAtLeast(needs),
-                            operatorInitials = if (referenceMode) "CD" else "VN",
+                            operatorInitials = if (referenceMode) "CD" else activeCountry.countryCode,
+                            country = activeCountry,
                             onAddLog = { c.nav.push("log") },
-                            onSearch = { VUi.searchOpen = true },
+                            onCountryPicker = { VUi.countryPickerOpen = true },
                             onAlerts = { c.nav.top("issues|trees") },
                             onProfile = { c.nav.top("setup") },
                             isCompact = true,
@@ -578,7 +595,7 @@ fun AuroraSmartFarmDashboard(
                     }
 
                     AuroraHeroBlock(
-                        chipText = if (referenceMode) "Weather · ${activeDay.dayLabel}" else "Hôm nay · ${activeDay.dayLabel}",
+                        chipText = if (referenceMode) "Weather · ${activeDay.dayLabel}" else "${loc.todayWord} · ${activeDay.dayLabel}",
                         modeBadgeText = if (c.simpleMode && !referenceMode) "" else if (referenceMode) "Mẫu ⇄ Vườn" else "Vườn ⇄ Mẫu",
                         line1 = activeDay.line1,
                         line2 = activeDay.line2,
@@ -595,6 +612,7 @@ fun AuroraSmartFarmDashboard(
                         onOpenSatellite = { c.nav.top("env") },
                         onOpenAlerts = { c.nav.top("issues|trees") },
                         onOpenAi = { c.nav.top("ai") },
+                        onAddLog = { c.nav.push("log") },
                     )
 
                     AuroraForecastStrip(
@@ -631,6 +649,20 @@ fun AuroraSmartFarmDashboard(
                 }
             }
         }
+    }
+
+    if (!embeddedInAppShell && VUi.countryPickerOpen) {
+        CountryPickerDialog(
+            current = activeCountry,
+            onSelect = { chosen ->
+                VUi.country = chosen
+                AppLocaleStore.save(context, chosen)
+                java.util.Locale.setDefault(chosen.toLocale())
+                VUi.countryPickerOpen = false
+                c.toast(AppStrings.forCountry(chosen).switchedToast(chosen))
+            },
+            onDismiss = { VUi.countryPickerOpen = false },
+        )
     }
 }
 
@@ -738,7 +770,7 @@ private fun AuroraSidebarRail(
                                     Text(
                                         text = "$alertCount",
                                         color = Color.White,
-                                        fontSize = 9.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }
@@ -907,7 +939,7 @@ private fun AuroraStageStatusBar(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = "🌿 $healthyBadgeText",
+                        text = healthyBadgeText,
                         color = if (isPro) Color(0xFFD8FCE4) else Color(0xFF14532D),
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -927,7 +959,7 @@ private fun AuroraStageStatusBar(
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
-                        text = if (isCompact) "⚠ $alertCount cây" else "⚠ $alertCount cây cần thăm",
+                        text = if (isCompact) "$alertCount cây" else "$alertCount cây cần thăm",
                         color = if (isPro) Color(0xFFFFE5B4) else Color(0xFF92400E),
                         fontSize = 12.5.sp,
                         fontWeight = FontWeight.Bold,
@@ -946,8 +978,9 @@ private fun AuroraHeaderBar(
     backendOnline: Boolean,
     alertCount: Int,
     operatorInitials: String,
+    country: AppCountry,
     onAddLog: () -> Unit,
-    onSearch: () -> Unit,
+    onCountryPicker: () -> Unit,
     onAlerts: () -> Unit,
     onProfile: () -> Unit,
     isCompact: Boolean = false,
@@ -999,8 +1032,11 @@ private fun AuroraHeaderBar(
             AuroraToolCircle(size = toolSize, onClick = onAddLog) {
                 AuroraVectorIcon(AuroraIconKind.PLUS, size = iconSize)
             }
-            AuroraToolCircle(size = toolSize, onClick = onSearch) {
-                AuroraVectorIcon(AuroraIconKind.SEARCH, size = iconSize)
+            AuroraToolCircle(size = toolSize, onClick = onCountryPicker) {
+                Text(
+                    text = country.flag,
+                    fontSize = if (isCompact) 18.sp else 23.sp,
+                )
             }
             AuroraToolCircle(size = toolSize, badgeCount = alertCount, onClick = onAlerts) {
                 AuroraVectorIcon(AuroraIconKind.BELL, size = iconSize)
@@ -1048,7 +1084,7 @@ private fun AuroraToolCircle(
                 Text(
                     text = "$badgeCount",
                     color = Color.White,
-                    fontSize = 9.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                 )
             }
@@ -1068,6 +1104,31 @@ private fun AuroraHeroBlock(
     isCompact: Boolean,
 ) {
     val isPro = VC.isPro
+    val context = LocalContext.current
+    val view = androidx.compose.ui.platform.LocalView.current
+    var ttsReady by remember { mutableStateOf(false) }
+    var isSpeaking by remember { mutableStateOf(false) }
+    val ttsRef = remember { arrayOfNulls<android.speech.tts.TextToSpeech>(1) }
+    androidx.compose.runtime.DisposableEffect(context) {
+        var instance: android.speech.tts.TextToSpeech? = null
+        runCatching {
+            instance = android.speech.tts.TextToSpeech(context) { status ->
+                if (status == android.speech.tts.TextToSpeech.SUCCESS) {
+                    instance?.language = java.util.Locale("vi", "VN")
+                    ttsReady = true
+                }
+            }
+            ttsRef[0] = instance
+        }
+        onDispose {
+            runCatching {
+                instance?.stop()
+                instance?.shutdown()
+            }
+            ttsRef[0] = null
+        }
+    }
+
     val mainTextCol = if (isPro) Color.White else Color(0xFF0F2419)
     val subTextCol = if (isPro) Color.White.copy(alpha = 0.95f) else Color(0xFF355244)
     val pillBg = if (isPro) Color.White.copy(alpha = 0.175f) else Color(0xFFEEF5F1)
@@ -1076,18 +1137,19 @@ private fun AuroraHeroBlock(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Box(
                 modifier = Modifier
-                    .height(34.dp)
-                    .clip(RoundedCornerShape(17.dp))
+                    .weight(1f, fill = false)
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(18.dp))
                     .background(pillBg)
-                    .border(1.dp, pillBorder, RoundedCornerShape(17.dp))
+                    .border(1.dp, pillBorder, RoundedCornerShape(18.dp))
                     .specularSheen(sheenProgress)
-                    .padding(horizontal = 14.dp),
+                    .padding(horizontal = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -1100,15 +1162,50 @@ private fun AuroraHeroBlock(
                 )
             }
 
+            // Nút đọc giọng nói 1 chạm cho nông dân ngoài vườn nắng chói
+            Box(
+                modifier = Modifier
+                    .height(36.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(if (isSpeaking) VC.mint.copy(alpha = 0.25f) else if (isPro) Color.White.copy(alpha = 0.15f) else Color.White)
+                    .border(1.dp, if (isSpeaking) VC.mint else pillBorder, RoundedCornerShape(18.dp))
+                    .bounceClick {
+                        performConfirmHaptic(view)
+                        val engine = ttsRef[0]
+                        if (engine != null && ttsReady) {
+                            if (isSpeaking && engine.isSpeaking) {
+                                engine.stop()
+                                isSpeaking = false
+                            } else {
+                                val speechText = "$line1 ${line2.removePrefix("&").trim()}. $blurb"
+                                engine.speak(speechText, android.speech.tts.TextToSpeech.QUEUE_FLUSH, null, "aurora_hero_tts")
+                                isSpeaking = true
+                            }
+                        } else {
+                            android.widget.Toast.makeText(context, blurb, android.widget.Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    .padding(horizontal = 11.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = if (isSpeaking) "Đang đọc" else "Nghe đọc",
+                    color = if (isSpeaking) VC.mint else mainTextCol,
+                    fontSize = if (isCompact) 11.5.sp else 12.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1,
+                )
+            }
+
             if (modeBadgeText.isNotBlank()) {
                 Box(
                     modifier = Modifier
-                        .height(34.dp)
-                        .clip(RoundedCornerShape(17.dp))
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(18.dp))
                         .background(if (isPro) Color.White.copy(alpha = 0.135f) else Color.White)
-                        .border(1.dp, pillBorder, RoundedCornerShape(17.dp))
+                        .border(1.dp, pillBorder, RoundedCornerShape(18.dp))
                         .bounceClick(onClick = onToggleMode)
-                        .padding(horizontal = 12.dp),
+                        .padding(horizontal = 10.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -1130,35 +1227,33 @@ private fun AuroraHeroBlock(
             Text(
                 text = combinedHeadline,
                 color = mainTextCol,
-                fontSize = if (isCompact) 32.sp else 38.sp,
-                lineHeight = if (isCompact) 38.sp else 44.sp,
-                fontWeight = FontWeight.SemiBold,
+                fontSize = if (isCompact) 26.sp else 36.sp,
+                lineHeight = if (isCompact) 33.sp else 43.sp,
+                fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.3).sp,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
         } else {
             Text(
                 text = line1,
                 color = mainTextCol,
-                fontSize = if (isCompact) 36.sp else 48.sp,
-                lineHeight = if (isCompact) 42.sp else 56.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.25.sp,
+                fontSize = if (isCompact) 30.sp else 46.sp,
+                lineHeight = if (isCompact) 36.sp else 54.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.15.sp,
                 maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Clip,
+                overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = line2,
                 color = mainTextCol,
-                fontSize = if (isCompact) 36.sp else 48.sp,
-                lineHeight = if (isCompact) 42.sp else 56.sp,
-                fontWeight = FontWeight.Medium,
-                letterSpacing = 0.25.sp,
+                fontSize = if (isCompact) 30.sp else 46.sp,
+                lineHeight = if (isCompact) 36.sp else 54.sp,
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 0.15.sp,
                 maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Clip,
+                overflow = TextOverflow.Ellipsis,
             )
         }
 
@@ -1167,8 +1262,8 @@ private fun AuroraHeroBlock(
         Text(
             text = blurb,
             color = subTextCol,
-            fontSize = if (isCompact) 13.5.sp else 14.8.sp,
-            lineHeight = if (isCompact) 20.sp else 23.sp,
+            fontSize = if (isCompact) 13.8.sp else 14.8.sp,
+            lineHeight = if (isCompact) 20.5.sp else 23.sp,
             fontWeight = FontWeight.Medium,
             letterSpacing = (-0.2).sp,
         )
@@ -1424,11 +1519,11 @@ private fun AuroraBigWeatherCard(
             Text(
                 text = placeTitle,
                 color = mainCol,
-                fontSize = 16.sp,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                maxLines = 1,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).padding(end = 6.dp),
             )
             AuroraVectorIcon(AuroraIconKind.PIN, size = 18.dp)
         }
@@ -1531,7 +1626,7 @@ private fun AuroraSmallRowCard(
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier.padding(start = 8.dp),
+                modifier = Modifier.padding(start = 6.dp),
             ) {
                 val isShortTemp = rowCard.tempText.length <= 4
                 Text(
@@ -1682,30 +1777,92 @@ private fun AuroraQuickActionRow(
     onOpenSatellite: () -> Unit,
     onOpenAlerts: () -> Unit,
     onOpenAi: () -> Unit,
+    onAddLog: () -> Unit = {},
 ) {
     val isPro = VC.isPro
+    val calmDot = if (isPro) Color(0xFF4ADE80).copy(alpha = 0.78f) else Color(0xFF16794B)
+    val alertDot = if (needsCount > 0) (if (isPro) Color(0xFFFBBF24) else Color(0xFFD97706)) else calmDot
+    val cardBg = if (isPro) Color(0xFF0A1E2B).copy(alpha = 0.92f) else Color(0xFFF4F8F6)
+    val neutralBorder = if (isPro) Color.White.copy(alpha = 0.14f) else Color(0xFFD5E2DC)
+    val cardsLoc = AppStrings.cards(VUi.country)
     val actions = listOf(
-        Triple("Cây cần thăm ($needsCount)", if (isPro) Color(0xFFFBBF24) else Color(0xFFD97706), onOpenAlerts),
-        Triple("Bản đồ vườn", if (isPro) Color(0xFF38EF7D) else Color(0xFF16794B), onOpenMap),
-        Triple("Nước & Đất", if (isPro) Color(0xFF38BDF8) else Color(0xFF0284C7), onOpenSatellite),
-        Triple("Hỏi Kỹ sư AI", if (isPro) Color(0xFFA8DF65) else Color(0xFF15803D), onOpenAi),
+        Triple(cardsLoc.quickCheck(needsCount), alertDot, onOpenAlerts),
+        Triple(cardsLoc.quickLog, calmDot, onAddLog),
+        Triple(cardsLoc.quickMap, calmDot, onOpenMap),
+        Triple(cardsLoc.quickAi, calmDot, onOpenAi),
     )
+    if (isCompact) {
+        // Bố cục lưới 2×2 trên điện thoại (Medium Phone): vùng chạm ≥48dp, bảng màu tiết chế đồng nhất
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            actions.chunked(2).forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    rowItems.forEachIndexed { idx, (label, dotColor, onClick) ->
+                        val isAlertBtn = label == cardsLoc.quickCheck(needsCount) && needsCount > 0
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(cardBg)
+                                .border(
+                                    1.dp,
+                                    if (isAlertBtn) dotColor.copy(alpha = 0.45f) else neutralBorder,
+                                    RoundedCornerShape(14.dp),
+                                )
+                                .bounceClick(onClick = onClick)
+                                .padding(horizontal = 10.dp, vertical = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(7.dp)
+                                    .clip(CircleShape)
+                                    .background(dotColor)
+                            )
+                            Text(
+                                text = label,
+                                color = if (isPro) Color.White else Color(0xFF0F2419),
+                                fontSize = 12.5.sp,
+                                letterSpacing = (-0.2).sp,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 10.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        actions.forEach { (label, accent, onClick) ->
+        actions.forEach { (label, dotColor, onClick) ->
+            val isAlertBtn = label.startsWith("Cây cần thăm") && needsCount > 0
             Row(
                 modifier = Modifier
                     .heightIn(min = 48.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (isPro) Color(0xFF0A1E2B).copy(alpha = 0.92f) else Color(0xFFF3F8F5))
-                    .border(1.dp, if (isPro) accent.copy(alpha = 0.45f) else Color(0xFFD5E2DC), RoundedCornerShape(14.dp))
+                    .background(cardBg)
+                    .border(
+                        1.dp,
+                        if (isAlertBtn) dotColor.copy(alpha = 0.45f) else neutralBorder,
+                        RoundedCornerShape(14.dp),
+                    )
                     .bounceClick(onClick = onClick)
-                    .padding(horizontal = if (isCompact) 12.dp else 15.dp, vertical = 9.dp),
+                    .padding(horizontal = 15.dp, vertical = 9.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
@@ -1713,12 +1870,12 @@ private fun AuroraQuickActionRow(
                     modifier = Modifier
                         .size(7.dp)
                         .clip(CircleShape)
-                        .background(accent)
+                        .background(dotColor)
                 )
                 Text(
                     text = label,
                     color = if (isPro) Color.White else Color(0xFF0F2419),
-                    fontSize = if (isCompact) 12.5.sp else 13.5.sp,
+                    fontSize = 13.5.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
                 )

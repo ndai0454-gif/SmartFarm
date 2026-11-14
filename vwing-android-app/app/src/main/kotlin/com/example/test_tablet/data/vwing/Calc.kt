@@ -109,6 +109,20 @@ fun GardenData.todayWork(): TodayWork {
     )
 }
 
+/**
+ * Danh sách thống nhất các cây cần ra thăm hôm nay trên toàn ứng dụng (Header, Sidebar, Tổng quan, Thẻ thời tiết):
+ * gồm cây có tình trạng tổng hợp Cần kiểm tra (NEEDS_CHECK), Theo dõi (WATCH), hoặc Quá hạn kiểm tra định kỳ.
+ */
+fun GardenData.treesNeedingVisit(today: Long = Dates.today()): List<Pair<Tree, Condition>> {
+    val overdueSet = activeTrees.filter { checkStatus(it, today) is CheckStatus.Overdue }.toSet()
+    return activeTrees.map { it to effectiveCondition(it) }
+        .filter { (tree, cond) ->
+            cond == Condition.NEEDS_CHECK || cond == Condition.WATCH || tree in overdueSet
+        }
+}
+
+fun GardenData.treesNeedingVisitCount(today: Long = Dates.today()): Int = treesNeedingVisit(today).size
+
 fun GardenData.unsyncedCount(): Int =
     trees.count { it.sync != SyncState.SYNCED } + events.count { it.sync != SyncState.SYNCED } +
         issues.count { it.sync != SyncState.SYNCED } + tasks.count { it.sync != SyncState.SYNCED } +

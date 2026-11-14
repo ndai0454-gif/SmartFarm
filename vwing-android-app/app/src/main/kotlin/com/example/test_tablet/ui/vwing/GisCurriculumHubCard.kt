@@ -114,7 +114,7 @@ private fun Module123Section(m: Module123Foundation) {
                     .padding(9.dp),
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
-                Text("🌍 GCS: ${m.gcsCode} (Mặt cầu 3D)", color = VC.amber, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Text("🌍 GCS: ${m.gcsCode} (Mặt cầu 3D)", color = VC.amber, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
                     "Tâm: ${m.centroidDms}",
                     color = VC.text,
@@ -124,7 +124,7 @@ private fun Module123Section(m: Module123Foundation) {
                 Text(
                     "(${fmtNum(m.centroidLat, 5)}°N, ${fmtNum(m.centroidLon, 5)}°E) · Sai lệch nếu tính độ phẳng: ±${fmtNum(m.naiveUnprojectedErrorPct, 2)}%",
                     color = VC.text2,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
 
@@ -138,7 +138,7 @@ private fun Module123Section(m: Module123Foundation) {
                     .padding(9.dp),
                 verticalArrangement = Arrangement.spacedBy(3.dp),
             ) {
-                Text("📐 PCS: ${m.utmCode} (UTM Zone ${m.utmZone})", color = VC.cyan, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Text("📐 PCS: ${m.utmCode} (UTM Zone ${m.utmZone})", color = VC.cyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
                     "E = ${fmtNum(m.utmCentroidEastingM, 1)} m · N = ${fmtNum(m.utmCentroidNorthingM, 1)} m",
                     color = VC.text,
@@ -148,7 +148,7 @@ private fun Module123Section(m: Module123Foundation) {
                 Text(
                     "Diện tích phẳng: ${fmtNum(m.utmPlanarAreaM2, 1)} m² (${fmtNum(m.utmPlanarAreaHa, 3)} ha) · Chu vi ${fmtNum(m.utmPlanarPerimeterM, 1)} m",
                     color = VC.text2,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
         }
@@ -164,13 +164,13 @@ private fun Module123Section(m: Module123Foundation) {
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("🇻🇳 HỆ QUY CHIẾU QUỐC GIA: ${m.vn2000Name} (${m.vn2000Code})", color = VC.mint, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold)
+                Text("🇻🇳 HỆ QUY CHIẾU QUỐC GIA: ${m.vn2000Name} (${m.vn2000Code})", color = VC.mint, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text("X = ${fmtNum(m.vn2000CentroidXM, 2)} m · Y = ${fmtNum(m.vn2000CentroidYM, 2)} m", color = VC.lime, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
             }
             Text(
                 "Chuyển đổi 7 tham số Helmert (${m.vn2000DatumShift}) · Diện tích chuẩn PCS: ${fmtNum(m.vn2000PlanarAreaM2, 1)} m² (${fmtNum(m.vn2000PlanarAreaHa, 4)} ha)",
                 color = VC.text2,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
             )
             Row(Modifier.fillMaxWidth().padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 m.buffers.forEach { b ->
@@ -185,7 +185,7 @@ private fun Module123Section(m: Module123Foundation) {
                         Text(
                             "Buffer +${fmtNum(b.distanceM, 0)}m: ${fmtNum(b.bufferedAreaHa, 2)} ha (+${fmtNum(b.addedCorridorHa, 2)} ha)",
                             color = VC.text,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
                         )
                     }
@@ -204,7 +204,7 @@ private fun Module123Section(m: Module123Foundation) {
                     .padding(9.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("🗂 MÔ HÌNH VECTOR & RASTER + CLIPPING", color = VC.teal, fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold)
+                Text("🗂 MÔ HÌNH VECTOR & RASTER + CLIPPING", color = VC.teal, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
                     "Vector: ${m.vectorPointsCount} Points · ${m.vectorLinesCount} Lines · ${m.vectorPolygonsCount} Polygons",
                     color = VC.text,
@@ -214,7 +214,7 @@ private fun Module123Section(m: Module123Foundation) {
                 Text(
                     "Raster: ${m.rasterCols}×${m.rasterRows} ô (${fmtNum(m.rasterCellSizeM, 1)}m/ô) · ${m.rasterDataTypes}",
                     color = VC.text2,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
 
@@ -227,7 +227,7 @@ private fun Module123Section(m: Module123Foundation) {
                     .padding(9.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("🎯 GEOREFERENCING (NẮN CHỈNH HÌNH HỌC GCPs)", color = VC.lime, fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold)
+                Text("🎯 GEOREFERENCING (NẮN CHỈNH HÌNH HỌC GCPs)", color = VC.lime, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
                     "Affine Bậc 1 RMSE: ±${fmtNum(m.affineRmseTotalM, 2)} m · Đa thức Bậc 2: ±${fmtNum(m.poly2RmseTotalM, 2)} m",
                     color = VC.text,
@@ -237,7 +237,7 @@ private fun Module123Section(m: Module123Foundation) {
                 Text(
                     "${m.gcps.size} điểm khống chế mặt đất (GCPs) · ${m.mosaicStatus}",
                     color = VC.text2,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
         }
@@ -246,7 +246,7 @@ private fun Module123Section(m: Module123Foundation) {
         Text(
             "II. BẢNG THUỘC TÍNH ĐỐI TƯỢNG VECTOR (ATTRIBUTE TABLE) & ĐIỂM KHỐNG CHẾ GCPs (VN-2000):",
             color = VC.teal,
-            fontSize = 11.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.ExtraBold,
         )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -262,13 +262,13 @@ private fun Module123Section(m: Module123Foundation) {
                                 .padding(7.dp),
                         ) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text("${r.featureId} (${r.geometryType})", color = VC.mint, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold)
-                                Text("Cạnh ${fmtNum(r.edgeLengthM, 1)} m", color = VC.cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("${r.featureId} (${r.geometryType})", color = VC.mint, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                                Text("Cạnh ${fmtNum(r.edgeLengthM, 1)} m", color = VC.cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                             Text(
                                 "VN-2000: X=${fmtNum(r.vn2000XM, 1)} · Y=${fmtNum(r.vn2000YM, 1)} | ${r.wgs84Dms}",
                                 color = VC.text2,
-                                fontSize = 10.5.sp,
+                                fontSize = 12.sp,
                             )
                         }
                     }
@@ -293,23 +293,23 @@ private fun Module46Section(m: Module46RemoteSensing) {
             verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text("🌡 NHIỆT ĐỘ BỀ MẶT ĐẤT (LST - LANDSAT TIRS) & PHÂN TÍCH ĐẢO NHIỆT (UHI = LST × NDBI)", color = VC.amber, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold)
+                Text("🌡 NHIỆT ĐỘ BỀ MẶT ĐẤT (LST - LANDSAT TIRS) & PHÂN TÍCH ĐẢO NHIỆT (UHI = LST × NDBI)", color = VC.amber, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text("LST TB: ${fmtNum(m.lstMeanC, 1)} °C (${fmtNum(m.lstMinC, 1)}–${fmtNum(m.lstMaxC, 1)} °C)", color = VC.lime, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
             }
             Text(
                 "Bức xạ đỉnh khí quyển Lλ = ${fmtNum(m.toaRadianceMean, 2)} W/(m²·sr·µm) → Nhiệt độ sáng cảm biến Tb = ${fmtNum(m.brightnessTempTbC, 1)} °C → Che phủ thực vật Pv = ${fmtNum(m.vegetationFractionPv * 100, 1)}% (NDVI TB ${fmtNum(m.ndviMean, 2)}) → Độ phát xạ bề mặt ε = ${fmtNum(m.surfaceEmissivityEps, 4)} → Dị thường nhiệt UHI: ${fmtNum(m.uhiHotspotAreaPct, 1)}% diện tích (ngưỡng ≥ ${fmtNum(m.uhiThresholdC, 1)} °C, NDBI ${fmtNum(m.ndbiMean, 2)})",
                 color = VC.text,
-                fontSize = 11.5.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
             )
-            Text(m.lstDiagnosisVi, color = VC.text2, fontSize = 11.sp)
+            Text(m.lstDiagnosisVi, color = VC.text2, fontSize = 12.sp)
         }
 
         // Tổ hợp dải phổ (Band Combinations)
         Text(
             "I. TỔ HỢP DẢI PHỔ VỆ TINH ĐA PHỔ (SENTINEL-2 10m/20m & LANDSAT 8/9 30m/15m/100m):",
             color = VC.teal,
-            fontSize = 11.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.ExtraBold,
         )
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -325,9 +325,9 @@ private fun Module46Section(m: Module46RemoteSensing) {
                 ) {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(bc.nameVi, color = VC.mint, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
-                        Text("S2: ${bc.sentinel2Bands} · L8/9: ${bc.landsat89Bands}", color = VC.cyan, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Text("S2: ${bc.sentinel2Bands} · L8/9: ${bc.landsat89Bands}", color = VC.cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
-                    Text("${bc.meanReflectance} — ${bc.interpretationVi}", color = VC.text2, fontSize = 11.sp)
+                    Text("${bc.meanReflectance} — ${bc.interpretationVi}", color = VC.text2, fontSize = 12.sp)
                 }
             }
         }
@@ -336,7 +336,7 @@ private fun Module46Section(m: Module46RemoteSensing) {
         Text(
             "II. PHÂN LOẠI LỚP PHỦ MẶT ĐẤT (LULC: UNSUPERVISED K-MEANS/ISODATA & SUPERVISED RANDOM FOREST/SVM — OA ${fmtNum(m.overallAccuracyPct, 1)}%, KAPPA κ = ${fmtNum(m.kappaCoefficient, 2)}):",
             color = VC.teal,
-            fontSize = 11.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.ExtraBold,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -350,12 +350,12 @@ private fun Module46Section(m: Module46RemoteSensing) {
                     .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text("🔹 Không giám sát (K-Means / ISODATA)", color = VC.cyan, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold)
+                Text("🔹 Không giám sát (K-Means / ISODATA)", color = VC.cyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 m.unsupervisedClusters.forEach { cl ->
                     Text(
                         "• ${cl.labelVi}: ${fmtNum(cl.areaPct, 1)}% (${fmtNum(cl.areaHa, 2)} ha · NDVI ${fmtNum(cl.ndviCentroid, 2)} · ${fmtNum(cl.lstMeanC, 1)}°C)",
                         color = VC.text,
-                        fontSize = 10.5.sp,
+                        fontSize = 12.sp,
                     )
                 }
             }
@@ -370,12 +370,12 @@ private fun Module46Section(m: Module46RemoteSensing) {
                     .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Text("🔸 Có giám sát (Random Forest / SVM / MLC)", color = VC.lime, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold)
+                Text("🔸 Có giám sát (Random Forest / SVM / MLC)", color = VC.lime, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 m.supervisedClasses.forEach { sc ->
                     Text(
                         "• ${sc.classNameVi}: ${fmtNum(sc.areaPct, 1)}% (${fmtNum(sc.areaHa, 2)} ha · UA ${fmtNum(sc.userAccuracyPct, 0)}%)",
                         color = VC.text,
-                        fontSize = 10.5.sp,
+                        fontSize = 12.sp,
                     )
                 }
             }
@@ -390,7 +390,7 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
         Text(
             "I. NỘI SUY KHÔNG GIAN: IDW (TRỌNG SỐ NGHỊCH ĐẢO KHOẢNG CÁCH) VS ORDINARY KRIGING (ĐỊA THỐNG KÊ SEMIVARIOGRAM):",
             color = VC.teal,
-            fontSize = 11.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.ExtraBold,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -403,7 +403,7 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
                     .padding(9.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("📍 ${m.idwMethod}", color = VC.cyan, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Text("📍 ${m.idwMethod}", color = VC.cyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
                     "PM2.5: ${fmtNum(m.idwPm25Ugm3, 2)} µg/m³ · pH nước: ${fmtNum(m.idwWaterPh, 2)} · Ồn: ${fmtNum(m.idwNoiseDba, 1)} dBA",
                     color = VC.text,
@@ -413,7 +413,7 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
                 Text(
                     "Từ ${m.stationCount} trạm quan trắc lân cận · Sai số chéo LOOCV RMSE = ±${fmtNum(m.idwLoocvRmse, 2)}",
                     color = VC.text2,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
 
@@ -426,7 +426,7 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
                     .padding(9.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("📊 ${m.krigingMethod}", color = VC.mint, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Text("📊 ${m.krigingMethod}", color = VC.mint, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
                     "Dự báo PM2.5: ${fmtNum(m.krigingPm25Ugm3, 2)} ± ${fmtNum(m.krigingStdError, 2)} µg/m³",
                     color = VC.text,
@@ -436,7 +436,7 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
                 Text(
                     "Semivariogram: Nugget c₀=${fmtNum(m.nuggetC0, 2)} · Sill=${fmtNum(m.sillC0PlusC, 2)} · Range a=${fmtNum(m.rangeAM, 0)} m",
                     color = VC.text2,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
         }
@@ -445,7 +445,7 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
         Text(
             "II. BẢN ĐỒ Ô NHIỄM KHÔNG KHÍ (AQI/PM2.5) · NGUỒN NƯỚC (pH/DO/TDS + BUFFER) · TIẾNG ỒN (dBA + DSM):",
             color = VC.teal,
-            fontSize = 11.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.ExtraBold,
         )
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -458,9 +458,9 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
                     .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("🌫 KHÔNG KHÍ (AQI ${m.vnAqi})", color = VC.lime, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Text("🌫 KHÔNG KHÍ (AQI ${m.vnAqi})", color = VC.lime, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text("PM2.5: ${fmtNum(m.pm25Ugm3, 1)} · PM10: ${fmtNum(m.pm10Ugm3, 1)} µg/m³", color = VC.text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text(m.airRatingVi, color = VC.text2, fontSize = 10.5.sp)
+                Text(m.airRatingVi, color = VC.text2, fontSize = 12.sp)
             }
             Column(
                 Modifier
@@ -471,9 +471,9 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
                     .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("💧 NGUỒN NƯỚC (Buffer ${fmtNum(m.waterBufferM, 0)}m)", color = VC.cyan, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Text("💧 NGUỒN NƯỚC (Buffer ${fmtNum(m.waterBufferM, 0)}m)", color = VC.cyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text("pH ${fmtNum(m.waterPh, 2)} · DO ${fmtNum(m.waterDoMgl, 1)} · TDS ${fmtNum(m.waterTdsMgl, 0)} mg/L", color = VC.text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text(m.waterBufferNoteVi, color = VC.text2, fontSize = 10.5.sp)
+                Text(m.waterBufferNoteVi, color = VC.text2, fontSize = 12.sp)
             }
             Column(
                 Modifier
@@ -484,9 +484,9 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
                     .padding(8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("🔊 TIẾNG ỒN (DSM -${fmtNum(m.dsmCanopyAttenuationDb, 1)}dB)", color = VC.teal, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                Text("🔊 TIẾNG ỒN (DSM -${fmtNum(m.dsmCanopyAttenuationDb, 1)}dB)", color = VC.teal, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text("TB ${fmtNum(m.meanNoiseDba, 1)} dBA (Lõi ${fmtNum(m.orchardCoreDba, 1)} / Rìa ${fmtNum(m.roadEdgeDba, 1)})", color = VC.text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                Text(m.noiseRatingVi, color = VC.text2, fontSize = 10.5.sp)
+                Text(m.noiseRatingVi, color = VC.text2, fontSize = 12.sp)
             }
         }
 
@@ -494,7 +494,7 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
         Text(
             "III. MẬT ĐỘ KERNEL (KDE R=${fmtNum(m.kdeBandwidthM, 0)}m) & THỐNG KÊ ĐIỂM NÓNG GETIS-ORD Gi* (${m.getisOrdSummary}):",
             color = VC.teal,
-            fontSize = 11.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.ExtraBold,
         )
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -512,10 +512,10 @@ private fun Module5Section(m: Module5SpatialAnalysis) {
                                 .padding(7.dp),
                         ) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(cell.cellId, color = col, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold)
-                                Text("Gi* Z = ${fmtNum(cell.giStarZScore, 2)} (p=${fmtNum(cell.pValue, 3)})", color = VC.text, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(cell.cellId, color = col, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                                Text("Gi* Z = ${fmtNum(cell.giStarZScore, 2)} (p=${fmtNum(cell.pValue, 3)})", color = VC.text, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
-                            Text(cell.classificationVi, color = VC.text2, fontSize = 10.sp)
+                            Text(cell.classificationVi, color = VC.text2, fontSize = 12.sp)
                         }
                     }
                 }
@@ -561,7 +561,7 @@ private fun Module7Section(
                         Text(
                             "H = ${hVal.toInt()}m",
                             color = if (active) VC.mint else VC.text,
-                            fontSize = 11.5.sp,
+                            fontSize = 12.sp,
                             fontWeight = if (active) FontWeight.ExtraBold else FontWeight.SemiBold,
                         )
                     }
@@ -580,7 +580,7 @@ private fun Module7Section(
                     .padding(9.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("📏 ĐỘ PHÂN GIẢI MẶT ĐẤT (GROUND SAMPLING DISTANCE - GSD)", color = VC.lime, fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold)
+                Text("📏 ĐỘ PHÂN GIẢI MẶT ĐẤT (GROUND SAMPLING DISTANCE - GSD)", color = VC.lime, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
                     m.gsdFormulaText,
                     color = VC.text,
@@ -590,7 +590,7 @@ private fun Module7Section(
                 Text(
                     "${m.cameraModel} · ${m.targetGradeVi}",
                     color = VC.text2,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
 
@@ -603,7 +603,7 @@ private fun Module7Section(
                     .padding(9.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
-                Text("🚁 ĐỘ CHỒNG PHỦ (OVERLAP) & THÔNG SỐ ĐƯỜNG BAY", color = VC.cyan, fontSize = 10.5.sp, fontWeight = FontWeight.ExtraBold)
+                Text("🚁 ĐỘ CHỒNG PHỦ (OVERLAP) & THÔNG SỐ ĐƯỜNG BAY", color = VC.cyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 Text(
                     "Phủ dọc ${fmtNum(m.forwardOverlapPct, 0)}% · Phủ ngang ${fmtNum(m.sideOverlapPct, 0)}% → ${m.flightLines} tuyến · ${m.totalPhotos} ảnh",
                     color = VC.text,
@@ -613,7 +613,7 @@ private fun Module7Section(
                 Text(
                     "Bước chụp dọc ${fmtNum(m.forwardPhotoStepM, 1)} m · Cách tuyến ${fmtNum(m.sideLineStepM, 1)} m · Bay ~${fmtNum(m.estimatedFlightTimeMin, 1)} phút · ${m.rtkGcps.size} bia RTK GCPs (±1,2 cm)",
                     color = VC.text2,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
         }
@@ -622,7 +622,7 @@ private fun Module7Section(
         Text(
             "II. QUY TRÌNH 7 BƯỚC DỰNG HÌNH QUANG TRẮC 3D & TRỰC ẢNH TRONG AGISOFT METASHAPE:",
             color = VC.teal,
-            fontSize = 11.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.ExtraBold,
         )
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -639,10 +639,10 @@ private fun Module7Section(
                             verticalArrangement = Arrangement.spacedBy(2.dp),
                         ) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(st.titleVi, color = VC.mint, fontSize = 11.5.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
-                                Text(st.metricBadge, color = VC.cyan, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                                Text(st.titleVi, color = VC.mint, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+                                Text(st.metricBadge, color = VC.cyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                             }
-                            Text(st.detailVi, color = VC.text2, fontSize = 10.5.sp)
+                            Text(st.detailVi, color = VC.text2, fontSize = 12.sp)
                         }
                     }
                     if (pair.size == 1) Spacer(Modifier.weight(1f))

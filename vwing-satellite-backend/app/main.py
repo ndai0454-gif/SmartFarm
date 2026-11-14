@@ -26,6 +26,8 @@ from . import weather
 from . import hazards
 from . import nws_ffc_map
 from . import deeplabv3plus_engine
+from . import obia_api
+from .obia_jobs import ObiaJobManager
 
 log = logging.getLogger("vwing.sat")
 ALGO_VERSION = "3"            # đổi khi đổi thuật toán để bỏ bộ nhớ đệm cũ
@@ -62,22 +64,36 @@ class TTLCache:
 
 
 def create_app(settings: Optional[config.Settings] = None, *,
-               sr_generator: Generator | None = None, sr_output_dir: Path | None = None, geocode_fetch=None, routing_post=None) -> FastAPI:
+               sr_generator: Generator | None = None, sr_output_dir: Path | None = None, geocode_fetch=None, routing_post=None,
+               obia_dir: Path | None = None, obia_runner=None) -> FastAPI:
     st = settings or config.load()
     sr_jobs = SrJobManager(sr_output_dir or Path(os.environ.get(
         "VWING_SR_OUTPUT_DIR", str(Path(__file__).resolve().parents[1] / "artifacts" / "super-resolution"))),
         generator=sr_generator)
+    obia_jobs = ObiaJobManager(obia_dir or Path(os.environ.get(
+        "VWING_OBIA_DIR", str(Path(__file__).resolve().parents[1] / "artifacts" / "obia"))), runner=obia_runner)
 
     @asynccontextmanager
     async def lifespan(app):
         yield
         sr_jobs.close()
+        obia_jobs.close()
 
     app = FastAPI(title="VWING Satellite API", version="0.1.0", lifespan=lifespan)
     app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-    app.include_router(nws_ffc_map.router)
-    app.include_router(deeplabv3plus_engine.router)
+
+    @app.middleware("http")
+    async def _default_json_content_type(request, call_next):
+        if request.method in ("POST", "PUT", "PATCH"):
+            ct = (request.headers.get("content-type") or "").lower()
+            if not ct or "application/x-www-form-urlencoded" in ct:
+                request.scope["headers"] = [
+                    (k, v) for (k, v) in request.scope["headers"] if k.lower() != b"content-type"
+                ] + [(b"content-type", b"application/json")]
+        return await call_next(request)
+
     app.state.sr_jobs = sr_jobs
+    app.state.obia_jobs = obia_jobs
     cache = TTLCache()
     ee_service = None
     if st.mode == "live":
@@ -125,7 +141,10 @@ def create_app(settings: Optional[config.Settings] = None, *,
             log.exception("Lỗi Earth Engine")
             raise HTTPException(502, "Earth Engine trả lỗi. Thử lại sau hoặc giảm vùng/khoảng ngày.")
 
+    app.include_router(nws_ffc_map.router, dependencies=[Depends(auth)])
+    app.include_router(deeplabv3plus_engine.router, dependencies=[Depends(auth)])
     app.include_router(gis_tools.make_router(auth))
+    app.include_router(obia_api.make_router(auth, obia_jobs))
     app.include_router(market.make_router(auth))
     app.include_router(weather.make_router(auth))
     app.include_router(hazards.make_router(auth))
@@ -162,7 +181,40 @@ def create_app(settings: Optional[config.Settings] = None, *,
 
     @app.get("/v1/health")
     def health():
-        return {"ok": True, "mode": st.mode}
+        return {"ok": True, "mode": st.mode, "ee_project": st.ee_project or None}
+
+    @app.get("/v1/gee/status", dependencies=[Depends(auth)])
+    def gee_status():
+        cred_path = Path.home() / ".config" / "earthengine" / "credentials"
+        return {
+            "mode": st.mode,
+            "live": st.mode == "live",
+            "ee_project": st.ee_project or None,
+            "credentials_found": cred_path.is_file(),
+        }
+
+    @app.post("/v1/gee/configure", dependencies=[Depends(auth)])
+    def gee_configure(payload: dict):
+        nonlocal st, ee_service
+        import dataclasses
+        proj = str(payload.get("ee_project") or "").strip()
+        if not proj:
+            raise HTTPException(422, "Vui lòng nhập mã Google Cloud Project (EE_PROJECT) đã bật Earth Engine API.")
+        try:
+            from . import ee_service as _ee_service
+            _ee_service.init(proj)
+            ee_service = _ee_service
+            st = dataclasses.replace(st, mode="live", ee_project=proj)
+            cache._d.clear()
+            env_file = Path(__file__).resolve().parents[1] / ".env"
+            lines = env_file.read_text(encoding="utf-8").splitlines() if env_file.is_file() else []
+            lines = [ln for ln in lines if not ln.strip().startswith(("EE_PROJECT=", "VWING_EE_MODE="))]
+            lines.append(f"EE_PROJECT={proj}")
+            lines.append("VWING_EE_MODE=live")
+            env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
+            return {"ok": True, "mode": st.mode, "ee_project": st.ee_project}
+        except Exception as exc:
+            raise HTTPException(400, f"Không thể khởi tạo Google Earth Engine với project '{proj}': {exc}")
 
     @app.get("/v1/satellite/indices", dependencies=[Depends(auth)])
     def list_indices():
@@ -219,7 +271,7 @@ def create_app(settings: Optional[config.Settings] = None, *,
     def crop_profiles():
         return garden_analysis.list_crop_profiles()
 
-    @app.post("/v1/garden/spacing-grid-qr")
+    @app.post("/v1/garden/spacing-grid-qr", dependencies=[Depends(auth)])
     def garden_spacing_grid_qr_endpoint(payload: dict):
         raw_ring = payload.get("ring") or (payload.get("region") or {}).get("ring") or []
         try:

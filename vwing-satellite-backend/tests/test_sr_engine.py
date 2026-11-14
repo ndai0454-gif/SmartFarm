@@ -33,6 +33,7 @@ def test_invalid_coverage_cannot_be_used_as_a_clear_scene(coverage):
 
 def test_real_model_is_finite_4x_and_not_plain_interpolation():
     pytest.importorskip("torch")
+    pytest.importorskip("sen2sr")
     if not (sr.ROOT / "models/sen2srlite-rgbn-x4/provenance.json").is_file():
         pytest.skip("Install pinned pretrained weights using setup_sr.py for model smoke")
     x = np.random.default_rng(7).uniform(.04, .3, (4,128,128)).astype("float32")

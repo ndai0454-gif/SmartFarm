@@ -104,8 +104,8 @@ object VC {
     val card: Color get() = if (isPro) Color(0xFF0A1E2B) else Color(0xFFFFFFFF)
     val elevated: Color get() = if (isPro) Color(0xFF102A3A) else Color(0xFFEEF4F0)
     val active: Color get() = if (isPro) Color(0xFF15384C) else Color(0xFFE2ECE7)
-    val border: Color get() = if (isPro) Color(0x33FFFFFF) else Color(0xFFD5E2DC)
-    val line: Color get() = if (isPro) Color(0x22FFFFFF) else Color(0xFFE2ECE7)
+    val border: Color get() = if (isPro) Color(0x52FFFFFF) else Color(0xFFB8CEC3)
+    val line: Color get() = if (isPro) Color(0x2EFFFFFF) else Color(0xFFD5E2DC)
     val lime: Color get() = if (isPro) Color(0xFFA8DF65) else Color(0xFF15803D)
     val onLime: Color get() = if (isPro) Color(0xFF051810) else Color(0xFFFFFFFF)
     val teal: Color get() = if (isPro) Color(0xFF38BDF8) else Color(0xFF0284C7)
@@ -114,8 +114,8 @@ object VC {
     val amber: Color get() = if (isPro) Color(0xFFFBBF24) else Color(0xFFB45309)
     val red: Color get() = if (isPro) Color(0xFFFF6B6B) else Color(0xFFC83232)
     val text: Color get() = if (isPro) Color(0xFFF4F8FA) else Color(0xFF0F2419)
-    val text2: Color get() = if (isPro) Color(0xFFDCEBF0) else Color(0xFF355244)
-    val muted: Color get() = if (isPro) Color(0xFFA8C5D2) else Color(0xFF4E6B5D)
+    val text2: Color get() = if (isPro) Color(0xFFE4F0F5) else Color(0xFF284235)
+    val muted: Color get() = if (isPro) Color(0xFFBED5DF) else Color(0xFF3B594B)
     val gold: Color get() = if (isPro) Color(0xFFA8DF65) else Color(0xFFB45309)
     val rail: Color get() = if (isPro) Color(0xFF071824) else Color(0xFFFFFFFF)
     val onRail: Color get() = if (isPro) Color(0xFFFFFFFF) else Color(0xFF0F2419)
@@ -150,6 +150,18 @@ private fun currentVScheme() = if (VC.isPro) {
 
 @Composable
 fun VWingTheme(content: @Composable () -> Unit) {
+    val view = androidx.compose.ui.platform.LocalView.current
+    val isProTheme = VC.isPro
+    if (!view.isInEditMode) {
+        androidx.compose.runtime.SideEffect {
+            runCatching {
+                val window = (view.context as? android.app.Activity)?.window ?: return@SideEffect
+                val insetsController = androidx.core.view.WindowCompat.getInsetsController(window, view)
+                insetsController.isAppearanceLightStatusBars = !isProTheme
+                insetsController.isAppearanceLightNavigationBars = !isProTheme
+            }
+        }
+    }
     val base = com.example.test_tablet.ui.theme.Typography
     val typo = androidx.compose.material3.Typography(
         displayLarge = base.displayLarge.copy(fontFamily = VDisplayFont, fontFeatureSettings = "tnum"),
@@ -213,7 +225,7 @@ fun VCard(
         modifier
             .clip(shape)
             .then(bgMod)
-            .border(1.dp, borderColor, shape)
+            .border(1.2.dp, borderColor, shape)
             .then(if (onClick != null) Modifier.bounceClick(onClick = onClick) else Modifier)
             .padding(padding),
         content = content,
@@ -226,13 +238,16 @@ val LeafShapeSmall = RoundedCornerShape(14.dp)
 
 private val ACRONYMS = mapOf("gis" to "GIS", "qr" to "QR", "ndvi" to "NDVI", "sms" to "SMS", "otp" to "OTP", "kml" to "KML", "gpx" to "GPX", "csv" to "CSV",
     "ai" to "AI", "gps" to "GPS", "dji" to "DJI", "rustgis" to "RustGIS", "vwing" to "VWing", "lidar" to "LiDAR", "evi" to "EVI", "ndmi" to "NDMI", "zip" to "zip",
-    "3d" to "3D", "gee" to "GEE", "tof" to "TOF", "iot" to "IoT", "rtk" to "RTK", "gnss" to "GNSS", "dxf" to "DXF", "dem" to "DEM", "vra" to "VRA", "rgb" to "RGB")
+    "3d" to "3D", "gee" to "GEE", "tof" to "TOF", "iot" to "IoT", "rtk" to "RTK", "gnss" to "GNSS", "dxf" to "DXF", "dem" to "DEM", "vra" to "VRA", "rgb" to "RGB",
+    "npk" to "NPK", "bvtv" to "BVTV", "ph" to "pH", "ec" to "EC", "te" to "TE", "sop" to "SOP")
 
 /** Nhãn viết hoa toàn bộ (kiểu cũ) → viết câu thường dễ đọc; giữ nguyên chữ viết tắt (GIS, QR, NDVI…). Chữ đã viết thường thì để nguyên. */
 fun humanize(s: String): String {
     if (s.isEmpty() || s != s.uppercase()) return s
     val words = s.lowercase().split(' ').map { w -> ACRONYMS[w.trim('&', ',', '.', '·', '(', ')')]?.let { a -> w.replace(w.trim('&', ',', '.', '·', '(', ')'), a) } ?: w }
-    return words.joinToString(" ").replaceFirstChar { it.uppercase() }
+    val joined = words.joinToString(" ")
+    val idx = joined.indexOfFirst { it.isLetter() }
+    return if (idx >= 0) joined.substring(0, idx) + joined[idx].uppercase() + joined.substring(idx + 1) else joined
 }
 
 /**
@@ -241,31 +256,33 @@ fun humanize(s: String): String {
  */
 @Composable
 fun Eyebrow(text: String, color: Color = VC.text) {
-    Text(humanize(text), color = color, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold)
+    Text(humanize(AppStrings.tr(text)), color = color, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold)
 }
 
 @Composable
 fun SectionLabel(text: String) {
-    Text(humanize(text), color = VC.text2, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 16.dp, bottom = 6.dp))
+    Text(humanize(AppStrings.tr(text)), color = VC.text2, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 16.dp, bottom = 6.dp))
 }
 
 @Composable
 @OptIn(ExperimentalLayoutApi::class)
 fun PageHeader(eyebrow: String, title: String, desc: String, icon: ImageVector? = null, actions: @Composable androidx.compose.foundation.layout.FlowRowScope.() -> Unit = {}) {
+    val tTitle = AppStrings.tr(title)
+    val tDesc = AppStrings.tr(desc)
     if (VUi.simpleMode) {
         // Chế độ Nông dân vẫn cần tiêu đề trang (h1) để người dùng biết mình đang ở đâu;
         // chỉ ẩn phần chú giải dài, giữ mô tả ngắn gọn 1–2 dòng.
         Column(Modifier.fillMaxWidth().padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = VC.text, lineHeight = 27.sp, maxLines = 2,
+            Text(tTitle, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = VC.text, lineHeight = 27.sp, maxLines = 2,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-            if (desc.isNotBlank()) Text(desc, fontSize = 14.5.sp, color = VC.text2, lineHeight = 20.sp, maxLines = 2,
+            if (tDesc.isNotBlank()) Text(tDesc, fontSize = 14.5.sp, color = VC.text2, lineHeight = 20.sp, maxLines = 2,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             FlowRow(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = actions)
         }
     } else {
         Column(Modifier.fillMaxWidth().padding(bottom = 16.dp).appear(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = VC.text, lineHeight = 30.sp)
-            Text(desc, fontSize = 14.5.sp, color = VC.text2, lineHeight = 21.sp)
+            Text(tTitle, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = VC.text, lineHeight = 30.sp)
+            Text(tDesc, fontSize = 14.5.sp, color = VC.text2, lineHeight = 21.sp)
             FlowRow(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), content = actions)
         }
     }
@@ -307,14 +324,14 @@ fun VButton(
                 disabledContentColor = VC.muted,
             )) {
             if (icon != null) { Icon(icon, null, Modifier.size(18.dp), tint = iconCol); Spacer(Modifier.size(8.dp)) }
-            Text(text, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
+            Text(AppStrings.tr(text), fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
         }
     } else {
         OutlinedButton(hapticClick, m, enabled, shape = shape, contentPadding = pad, interactionSource = src,
             border = BorderStroke(1.dp, if (danger) VC.red.copy(alpha = .7f) else VC.border),
             colors = ButtonDefaults.outlinedButtonColors(contentColor = if (danger) VC.red else VC.text, containerColor = VC.card, disabledContentColor = VC.muted)) {
             if (icon != null) { Icon(icon, null, Modifier.size(18.dp), tint = if (danger) VC.red else if (VC.isPro) VC.lime else VC.text); Spacer(Modifier.size(8.dp)) }
-            Text(text, fontWeight = FontWeight.Medium, fontSize = 15.sp)
+            Text(AppStrings.tr(text), fontWeight = FontWeight.Medium, fontSize = 15.sp)
         }
     }
 }
@@ -335,7 +352,7 @@ fun Tag(text: String, color: Color = VC.mint, modifier: Modifier = Modifier, ico
     ) {
         if (icon != null) Icon(icon, null, tint = color, modifier = Modifier.size(12.dp))
         else Box(Modifier.size(6.dp).clip(CircleShape).background(color))
-        Text(text, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        Text(AppStrings.tr(text), color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
@@ -365,7 +382,7 @@ fun Notice(text: String, color: Color = VC.teal, modifier: Modifier = Modifier, 
                 if (color == VC.red || color == VC.amber) Icons.Filled.WarningAmber else Icons.Filled.Info, null,
                 tint = color, modifier = Modifier.size(20.dp),
             )
-            Text(text, Modifier.weight(1f), color = VC.text2, fontSize = 14.sp, lineHeight = 20.sp)
+            Text(AppStrings.tr(text), Modifier.weight(1f), color = VC.text2, fontSize = 14.sp, lineHeight = 20.sp)
         }
         trailing?.let { t -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) { t() } }
     }
@@ -379,12 +396,12 @@ fun Notice(text: String, color: Color = VC.teal, modifier: Modifier = Modifier, 
 @Composable
 fun Kpi(title: String, value: String, unit: String, sub: String, modifier: Modifier = Modifier, warn: Boolean = false, icon: ImageVector? = null, index: Int = 0) {
     VCard(modifier.appear(index), borderColor = if (warn) VC.amber.copy(alpha = .45f) else VC.border, padding = PaddingValues(16.dp)) {
-        Text(humanize(title), fontSize = 13.sp, color = VC.muted, fontWeight = FontWeight.Medium)
+        Text(humanize(AppStrings.tr(title)), fontSize = 13.sp, color = VC.muted, fontWeight = FontWeight.Medium)
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 6.dp)) {
             AnimatedCount(value, androidx.compose.ui.text.TextStyle(fontSize = 26.sp, fontWeight = FontWeight.Bold, fontFamily = VDisplayFont, fontFeatureSettings = "tnum"), if (warn) VC.amber else VC.text)
-            if (unit.isNotEmpty()) Text(" $unit", fontSize = 13.sp, color = VC.muted, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 3.dp))
+            if (unit.isNotEmpty()) Text(" ${AppStrings.tr(unit)}", fontSize = 13.sp, color = VC.muted, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 3.dp))
         }
-        Text(sub, fontSize = 12.5.sp, color = if (warn) VC.amber else VC.text2, modifier = Modifier.padding(top = 4.dp))
+        Text(AppStrings.tr(sub), fontSize = 12.5.sp, color = if (warn) VC.amber else VC.text2, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
@@ -526,7 +543,7 @@ fun TasteKpiStrip(
                                 }
                             }
                             if (cell.sub.isNotEmpty()) {
-                                Text(cell.sub, color = VC.text2, fontSize = 11.5.sp, maxLines = 1, modifier = Modifier.padding(top = 3.dp))
+                                Text(cell.sub, color = VC.text2, fontSize = 12.sp, maxLines = 1, modifier = Modifier.padding(top = 3.dp))
                             }
                         }
                         if (cIdx == 0 && pair.size > 1) {
@@ -551,8 +568,8 @@ fun VField(
     OutlinedTextField(
         value, onChange, modifier.fillMaxWidth(), enabled = enabled,
         visualTransformation = if (secret) androidx.compose.ui.text.input.PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
-        label = { Text(label, fontSize = 13.5.sp) }, singleLine = singleLine, minLines = minLines,
-        placeholder = placeholder?.let { { Text(it, fontSize = 14.sp, color = VC.muted) } },
+        label = { Text(AppStrings.tr(label), fontSize = 13.5.sp) }, singleLine = singleLine, minLines = minLines,
+        placeholder = placeholder?.let { { Text(AppStrings.tr(it), fontSize = 14.sp, color = VC.muted) } },
         isError = error != null, supportingText = error?.let { { Text(it) } },
         keyboardOptions = KeyboardOptions(keyboardType = if (number) KeyboardType.Decimal else if (secret) KeyboardType.Password else KeyboardType.Text),
         shape = LeafShapeSmall,
@@ -570,18 +587,18 @@ fun VField(
 fun VPicker(label: String, options: List<String>, selected: String, onSelect: (String) -> Unit, modifier: Modifier = Modifier) {
     var open by remember { mutableStateOf(false) }
     Column(modifier) {
-        Text(label, fontSize = 13.5.sp, color = VC.text2, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp))
+        Text(AppStrings.tr(label), fontSize = 13.5.sp, color = VC.text2, fontWeight = FontWeight.Medium, modifier = Modifier.padding(bottom = 6.dp))
         Box {
             OutlinedButton(
                 { open = true }, Modifier.fillMaxWidth().heightIn(min = 48.dp), shape = LeafShapeSmall, border = BorderStroke(1.dp, VC.border),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = VC.text, containerColor = VC.card),
                 contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
             ) {
-                Text(selected.ifEmpty { "Chọn…" }, Modifier.weight(1f), maxLines = 1, fontSize = 15.sp)
+                Text(if (selected.isEmpty()) AppStrings.tr("Chọn…") else AppStrings.tr(selected), Modifier.weight(1f), maxLines = 1, fontSize = 15.sp)
                 Icon(Icons.Filled.ArrowDropDown, null, tint = VC.text2)
             }
             DropdownMenu(open, { open = false }, containerColor = VC.card) {
-                options.forEach { o -> DropdownMenuItem({ Text(o, color = VC.text) }, { onSelect(o); open = false }) }
+                options.forEach { o -> DropdownMenuItem({ Text(AppStrings.tr(o), color = VC.text) }, { onSelect(o); open = false }) }
             }
         }
     }
@@ -603,7 +620,7 @@ fun <T> ChipRow(options: List<T>, selected: T, label: (T) -> String, onSelect: (
                 val ic = icon?.invoke(o)
                 if (ic != null) Icon(ic, null, tint = if (sel) (if (VC.isPro) VC.mint else Color.White) else fg, modifier = Modifier.size(16.dp))
                 else if (VC.isPro) Box(Modifier.size(7.dp).clip(CircleShape).background(if (sel) VC.mint else VC.teal.copy(alpha = 0.75f)))
-                Text(label(o), fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = fg)
+                Text(AppStrings.tr(label(o)), fontSize = 14.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = fg)
             }
         }
     }
@@ -636,7 +653,7 @@ fun ScrollChipRow(options: List<String>, selected: String, label: (String) -> St
                 if (VC.isPro) {
                     Box(Modifier.size(7.dp).clip(CircleShape).background(if (sel) VC.mint else VC.teal.copy(alpha = 0.75f)))
                 }
-                Text(label(o), fontSize = 15.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = fg, maxLines = 1)
+                Text(AppStrings.tr(label(o)), fontSize = 15.sp, fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Medium, color = fg, maxLines = 1)
             }
         }
     }
@@ -646,7 +663,7 @@ fun ScrollChipRow(options: List<String>, selected: String, label: (String) -> St
 fun EmptyNote(text: String, icon: ImageVector = Icons.Outlined.Inbox) {
     Column(Modifier.fillMaxWidth().padding(vertical = 26.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         IconBadge(icon, tint = VC.muted, bg = VC.elevated, size = 52.dp, round = true)
-        Text(text, color = VC.muted, fontSize = 15.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 22.sp)
+        Text(AppStrings.tr(text), color = VC.muted, fontSize = 15.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center, lineHeight = 22.sp)
     }
 }
 

@@ -375,17 +375,78 @@
         {
           id: 'L1',
           level: 1,
-          name: 'Tầng 1 · Đất Vùng Rễ 0–40cm IoT (Ẩm độ VWC · pH · EC · NPK)',
+          name: 'Tầng 1 · Đất Vùng Rễ 0–40cm IoT & Đất Trống BSI (Ẩm độ VWC · pH · EC · BSI)',
           heightRange: '−0.40m đến 0.0m (Tầng rễ tích cực)',
           color: '#a855f7',
           mainVal: `Ẩm rễ ${vwcMean}% VWC · pH ${phMean} · EC ${ecMean} dS/m`,
-          subVal: `${regInfo.soilType} · Hữu cơ OM 3,8%`,
+          subVal: `${regInfo.soilType} · Hữu cơ OM 3,8% · 7 chỉ số GEE (NDVI, EVI, NDRE, NDMI, SAVI, NDWI, BSI)`,
           status: phMean >= 5.6 ? 'pH chuẩn hấp thu NPK' : 'Cần bón vôi Dolomite',
           stops: ['#d97706', '#a855f7', '#22c55e']
         }
       ]
     };
+    fetchLiveGee7Layers();
     return WF_STATE.sevenLayersMetrics;
+  }
+
+  let _lastGee7FetchKey = '';
+  async function fetchLiveGee7Layers() {
+    try {
+      const pts = WF_STATE.roiVertices || [];
+      if (pts.length < 3) return;
+      const ring = pts.map(p => [Number(p.lng.toFixed(6)), Number(p.lat.toFixed(6))]);
+      ring.push(ring[0]);
+      const key = JSON.stringify({ ring, crop: WF_STATE.cropType });
+      if (key === _lastGee7FetchKey) return;
+      _lastGee7FetchKey = key;
+
+      const end = new Date().toISOString().slice(0, 10);
+      const start = new Date(Date.now() - 60 * 86400000).toISOString().slice(0, 10);
+      const res = await fetch('http://127.0.0.1:8000/v1/satellite/gee-garden-clarity', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer dev-satellite-token-please-change'
+        },
+        body: JSON.stringify({
+          region: { ring },
+          start,
+          end,
+          crop: WF_STATE.cropType === 'COFFEE' ? 'coffee' : 'durian',
+          include_7_index_layers: true
+        })
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!WF_STATE.sevenLayersMetrics) return;
+      const m = WF_STATE.sevenLayersMetrics;
+      if (typeof data.mean_ndvi === 'number') m.summary.ndviMean = Number(data.mean_ndvi.toFixed(3));
+      if (typeof data.mean_evi === 'number') m.summary.eviMean = Number(data.mean_evi.toFixed(3));
+      if (typeof data.mean_ndre === 'number') m.summary.ndreMean = Number(data.mean_ndre.toFixed(3));
+      if (typeof data.mean_ndmi === 'number') m.summary.lswiMean = Number(data.mean_ndmi.toFixed(3));
+      if (typeof data.mean_savi === 'number') m.summary.saviMean = Number(data.mean_savi.toFixed(3));
+      if (typeof data.mean_ndwi === 'number') m.summary.ndwiMean = Number(data.mean_ndwi.toFixed(3));
+      if (typeof data.mean_bsi === 'number') m.summary.bsiMean = Number(data.mean_bsi.toFixed(3));
+      m.summary.spectral7Layers = data.spectral_7_layers || data.layers || [];
+      m.summary.fromGeeBackend = !data.simulated;
+      const l6 = m.layers.find(l => l.id === 'L6');
+      if (l6) {
+        l6.mainVal = `NDVI ${m.summary.ndviMean} · EVI ${m.summary.eviMean ?? 0.64} · LAI 4,35 m²/m²`;
+        l6.subVal = `Đồng bộ 7 lớp GEE (NDVI, EVI, NDRE, NDMI, SAVI, NDWI, BSI) từ máy chủ :8000`;
+      }
+      const l5 = m.layers.find(l => l.id === 'L5');
+      if (l5) {
+        l5.mainVal = `NDRE ${m.summary.ndreMean} · SPAD 46,8 · N-lá 2,74%`;
+      }
+      const l4 = m.layers.find(l => l.id === 'L4');
+      if (l4) {
+        l4.mainVal = `NDMI ${m.summary.lswiMean} · NDWI ${m.summary.ndwiMean ?? 0.24} (Độ ẩm tán & mặt nước)`;
+      }
+      const l3 = m.layers.find(l => l.id === 'L3');
+      if (l3) {
+        l3.mainVal = `SAVI ${m.summary.saviMean ?? 0.58} · BSI đất trống ${m.summary.bsiMean ?? -0.18}`;
+      }
+    } catch (_) {}
   }
 
   // ---------------------------------------------------------------------------

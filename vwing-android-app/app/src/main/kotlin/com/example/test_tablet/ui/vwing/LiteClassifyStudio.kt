@@ -24,11 +24,14 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.test_tablet.data.vwing.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private fun parseHexColor(hex: String): Color = runCatching {
     Color(android.graphics.Color.parseColor(hex))
@@ -41,6 +44,7 @@ fun LiteClassifyStudioCard(
     points: List<GeoPoint>,
     cropMode: String,
 ) {
+    val context = LocalContext.current
     var activeTab by remember { mutableIntStateOf(1) }
     var flightAltitudeM by remember { mutableDoubleStateOf(60.0) }
     var slicCompactness by remember { mutableDoubleStateOf(0.15) }
@@ -49,13 +53,28 @@ fun LiteClassifyStudioCard(
     var showQmlDialog by remember { mutableStateOf(false) }
     var userLabels by remember { mutableStateOf<Map<Int, Int>>(emptyMap()) }
 
-    val report = remember(points, cropMode, flightAltitudeM, slicCompactness) {
-        LiteClassifyObiaEngine.runFullPipeline(
-            points = points,
-            cropMode = cropMode,
-            slicCompactness = slicCompactness,
-            flightAltitudeM = flightAltitudeM,
+    var report by remember(points, cropMode, flightAltitudeM, slicCompactness) {
+        mutableStateOf(
+            LiteClassifyObiaEngine.runFullPipeline(
+                points = points,
+                cropMode = cropMode,
+                slicCompactness = slicCompactness,
+                flightAltitudeM = flightAltitudeM,
+            )
         )
+    }
+
+    LaunchedEffect(points, cropMode, flightAltitudeM, slicCompactness) {
+        val srvReport = withContext(Dispatchers.IO) {
+            LiteClassifyObiaEngine.fetchFromServerOrFallback(
+                cfg = SatelliteSettings(context.filesDir).load(),
+                points = points,
+                cropMode = cropMode,
+                slicCompactness = slicCompactness,
+                flightAltitudeM = flightAltitudeM,
+            )
+        }
+        report = srvReport
     }
 
     val grownSet = remember(report, selectedSegId, growTolerance) {
@@ -74,13 +93,13 @@ fun LiteClassifyStudioCard(
         ) {
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    "Phân tích ảnh Drone Orthomosaic hướng đối tượng (Lite Classify OBIA)",
+                    "VWing OBIA Studio — Phân tích ảnh Drone hướng đối tượng",
                     color = VC.muted,
                     fontSize = 12.5.sp,
                     fontWeight = FontWeight.Medium,
                 )
                 Text(
-                    "Phân loại lớp phủ vườn OBIA 4 bước (SLIC 24 đặc trưng · DINOv2 · Random Forest · Olofsson 2014)",
+                    "Phân loại lớp phủ vườn OBIA 4 bước (SLIC 24 đặc trưng · K-Means/DINOv2 · Random Forest · Olofsson 2014)",
                     color = VC.text,
                     fontSize = 17.5.sp,
                     fontWeight = FontWeight.Bold,
@@ -88,10 +107,16 @@ fun LiteClassifyStudioCard(
                 Text(
                     "Based on Lite Classify by L. D. Barua (LeoBar) — github.com/leobarua/liteclassify (DOI: 10.5281/zenodo.23462352)",
                     color = VC.muted,
-                    fontSize = 11.5.sp,
+                    fontSize = 12.sp,
                 )
             }
-            Tag("OBIA v1.2", VC.mint)
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Tag("VWing OBIA", VC.mint)
+                Tag(
+                    if (report.isFromServer) "⚡ ĐỘNG CƠ OBIA THẬT (SERVER)" else "DỮ LIỆU MINH HỌA (OFFLINE)",
+                    if (report.isFromServer) VC.lime else VC.amber,
+                )
+            }
         }
 
         Spacer(Modifier.height(10.dp))
@@ -362,7 +387,7 @@ fun LiteClassifyStudioCard(
                     ) {
                         Text("Đối tượng #${seg.segmentId} (Độ tự tin ${(seg.rfConfidence * 100).toInt()}%)", color = VC.amber, fontSize = 12.5.sp, fontWeight = FontWeight.ExtraBold)
                         Text(cls.nameVi, color = VC.text, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-                        Text("ExG: ${seg.exgMean} · HAG: ${seg.hagMeanM}m · Chạm đổi nhãn", color = VC.text2, fontSize = 11.5.sp)
+                        Text("ExG: ${seg.exgMean} · HAG: ${seg.hagMeanM}m · Chạm đổi nhãn", color = VC.text2, fontSize = 12.sp)
                     }
                 }
             }
@@ -387,7 +412,7 @@ fun LiteClassifyStudioCard(
                     ) {
                         Column(Modifier.weight(1f)) {
                             Text("${pair.classAName} ↔ ${pair.classBName}", color = VC.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text("Đặc trưng phân tách mạnh nhất: ${pair.topFeature}", color = VC.text2, fontSize = 11.5.sp)
+                            Text("Đặc trưng phân tách mạnh nhất: ${pair.topFeature}", color = VC.text2, fontSize = 12.sp)
                         }
                         Tag("JM = ${pair.jmDistance} / 2.00", jmColor)
                     }
@@ -412,10 +437,10 @@ fun LiteClassifyStudioCard(
                 wide = c.wide,
                 cells = listOf(
                     TasteKpiCell(
-                        label = "Độ chính xác tổng thể (OA)",
+                        label = "Điểm tin cậy ước tính (OA)",
                         value = "${acc.overallAccuracy}",
                         unit = "% (±${acc.oaCi95}%)",
-                        sub = "Trọng số diện tích Olofsson 2014",
+                        sub = if (report.isFromServer) "Trọng số diện tích Olofsson 2014 (Server)" else "Mô phỏng phân tầng Olofsson 2014",
                         accentColor = VC.mint,
                     ),
                     TasteKpiCell(
@@ -478,7 +503,7 @@ fun LiteClassifyStudioCard(
                     Text(
                         report.qgisQmlPreview,
                         color = VC.lime,
-                        fontSize = 11.5.sp,
+                        fontSize = 12.sp,
                         fontFamily = FontFamily.Monospace,
                     )
                 }

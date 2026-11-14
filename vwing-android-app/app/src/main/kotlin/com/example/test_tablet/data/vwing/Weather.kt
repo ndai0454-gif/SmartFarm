@@ -87,8 +87,8 @@ object WeatherClient {
                 val body = try {
                     conn.connectTimeout = 8_000; conn.readTimeout = 20_000; conn.instanceFollowRedirects = false
                     conn.setRequestProperty("Authorization", "Bearer ${cfg.token}")
+                    if (conn.responseCode == 401) throw SecurityException("Mã truy cập máy chủ không đúng. Kiểm tra Thiết lập.")
                     if (conn.responseCode != 200) throw IOException(when (conn.responseCode) {
-                        401 -> "Mã truy cập máy chủ không đúng. Kiểm tra Thiết lập."
                         404 -> "Máy chủ chưa có thời tiết. Cần cập nhật backend."
                         in 300..399 -> "Đã dừng chuyển hướng máy chủ để bảo vệ mã truy cập."
                         else -> "Chưa lấy được thời tiết (HTTP ${conn.responseCode})."
@@ -104,10 +104,8 @@ object WeatherClient {
                 val report = parse(body)
                 val tmp = File(file.path + ".tmp"); tmp.writeText(body); check(tmp.renameTo(file))
                 return@runCatching report
-            } catch (e: java.net.ConnectException) { last = e }
-            catch (e: java.net.SocketTimeoutException) { last = e }
-            catch (e: java.net.UnknownHostException) { last = e }
+            } catch (e: IOException) { last = e }
         }
-        throw IOException("Không kết nối được máy chủ thời tiết. Kiểm tra Wi-Fi.", last)
+        throw last ?: IOException("Không kết nối được máy chủ thời tiết. Kiểm tra Wi-Fi.")
     }
 }

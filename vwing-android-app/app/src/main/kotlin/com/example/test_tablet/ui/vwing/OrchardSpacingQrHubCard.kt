@@ -516,7 +516,7 @@ fun OrchardSpacingQrHubCard(
                             Text(
                                 "ĐANG CHỌN",
                                 color = Color(0xFF07150E),
-                                fontSize = 10.5.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
@@ -581,9 +581,9 @@ fun OrchardSpacingQrHubCard(
                             .background(Color(0xFF122B1E))
                             .padding(8.dp),
                     ) {
-                        Text(lbl, color = VC.text2, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text(lbl, color = VC.text2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         Text(mainVal, color = selectedRule.accentColor, fontSize = 14.5.sp, fontWeight = FontWeight.ExtraBold, modifier = Modifier.padding(top = 2.dp))
-                        Text(subTxt, color = Color(0xFFD0E4D6), fontSize = 10.5.sp, modifier = Modifier.padding(top = 2.dp))
+                        Text(subTxt, color = Color(0xFFD0E4D6), fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp))
                     }
                 }
             }
@@ -621,7 +621,7 @@ fun OrchardSpacingQrHubCard(
                     Text(
                         "Chạm vào điểm cây để xem Nhãn & Mã QR",
                         color = VC.text2,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                     )
                 }
 
@@ -731,13 +731,13 @@ fun OrchardSpacingQrHubCard(
                     Text(
                         String.format(Locale.US, "📍 GPS: %.6f, %.6f", st.pos.lat, st.pos.lng),
                         color = VC.cyan,
-                        fontSize = 11.5.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
                         "Ô dinh dưỡng: ${st.rule.spacingM}m × ${st.rule.spacingM}m = ${st.rule.unitAreaM2} m²/cây",
                         color = VC.text2,
-                        fontSize = 11.5.sp,
+                        fontSize = 12.sp,
                     )
                     Box(
                         Modifier
@@ -779,7 +779,7 @@ fun OrchardSpacingQrHubCard(
                     Text(
                         label,
                         color = if (active) Color(0xFF06150D) else VC.text2,
-                        fontSize = 11.5.sp,
+                        fontSize = 12.sp,
                         fontWeight = if (active) FontWeight.ExtraBold else FontWeight.Medium,
                         modifier = Modifier
                             .clip(RoundedCornerShape(14.dp))
@@ -852,14 +852,14 @@ fun OrchardSpacingQrHubCard(
                                     Text(
                                         "Hàng ${t.rowNumber} · Cây ${t.colNumber}",
                                         color = VC.cyan,
-                                        fontSize = 11.5.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.Bold,
                                     )
                                 }
                                 Text(
                                     "Khoảng cách: ${t.rule.spacingM}m × ${t.rule.spacingM}m (${t.rule.unitAreaM2} m²/cây)",
                                     color = VC.text,
-                                    fontSize = 11.sp,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.SemiBold,
                                 )
                                 Row(
@@ -870,12 +870,12 @@ fun OrchardSpacingQrHubCard(
                                     Text(
                                         String.format(Locale.US, "📍 %.5f, %.5f", t.pos.lat, t.pos.lng),
                                         color = VC.text2,
-                                        fontSize = 10.5.sp,
+                                        fontSize = 12.sp,
                                     )
                                     Text(
                                         "In QR ↗",
                                         color = VC.mint,
-                                        fontSize = 11.sp,
+                                        fontSize = 12.sp,
                                         fontWeight = FontWeight.ExtraBold,
                                         modifier = Modifier.clickable { dialogTree = t },
                                     )
@@ -1077,7 +1077,7 @@ fun SpacingTreeQrDialog(
                     Text("• Loại vườn & khoảng cách: ${tree.rule.titleVi}", color = VC.text, fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold)
                     Text("• Vị trí hàng/cột: Hàng ${tree.rowNumber} · Cây thứ ${tree.colNumber} (${tree.regionName})", color = VC.cyan, fontSize = 12.5.sp)
                     Text(String.format(Locale.US, "• Tọa độ GPS: %.6f, %.6f", tree.pos.lat, tree.pos.lng), color = VC.text2, fontSize = 12.sp)
-                    Text("• Nội dung QR: ${tree.qrPayload}", color = VC.muted, fontSize = 11.sp)
+                    Text("• Nội dung QR: ${tree.qrPayload}", color = VC.muted, fontSize = 12.sp)
                 }
             }
         },

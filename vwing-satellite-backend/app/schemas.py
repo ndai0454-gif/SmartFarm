@@ -351,6 +351,7 @@ class GeeGardenClarityRequest(BaseModel):
     max_cloud_pct: float = Field(default=65.0, ge=0.0, le=100.0)
     buffer_m: float = Field(default=0.0, ge=0.0, le=300.0)
     crop_type: str = Field(default="durian", max_length=40)
+    include_7_index_layers: bool = Field(default=False)
 
 
 class GeeVisualLayerItem(BaseModel):
@@ -380,11 +381,17 @@ class GeeGardenClarityResult(BaseModel):
     canopy_cover_pct: float
     estimated_trees: int
     mean_ndvi: Optional[float] = None
+    mean_evi: Optional[float] = None
     mean_ndre: Optional[float] = None
     mean_ndmi: Optional[float] = None
+    mean_savi: Optional[float] = None
+    mean_ndwi: Optional[float] = None
+    mean_bsi: Optional[float] = None
+    indices: list[LandIndexStat] = Field(default_factory=list)
     elevation_mean_m: Optional[float] = None
     slope_mean_deg: Optional[float] = None
     layers: list[GeeVisualLayerItem]
+    spectral_7_layers: list[GeeVisualLayerItem] = Field(default_factory=list)
     sample_tree_points_geojson: dict = Field(default_factory=dict)
     summary_vi: str
 

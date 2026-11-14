@@ -14,7 +14,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 PUBLIC_API = "https://api.open-meteo.com/v1/forecast"
 CUSTOMER_API = "https://customer-api.open-meteo.com/v1/forecast"
 MAX_BODY = 1024 * 1024
-TTL_SECONDS = 600
+TTL_SECONDS = 120
 MAX_LOCATIONS = 128
 CURRENT_UNITS = {"time": "iso8601", "temperature_2m": "°C", "relative_humidity_2m": "%",
                  "apparent_temperature": "°C", "is_day": "", "precipitation": "mm",

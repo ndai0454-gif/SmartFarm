@@ -821,15 +821,15 @@
       id: 'L7',
       order: 1,
       zNorm: 1.00,
-      shortTitle: '7. Vi khí hậu & Dự báo Bệnh',
-      title: 'Tầng 7: Khí quyển Tán & Dự báo Dịch bệnh MapMyCrop (Z = +10m..+25m)',
-      spatialModel: 'Mô hình Phát tán Bào tử theo Gió mùa ĐB-TN & Độ ướt lá (Monsoon Spore Plume)',
+      shortTitle: '7. Khí hậu & Nguy cơ bệnh',
+      title: 'Tầng 7: Không khí quanh tán & Dự báo nấm bệnh (Cao +10m..+25m)',
+      spatialModel: 'Mô hình Phát tán Bào tử theo Gió mùa ĐB-TN & Độ ướt lá',
       formula: 'Risk(x,y) = Plume_SW(Gió ĐB 3.4m/s) × LeafWetness(h) × f(VPD, LST)',
       accent: '#e11d48',
       gradientStops: ['#312e81', '#0284c7', '#facc15', '#f97316', '#dc2626'],
       minLabel: '18% (Khô thoáng ĐB)',
-      maxLabel: '84% (Ổ dịch khuất gió TN)',
-      overlayName: 'Vector Gió mùa ĐB & Vòng tâm dịch ≥65%',
+      maxLabel: '84% (Dễ bùng bệnh TN)',
+      overlayName: 'Hướng gió ĐB & Vùng nguy cơ bệnh ≥65%',
       evalField(nx, ny) {
         const dSw = Math.hypot(nx - (-0.46), ny - 0.44);
         const dSe = Math.hypot(nx - 0.36, ny - 0.48);
@@ -838,10 +838,7 @@
         return Math.max(0.03, Math.min(0.98, v));
       },
       distinctParams: [
-        { code: 'MMC_RISK', name: 'Xác suất bùng phát nấm Phytophthora', unit: '%', min: '18,0%', mean: '48,6%', max: '84,2%', pct: 68, status: 'Cảnh báo cao ở góc khuất gió Tây-Nam' },
-        { code: 'LWD_HOUR', name: 'Thời gian ướt mặt lá liên tục (LWD)', unit: 'giờ/ngày', min: '3,2 h', mean: '8,4 h', max: '12,6 h', pct: 72, status: 'Vượt ngưỡng nảy mầm bào tử (>8h/ngày)' },
-        { code: 'CANOPY_LST', name: 'Nhiệt độ bức xạ mặt tán (LST)', unit: '°C', min: '22,8°C', mean: '24,9°C', max: '28,6°C', pct: 54, status: 'Đảo nhiệt nhẹ +0,8°C ở sườn Đông-Nam' },
-        { code: 'AIR_VPD', name: 'Áp suất thiếu hụt hơi nước (VPD)', unit: 'kPa', min: '0,35', mean: '0,68', max: '1,42', pct: 42, status: 'Độ ẩm không khí cao (RH 82,5%)' }
+        { code: 'MMC_RISK', name: 'Nguy cơ nấm bệnh', unit: '%', min: '18,0%', mean: '48,6%', max: '84,2%', pct: 68, status: 'Cảnh báo cao ở góc khuất gió Tây-Nam (>65%)' }
       ],
       zones: [
         { range: '18 – 34% (An toàn)', desc: 'Đón gió Đông-Bắc khô ráo, VPD tối ưu', color: '#312e81', sharePct: 28.5 },
@@ -855,15 +852,15 @@
       id: 'L6',
       order: 2,
       zNorm: 0.68,
-      shortTitle: '6. Vòm tán 3D (CHM · LiDAR)',
-      title: 'Tầng 6: Mô hình Chiều cao Vòm tán 3D (CHM = DSM − DTM) & Sinh khối (Z = +2,0m..+8,5m)',
-      spatialModel: 'Mô hình Ma trận Vòm cây Cá thể LiDAR / Photogrammetry theo Hàng 8×8m',
+      shortTitle: '6. Chiều cao tán cây 3D',
+      title: 'Tầng 6: Chiều cao Vòm tán cây 3D (Cao +2,0m..+8,5m)',
+      spatialModel: 'Mô hình Vòm cây 3D theo Hàng 8×8m',
       formula: 'CHM(x,y) = DSM(x,y) − DTM(x,y) · CrownVol = 2.15 × CHM^1.85',
       accent: '#15803d',
       gradientStops: ['#d6d3d1', '#84cc16', '#22c55e', '#15803d', '#064e3b'],
-      minLabel: '0,8m (Hành lang đường lô)',
-      maxLabel: '7,8m (Đỉnh vòm cổ thụ)',
-      overlayName: 'Lưới Hàng cây 8×8m & Vòm cây 3D Cá thể',
+      minLabel: '0,8m (Đường lô)',
+      maxLabel: '7,8m (Cây cao nhất)',
+      overlayName: 'Lưới Hàng cây 8×8m & Vòm cây 3D',
       evalField(nx, ny) {
         const dome = Math.pow(Math.max(0, Math.cos(nx * Math.PI * 3.6) * Math.cos(ny * Math.PI * 3.6)), 0.75);
         const dCore = Math.hypot(nx - (-0.12), ny - (-0.08));
@@ -872,10 +869,7 @@
         return Math.max(0.02, Math.min(0.99, v));
       },
       distinctParams: [
-        { code: 'CHM_HEIGHT', name: 'Chiều cao vòm tán thực tế (DSM − DTM)', unit: 'm', min: '0,8 m', mean: '5,8 m', max: '7,8 m', pct: 76, status: 'Phân tách rõ vòm cây & hành lang đường lô' },
-        { code: 'CROWN_VOL', name: 'Thể tích vòm lá 3D (LiDAR Voxel Volume)', unit: 'm³/cây', min: '14,2 m³', mean: '54,8 m³', max: '92,5 m³', pct: 69, status: 'Định mức phun thuốc VRA: 440 L/ha' },
-        { code: 'CGLS_LAI', name: 'Chỉ số diện tích lá (Copernicus LAI)', unit: 'm²/m²', min: '1,15', mean: '3,85', max: '5,18', pct: 74, status: 'Hấp thụ bức xạ quang hợp fAPAR = 0,81' },
-        { code: 'AGB_BIOMASS', name: 'Sinh khối khô trên mặt đất (AGB)', unit: 'tấn/ha', min: '38,0', mean: '86,4', max: '124,5', pct: 71, status: 'Tích lũy ~40,6 tấn Carbon hữu cơ/ha' }
+        { code: 'CHM_HEIGHT', name: 'Chiều cao tán cây', unit: 'm', min: '0,8 m', mean: '5,8 m', max: '7,8 m', pct: 76, status: 'Cây <4,5m giảm 35% thuốc · >6,3m tăng áp lực phun' }
       ],
       zones: [
         { range: '0,8 – 2,2m (Hành lang)', desc: 'Khoảng trống giữa hàng & đường nội đồng', color: '#d6d3d1', sharePct: 21.6 },
@@ -889,15 +883,15 @@
       id: 'L5',
       order: 3,
       zNorm: 0.36,
-      shortTitle: '5. Quang phổ NDVI · EVI · NDRE',
-      title: 'Tầng 5: Phản xạ Quang phổ Thực vật Sentinel-2 (NDVI · EVI · NDRE · SPAD) (Z = +1,5m)',
-      spatialModel: 'Mô hình Quang hợp Đa băng tần & Chẩn đoán Đạm Lá Cận biên đỏ (Red-Edge)',
+      shortTitle: '5. Độ xanh & Sức khỏe lá',
+      title: 'Tầng 5: Độ xanh khỏe của Tán lá (Cao +1,5m)',
+      spatialModel: 'Mô hình Quang hợp & Chẩn đoán Thiếu đạm qua Màu lá',
       formula: 'NDVI=(B8−B4)/(B8+B4) · NDRE=(B8A−B5)/(B8A+B5) · Chl_SPAD = 78.4 × NDRE + 13.6',
       accent: '#22c55e',
       gradientStops: ['#dc2626', '#f59e0b', '#eab308', '#22c55e', '#14532d'],
-      minLabel: 'NDVI 0,36 (Vàng lá ĐN)',
-      maxLabel: 'NDVI 0,89 (Diệp lục đỉnh)',
-      overlayName: 'Ranh giới 3 Phân vùng Bón phân Biến thiên (VRA Zones A/B/C)',
+      minLabel: '0,36 (Vàng lá ĐN)',
+      maxLabel: '0,89 (Lá xanh khỏe)',
+      overlayName: 'Ranh giới 3 Vùng Bón phân (Vùng A/B/C)',
       evalField(nx, ny) {
         const dCore = Math.hypot(nx - (-0.15), ny - (-0.22));
         const dWest = Math.hypot(nx - (-0.48), ny - 0.10);
@@ -906,10 +900,7 @@
         return Math.max(0.04, Math.min(0.98, v));
       },
       distinctParams: [
-        { code: 'S2_NDVI', name: 'Chỉ số thực vật chuẩn hóa (B8/B4)', unit: 'ratio', min: '0,360', mean: '0,775', max: '0,890', pct: 78, status: '69% diện tích đạt ngưỡng khỏe ≥ 0,67' },
-        { code: 'S2_EVI', name: 'Chỉ số thực vật tăng cường (Khử nhiễu đất)', unit: 'ratio', min: '0,260', mean: '0,642', max: '0,780', pct: 73, status: 'Không bị bão hòa ở tầng tán dày' },
-        { code: 'S2_NDRE', name: 'Chỉ số cận biên đỏ (Red-Edge B8A/B5)', unit: 'ratio', min: '0,220', mean: '0,518', max: '0,650', pct: 67, status: 'Phát hiện sớm thiếu Đạm-Magie góc ĐN' },
-        { code: 'CHL_SPAD', name: 'Mật độ diệp lục lá (Chlorophyll SPAD)', unit: 'SPAD', min: '31,5', mean: '54,2', max: '67,8', pct: 75, status: 'Tương đương 46,5 µg Chlorophyll/cm² lá' }
+        { code: 'S2_NDVI', name: 'Độ xanh của lá', unit: 'điểm 0–1', min: '0,360', mean: '0,775', max: '0,890', pct: 78, status: '69% diện tích đạt ngưỡng khỏe (≥0,67) · Góc ĐN cần bón bổ sung' }
       ],
       zones: [
         { range: 'NDVI 0,36–0,52 (Stress)', desc: 'Suy giảm diệp lục & thiếu đạm góc Đông-Nam', color: '#dc2626', sharePct: 11.5 },
@@ -923,14 +914,14 @@
       id: 'L4',
       order: 4,
       zNorm: 0.04,
-      shortTitle: '4. Độ ẩm NDMI · WaPOR ETa',
-      title: 'Tầng 4: Độ ẩm Nội bào Tán lá (NDMI/SWIR) & Bốc thoát hơi FAO WaPOR (Z = +0,8m)',
-      spatialModel: 'Mô hình Thủy nông Tuyến Tưới Nhỏ Giọt Áp Lực & Cân bằng Bốc thoát hơi ETa',
+      shortTitle: '4. Độ ẩm & Nước trong lá',
+      title: 'Tầng 4: Độ ẩm trong Tán lá & Tình trạng Tưới nước (Cao +0,8m)',
+      spatialModel: 'Mô hình Tuyến Tưới Nhỏ Giọt & Cân bằng Nước Cây trồng',
       formula: 'NDMI=(B8−B11)/(B8+B11) · ETa = Kc × ET0 × f(NDMI) · CWSI = 1 − ETa/ETp',
       accent: '#0284c7',
       gradientStops: ['#b45309', '#f59e0b', '#38bdf8', '#0284c7', '#1e3a8a'],
-      minLabel: 'NDMI 0,08 (Khô hạn ĐB)',
-      maxLabel: 'NDMI 0,51 (Đủ ẩm tuyến)',
+      minLabel: '0,08 (Thiếu nước ĐB)',
+      maxLabel: '0,51 (Đủ ẩm)',
       overlayName: 'Tuyến Ống Tưới Nhỏ Giọt Đông-Tây & Béc Tưới 4,2 L/h',
       evalField(nx, ny) {
         const dripBands = (0.5 + 0.5 * Math.cos(ny * Math.PI * 4.5)) * 0.28;
@@ -941,10 +932,7 @@
         return Math.max(0.03, Math.min(0.98, v));
       },
       distinctParams: [
-        { code: 'SWIR_NDMI', name: 'Chỉ số ẩm nội bào sóng ngắn (SWIR 1610nm)', unit: 'index', min: '0,080', mean: '0,342', max: '0,510', pct: 66, status: 'Phát hiện khô hạn tiềm ẩn góc Đông-Bắc' },
-        { code: 'WAPOR_ETA', name: 'Bốc thoát hơi nước thực tế (FAO WaPOR ETa)', unit: 'mm/ngày', min: '2,15', mean: '3,86', max: '5,25', pct: 71, status: 'Đạt 93% so với ET0 chuẩn (4,15 mm/ngày)' },
-        { code: 'CWSI_STRESS', name: 'Chỉ số stress nước cây trồng (CWSI)', unit: '0..1', min: '0,08', mean: '0,24', max: '0,64', pct: 28, status: 'Toàn vườn an toàn (<0,35), trừ góc ĐB (0,64)' },
-        { code: 'FAO_WPB', name: 'Hiệu suất nước sinh khối (Water Productivity)', unit: 'kg/m³', min: '1,72', mean: '2,68', max: '3,45', pct: 76, status: 'Tiết kiệm 28% nước so với tưới béc tràn' }
+        { code: 'SWIR_NDMI', name: 'Độ ẩm trong lá', unit: 'điểm ẩm', min: '0,080', mean: '0,342', max: '0,510', pct: 66, status: 'Góc Đông-Bắc bị khô (<0,16), cần kiểm tra béc tưới' }
       ],
       zones: [
         { range: 'NDMI < 0,16 (Thiếu nước)', desc: 'Tắc béc / Áp lực tưới yếu góc Đông-Bắc (CWSI 0,64)', color: '#b45309', sharePct: 12.8 },
@@ -958,15 +946,15 @@
       id: 'L3',
       order: 5,
       zNorm: -0.28,
-      shortTitle: '3. Bản đồ Nông nghiệp Toàn cầu',
-      title: 'Tầng 3: Lớp phủ 6 Bản đồ Nông nghiệp Toàn cầu (ESA · GFSAD30 · GEOGLAM · GAEZ) (Z = +0,2m)',
-      spatialModel: 'Mô hình Phân vùng Bậc thang Lớp phủ LULC & Hạng thích nghi Sinh thái FAO GAEZ',
+      shortTitle: '3. Phân vùng đất trồng',
+      title: 'Tầng 3: Phân vùng Đất trồng & Mức độ Thích hợp Cây ăn trái (Cao +0,2m)',
+      spatialModel: 'Mô hình Phân vùng Sử dụng Đất & Hạng Thích hợp Cây trồng',
       formula: 'LULC = ESA_WorldCover_10m ∪ GFSAD30_Irrigated ∪ FAO_GAEZ_v4(S1..S3)',
       accent: '#d97706',
       gradientStops: ['#9ca3af', '#fde047', '#34d399', '#059669', '#065f46'],
-      minLabel: 'Class 50: Đường lô (5,8%)',
-      maxLabel: 'GAEZ S1: 94/100 (Vườn)',
-      overlayName: 'Ranh giới Phân khu LULC 10/30/50 & Hạng GAEZ S1',
+      minLabel: 'Đường lô (5,8%)',
+      maxLabel: 'Rất hợp trồng: 94/100',
+      overlayName: 'Ranh giới Phân khu Vườn, Cỏ & Đường lô',
       evalField(nx, ny) {
         const isRoad = Math.abs(nx - 0.32 * ny + 0.04) < 0.065;
         const isGrass = (nx * nx + ny * ny) > 0.52;
@@ -975,10 +963,7 @@
         return Math.max(0.05, Math.min(0.96, z));
       },
       distinctParams: [
-        { code: 'ESA_LULC', name: 'Tỷ lệ đất cây lâu năm (ESA WorldCover 10m)', unit: '%', min: '0%', mean: '82,4%', max: '100%', pct: 82, status: 'Đạt chuẩn EUDR không xâm lấn rừng tự nhiên' },
-        { code: 'FAO_GAEZ', name: 'Chỉ số thích nghi sinh thái (FAO GAEZ v4)', unit: 'điểm/100', min: '61,0', mean: '88,0', max: '94,5', pct: 88, status: 'Hạng S1 — Rất thích hợp cho cây ăn trái' },
-        { code: 'GEOGLAM_VHI', name: 'Chỉ số sức khỏe mùa vụ toàn cầu (VHI)', unit: '0..100', min: '52,0', mean: '74,6', max: '89,0', pct: 75, status: 'Đánh giá GEOGLAM: Thuận lợi (Favorable)' },
-        { code: 'GFSAD_IRR', name: 'Tỷ lệ diện tích chủ động tưới (USGS GFSAD30)', unit: '%', min: '75%', mean: '94,0%', max: '100%', pct: 94, status: 'Hệ số thâm canh quanh năm CI = 1,0' }
+        { code: 'FAO_GAEZ', name: 'Điểm hợp đất trồng', unit: 'điểm/100', min: '61,0', mean: '88,0', max: '94,5', pct: 88, status: 'Hạng S1 — Rất thích hợp cho cây ăn trái lâu năm' }
       ],
       zones: [
         { range: 'Class 50/60 (5,8% diện tích)', desc: 'Đường lô nội đồng, sân phơi & trạm bơm', color: '#9ca3af', sharePct: 5.8 },
@@ -992,15 +977,15 @@
       id: 'L2',
       order: 6,
       zNorm: -0.60,
-      shortTitle: '2. Địa hình DEM · Thủy văn',
-      title: 'Tầng 2: Mô hình Số Độ cao Mặt đất Trần (Bare-Earth DEM/DTM) & Thủy văn (Z = 0,0m)',
-      spatialModel: 'Mô hình Độ cao Mặt đất Trần (FABDEM) & Phân thủy Lưu vực D8 (Stream Order 1)',
+      shortTitle: '2. Địa hình & Thoát nước',
+      title: 'Tầng 2: Độ cao Mặt đất & Đường Thoát nước (Mặt đất 0,0m)',
+      spatialModel: 'Mô hình Độ cao Mặt đất & Dòng chảy Tụ nước',
       formula: 'TWI = ln(As / tan(Slope)) · Nuth-Kääb Δz = a·cos(b − Aspect)·tan(Slope) + c',
       accent: '#92400e',
       gradientStops: ['#10c800', '#8ce600', '#fff000', '#ff7800', '#e60000'],
-      minLabel: 'Low: 582,7m (Thung lũng)',
-      maxLabel: 'High: 586,8m (Đỉnh đồi Tây)',
-      overlayName: 'Mạng lưới Dòng chảy Tụ thủy (Streams & Stream Order = 1)',
+      minLabel: 'Thấp nhất: 582,7m (Trũng)',
+      maxLabel: 'Cao nhất: 586,8m (Đỉnh đồi)',
+      overlayName: 'Mạng lưới Rãnh Thoát nước Chính',
       evalField(nx, ny) {
         const dW1 = Math.hypot(nx - (-0.62), ny - 0.22);
         const dW2 = Math.hypot(nx - (-0.52), ny - 0.46);
@@ -1010,10 +995,7 @@
         return Math.max(0.02, Math.min(0.99, v));
       },
       distinctParams: [
-        { code: 'FABDEM_Z', name: 'Cao độ mặt đất trần (Copernicus GLO-30)', unit: 'm ASL', min: '582,7 m', mean: '584,5 m', max: '586,8 m', pct: 62, status: 'Chênh cao toàn khu 4,1 m' },
-        { code: 'SLOPE_DEG', name: 'Độ dốc địa hình trung bình (Terrain Slope)', unit: 'độ (°)', min: '0,9°', mean: '4,2°', max: '11,8°', pct: 38, status: 'Dốc thoải hướng Đông-Nam (Aspect 138°)' },
-        { code: 'HYDRO_TWI', name: 'Chỉ số ẩm địa hình (Topographic Wetness TWI)', unit: 'ln(a/tanβ)', min: '4,50', mean: '7,42', max: '11,60', pct: 64, status: 'Tụ thủy dọc rãnh chính Bắc-Nam' },
-        { code: 'NUTH_KAAB', name: 'Sai số đồng đăng ký 3D (Nuth & Kääb RMSE)', unit: 'm', min: '0,18 m', mean: '0,68 m', max: '1,12 m', pct: 85, status: 'Đã khử lệch pha ngang Δx, Δy giữa 2 DEM' }
+        { code: 'HYDRO_TWI', name: 'Mức độ đọng nước', unit: 'điểm tụ nước', min: '4,50', mean: '7,42', max: '11,60', pct: 64, status: 'Vùng trũng >9 điểm cần khơi thông rãnh thoát nước' }
       ],
       zones: [
         { range: '582,7 – 583,6m (Thung lũng)', desc: 'Hành lang dòng chảy tụ thủy (Streams · TWI > 9)', color: '#10c800', sharePct: 22.0 },
@@ -1027,15 +1009,15 @@
       id: 'L1',
       order: 7,
       zNorm: -0.92,
-      shortTitle: '1. Tầng Đất & Vùng Rễ (0–100cm)',
-      title: 'Tầng 1: Địa thống kê Phẫu diện Đất & Vùng Rễ Ngầm (SoilGrids 250m & Kriging) (Z = -1,0m..0,0m)',
-      spatialModel: 'Mô hình Nội suy Địa thống kê Ordinary Kriging từ 6 Hố khoan Phẫu diện Đất (BH-01..BH-06)',
+      shortTitle: '1. Đất & Độ chua vùng rễ',
+      title: 'Tầng 1: Chất lượng Đất & Độ chua Vùng Rễ (Sâu 0–100cm)',
+      spatialModel: 'Mô hình Bản đồ Đất Vùng rễ từ 6 Điểm khoan (BH-01..BH-06)',
       formula: 'Z*(x0) = Σ λ_i · Z(x_i) (Ordinary Kriging pH H2O, SOC%, ECe dS/m, VWC 0–100cm)',
       accent: '#7c2d12',
       gradientStops: ['#fde68a', '#f59e0b', '#d97706', '#92400e', '#451a03'],
-      minLabel: 'pH 4,85 · SOC 1,5% (TB)',
-      maxLabel: 'pH 6,42 · SOC 3,8% (Nam)',
-      overlayName: '6 Hố khoan Địa chất Tầng Rễ (BH-01..BH-06) & Đường đẳng pH',
+      minLabel: 'pH 4,85 (Hơi chua)',
+      maxLabel: 'pH 6,42 (Đất tốt)',
+      overlayName: '6 Điểm lấy mẫu Đất (BH-01..BH-06) & Vùng độ chua',
       evalField(nx, ny) {
         const dBhS = Math.hypot(nx - 0.15, ny - 0.42);
         const dBhC = Math.hypot(nx - (-0.18), ny - 0.05);
@@ -1045,10 +1027,7 @@
         return Math.max(0.04, Math.min(0.98, v));
       },
       distinctParams: [
-        { code: 'ROOT_VWC', name: 'Độ ẩm thể tích vùng rễ (0–100 cm VWC)', unit: '% VWC', min: '19,5%', mean: '31,5%', max: '41,2%', pct: 68, status: 'Đủ ẩm tầng rễ tích cực (0–60 cm)' },
-        { code: 'SOIL_PH', name: 'Độ phản ứng đất (pH H₂O nội suy Kriging)', unit: 'pH', min: '4,85', mean: '5,68', max: '6,42', pct: 62, status: 'Cần bón vôi Dolomite khử chua góc Tây-Bắc' },
-        { code: 'SOIL_SOC', name: 'Hàm lượng Carbon hữu cơ đất (SOC %)', unit: '%', min: '1,48%', mean: '2,84%', max: '3,82%', pct: 74, status: 'Túi đất bazan giàu mùn hữu cơ ở phía Nam' },
-        { code: 'SOIL_EC', name: 'Độ dẫn điện & Dung trọng đất (ECe / BD)', unit: 'dS/m', min: '0,65', mean: '1,28', max: '2,08', pct: 65, status: 'Dung trọng 1,24 g/cm³ · Độ thoáng khí rễ tốt' }
+        { code: 'SOIL_PH', name: 'Độ chua của đất', unit: 'độ pH', min: '4,85', mean: '5,68', max: '6,42', pct: 62, status: 'Góc Tây-Bắc hơi chua (<5,2), cần bón vôi Dolomite' }
       ],
       zones: [
         { range: 'pH 4,8–5,2 · SOC < 1,9%', desc: 'Đất sườn Tây-Bắc bị rửa trôi kiềm, hơi chua', color: '#fde68a', sharePct: 16.5 },
@@ -2113,7 +2092,10 @@
         ctx.font = 'bold 10.5px sans-serif';
         const p0 = layer.distinctParams[0];
         const p1 = layer.distinctParams[1];
-        ctx.fillText(`${layer.shortTitle.split('.')[0]}. ${p0.code}: ${p0.mean} · ${p1.code}: ${p1.mean}`, bx + 6, by + 14.5);
+        const badgeText = p1
+          ? `${layer.shortTitle.split('.')[0]}. ${p0.name}: ${p0.mean} · ${p1.name}: ${p1.mean}`
+          : `${layer.shortTitle.split('.')[0]}. ${p0.name}: ${p0.mean}`;
+        ctx.fillText(badgeText, bx + 6, by + 14.5);
       }
     });
   }
@@ -2208,7 +2190,7 @@
           <!-- Right: Multi-layer comparison (ALL) or Single-Layer Deep Inspector -->
           <div style="display:flex;flex-direction:column;gap:8px;max-height:445px;overflow-y:auto;padding-right:4px;-webkit-overflow-scrolling:touch;">
             ${selId === 'ALL' ? `
-              <div style="font-size:12px;font-weight:700;color:#38EF7D;">🔬 ĐỐI CHIẾU THÔNG SỐ ĐỘC LẬP CỦA 7 TẦNG MÔ HÌNH 3D (Bấm vào bất kỳ tầng nào để xem chi tiết):</div>
+              <div style="font-size:12px;font-weight:700;color:#38EF7D;">🔬 7 THÔNG SỐ ĐỘC LẬP CỦA 7 TẦNG MÔ HÌNH 3D (Bấm vào bất kỳ tầng nào để xem chi tiết):</div>
               ${STRATIFIED_3D_LAYERS.map(l => `
                 <div onclick="DatumAppSuite.select3DLayer('${l.id}')" style="cursor:pointer;padding:9px 11px;border-radius:10px;background:rgba(255,255,255,0.04);border:1px solid ${l.accent}88;">
                   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
@@ -2216,12 +2198,14 @@
                     <span style="font-size:11px;color:${l.accent};font-weight:700;">${l.spatialModel.split('(')[0]} →</span>
                   </div>
                   <div style="height:6px;border-radius:3px;margin:5px 0;background:linear-gradient(90deg, ${l.gradientStops.join(',')});"></div>
-                  <div class="sf-stat-grid-4" style="gap:5px;margin-top:4px;">
+                  <div style="display:flex;flex-direction:column;gap:4px;margin-top:4px;">
                     ${l.distinctParams.map(dp => `
-                      <div style="background:rgba(0,0,0,0.35);padding:4px 6px;border-radius:6px;font-size:10.5px;">
-                        <div style="color:${l.accent};font-weight:800;">${dp.code}</div>
-                        <div style="color:#fff;font-weight:700;">${dp.mean}</div>
-                        <div style="color:rgba(255,255,255,0.55);font-size:9.5px;">${dp.min}..${dp.max}</div>
+                      <div style="background:rgba(0,0,0,0.35);padding:6px 8px;border-radius:6px;font-size:11px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+                          <span style="color:${l.accent};font-weight:800;">${dp.name}</span>
+                          <span style="color:#fff;font-weight:800;">${dp.mean} <span style="color:rgba(255,255,255,0.55);font-weight:500;font-size:10px;">(${dp.min} – ${dp.max})</span></span>
+                        </div>
+                        <div style="color:#cbd5e1;font-size:10px;margin-top:2px;">↳ ${dp.status}</div>
                       </div>
                     `).join('')}
                   </div>
@@ -2244,20 +2228,20 @@
                 </div>
               </div>
 
-              <div style="font-size:12px;font-weight:800;color:#fff;">📊 4 THÔNG SỐ ĐỊNH LƯỢNG ĐỘC LẬP CỦA ${activeLayer.shortTitle.toUpperCase()}:</div>
-              <div class="sf-stat-grid-2" style="gap:7px;">
+              <div style="font-size:12px;font-weight:800;color:#fff;">📊 CHỈ SỐ ĐẠI DIỆN CỦA ${activeLayer.shortTitle.toUpperCase()}:</div>
+              <div style="display:flex;flex-direction:column;gap:7px;">
                 ${activeLayer.distinctParams.map(dp => `
                   <div style="padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);">
                     <div style="display:flex;justify-content:space-between;font-size:11.5px;flex-wrap:wrap;gap:4px;">
-                      <strong style="color:${activeLayer.accent};">[${dp.code}] ${dp.name}</strong>
-                      <strong style="color:#fff;">TB: ${dp.mean}</strong>
+                      <strong style="color:${activeLayer.accent};">${dp.name} (${dp.unit})</strong>
+                      <strong style="color:#fff;">Trung bình: ${dp.mean}</strong>
                     </div>
                     <div style="display:flex;align-items:center;gap:6px;margin-top:4px;font-size:10px;color:rgba(255,255,255,0.65);">
-                      <span>Min: ${dp.min}</span>
+                      <span>Thấp nhất: ${dp.min}</span>
                       <div style="flex:1;height:5px;background:rgba(255,255,255,0.12);border-radius:3px;overflow:hidden;">
                         <div style="width:${dp.pct}%;height:100%;background:${activeLayer.accent};"></div>
                       </div>
-                      <span>Max: ${dp.max}</span>
+                      <span>Cao nhất: ${dp.max}</span>
                     </div>
                     <div style="font-size:10.5px;color:#cbd5e1;margin-top:4px;">↳ ${dp.status}</div>
                   </div>

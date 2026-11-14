@@ -45,6 +45,25 @@ data class AgriProduct(
         get() = "https://www.google.com/search?tbm=shop&q=" + URLEncoder.encode(searchQuery, "UTF-8")
 }
 
+enum class ChatBotChannel(
+    val id: String,
+    val title: String,
+    val badge: String,
+    val shortLabel: String,
+) {
+    AGRI("agri", "Kỹ sư VWing", "NÔNG NGHIỆP", "🌱 AI Nông nghiệp"),
+    TECH_SUPPORT("support", "Hỗ trợ Kỹ thuật", "DEV & KT 24/7", "🛠️ AI Hỗ trợ Kỹ thuật"),
+}
+
+data class ChatFeatureCard(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val buttonLabel: String,
+    val actionRoute: String,
+    val iconType: String = "sparkle", // "sparkle", "log", "ticket", "plan", "qr", "map", "sync"
+)
+
 class AiAnswer(
     val question: String,
     val asOf: Long,
@@ -56,6 +75,8 @@ class AiAnswer(
     val drafts: List<TaskDraft> = emptyList(),
     val products: List<AgriProduct> = emptyList(),
     val understood: Boolean = true,
+    val channel: ChatBotChannel = ChatBotChannel.AGRI,
+    val featureCards: List<ChatFeatureCard> = emptyList(),
 )
 
 val SUGGESTED_QUESTIONS = listOf(
@@ -65,6 +86,15 @@ val SUGGESTED_QUESTIONS = listOf(
     "Giới thiệu tất cả sản phẩm phân bón & thuốc BVTV?",
     "Cây nào đang có vấn đề?",
     "Dự kiến sản lượng & doanh thu?",
+)
+
+val TECH_SUGGESTED_QUESTIONS = listOf(
+    "Gửi góp ý / Liên hệ Đội phát triển VWing",
+    "Tư vấn gói Basic (149K) & Pro Account (499K)",
+    "Hướng dẫn quét mã QR cây & 3 chế độ dữ liệu",
+    "Cách khoanh vườn vệ tinh Google Earth Engine",
+    "Cách đồng bộ SĐT giữa Điện thoại & Tablet",
+    "Báo lỗi kỹ thuật hoặc khôi phục sao lưu (.zip)",
 )
 
 val PRODUCT_CATEGORIES = listOf(
@@ -374,6 +404,11 @@ object Assistant {
             return treeAnswer(question, q, mentionedTree, d, scope, now)
         }
 
+        // 1b) Hỏi giới thiệu tất cả sản phẩm Phân bón & Thuốc BVTV
+        if (q.contains("gioi thieu tat ca") || q.contains("tat ca san pham") || q.contains("danh muc san pham") || (q.contains("phan bon") && q.contains("bvtv"))) {
+            return productCatalogOverviewAnswer(question, d, scope, now)
+        }
+
         // 2) Hỏi về Bón phân / NPK / Dinh dưỡng
         if (q.contains("bon phan") || q.contains("bon gi") || q.contains("npk") || q.contains("phan bon") || q.contains("gam/goc") || q.contains("dinh duong") || q.contains("voi")) {
             return fertilizerPrescriptionAnswer(question, d, scope, now)
@@ -509,6 +544,26 @@ object Assistant {
         )
     }
 
+    private fun productCatalogOverviewAnswer(question: String, d: GardenData, scope: String, now: Long): AiAnswer {
+        val totalTrees = maxOf(1, d.activeTrees.size)
+        val allProducts = buildAllRecommendedProducts(d)
+        val summary = "Danh mục ${allProducts.size} sản phẩm Phân bón & Thuốc BVTV chính hãng cho ${d.garden.name} ($totalTrees cây):"
+        val facts = listOf(
+            Fact("🌱 Nhóm Phân bón NPK & Hữu cơ: YaraMila Winner 15-9-20, NPK Đầu Trâu 12-11-18, Hữu cơ Bỉ + Trichoderma, Vôi Dolomite", FactKind.DOC),
+            Fact("🧪 Nhóm Thuốc trừ nấm bệnh: Agri-Fos 400 (Phosphonate), Ridomil Gold 68WG, Aliette 800WG, Anvil 5SC, Champion 77WP", FactKind.DOC),
+            Fact("🐛 Nhóm Trừ sâu rầy & Vi lượng lá: Actara 25WG, Radiant 60SC, Dầu khoáng SK 99EC, Combi Giọt Nước Đức, Canxi-Bo YaraLiva", FactKind.DOC),
+        )
+        return AiAnswer(
+            question = question,
+            asOf = now,
+            scope = scope,
+            summary = summary,
+            facts = facts,
+            next = listOf("Chạm vào từng thẻ sản phẩm bên dưới để xem liều pha 20L/200L và giá thị trường."),
+            products = allProducts,
+        )
+    }
+
     private fun fertilizerPrescriptionAnswer(question: String, d: GardenData, scope: String, now: Long): AiAnswer {
         val isCoffee = isCoffeeCrop(d)
         val totalTrees = maxOf(1, d.activeTrees.size)
@@ -609,5 +664,199 @@ object Assistant {
             next = listOf("Chọn sản phẩm bên dưới để xem chi tiết & tra cứu giá trực tuyến trên Internet."),
             products = buildAllRecommendedProducts(d, question),
         )
+    }
+
+    /**
+     * AI Chatbot Hỗ trợ Kỹ thuật & Liên hệ Đội ngũ Phát triển 24/7:
+     * Thay thế hoàn toàn việc người dùng phải gọi SĐT hoặc gửi Email thủ công.
+     */
+    fun answerTechSupport(question: String, d: GardenData): AiAnswer {
+        val q = plain(question)
+        val now = Dates.now()
+        val ticketCode = "VW-${(kotlin.math.abs(question.hashCode()) % 8999) + 1000}"
+        val scope = "VWing Tech Support AI · Hỗ trợ Kỹ thuật & Liên hệ Nhà phát triển 24/7"
+
+        // 1) Hỏi về Gói Basic / Pro Account / Giá cước / Feature Flags
+        if (q.contains("basic") || q.contains("pro") || q.contains("149") || q.contains("499") || q.contains("goi") || q.contains("gia") || q.contains("nang cap") || q.contains("feature")) {
+            return AiAnswer(
+                question = question,
+                asOf = now,
+                scope = scope,
+                summary = "Hai gói tài khoản VWing linh hoạt theo Tháng hoặc Năm (tiết kiệm 17%):",
+                facts = listOf(
+                    Fact("🌱 Basic Account: 149.000 đ/tháng hoặc 1.499.000 đ/năm (tiết kiệm 289.000 đ) · Giao diện Trắng sáng chống chói, quản lý 100 cây QR, dự báo thời tiết 6 ngày.", FactKind.DOC),
+                    Fact("✦ Pro Account: 499.000 đ/tháng hoặc 4.999.000 đ/năm (tiết kiệm 989.000 đ) · Mở khóa giao diện Aurora Liquid-Glass, Vệ tinh GEE 7 chỉ số, Drone VRA & AI 24/7 không giới hạn.", FactKind.DOC),
+                    Fact("🎛️ Bảng Feature Flags cho phép bạn bật/tắt tức thì từng mô-đun chức năng ngay trong ứng dụng.", FactKind.COMPUTED),
+                ),
+                channel = ChatBotChannel.TECH_SUPPORT,
+                featureCards = listOf(
+                    ChatFeatureCard(
+                        id = "open-plan-dialog",
+                        title = "Bảng Gói Basic & Pro / Feature Flags",
+                        subtitle = "Chuyển đổi tức thì Basic (149K) ⇄ Pro (499K) & bật/tắt 8 mô-đun",
+                        buttonLabel = "Mở bảng",
+                        actionRoute = "action:plan_dialog",
+                        iconType = "plan",
+                    ),
+                    ChatFeatureCard(
+                        id = "send-dev-ticket-$ticketCode",
+                        title = "Phiếu hỗ trợ nâng cấp #$ticketCode",
+                        subtitle = "Gửi yêu cầu kích hoạt doanh nghiệp / HTX trực tiếp tới Đội Phát Triển",
+                        buttonLabel = "Gửi phiếu",
+                        actionRoute = "action:submit_ticket|$ticketCode|$question",
+                        iconType = "ticket",
+                    ),
+                ),
+            )
+        }
+
+        // 2) Hỏi về Quét mã QR cây & 3 chế độ dữ liệu
+        if (q.contains("qr") || q.contains("quet") || q.contains("tem") || q.contains("truy xuat")) {
+            return AiAnswer(
+                question = question,
+                asOf = now,
+                scope = scope,
+                summary = "Trình quét QR Laser AI tự động giải mã 3 chế độ dữ liệu:",
+                facts = listOf(
+                    Fact("1️⃣ Chế độ Nội bộ (`vwing://tree/<id>`): Mở ngay 6 nhóm dữ liệu (Định danh, Sinh trưởng, Sâu bệnh, Nhật ký, Ảnh thực tế, Tọa độ GPS).", FactKind.DOC),
+                    Fact("2️⃣ Mã QR Lưới Khoảng Cách (8m×8m): Tự động gán Hàng/Cột, tính diện tích 64m²/cây và mật độ cây/ha.", FactKind.COMPUTED),
+                    Fact("3️⃣ Chế độ Người mua (Truy xuất nguồn gốc): Hiển thị thẻ ✓ VWing Verified minh bạch giống, vùng trồng và nhật ký chăm sóc.", FactKind.DOC),
+                ),
+                channel = ChatBotChannel.TECH_SUPPORT,
+                featureCards = listOf(
+                    ChatFeatureCard(
+                        id = "open-qr-screen",
+                        title = "Trình Quét Mã QR & Xuất Tờ QR Vườn",
+                        subtitle = "Mở camera quét mã QR thân cây hoặc xuất file PDF nhãn QR cả vườn",
+                        buttonLabel = "Mở ngay",
+                        actionRoute = "qr",
+                        iconType = "qr",
+                    ),
+                ),
+            )
+        }
+
+        // 3) Hỏi về Bản đồ Khoanh vườn / Vệ tinh Google Earth Engine (GEE)
+        if (q.contains("ban do") || q.contains("khoanh vuon") || q.contains("gee") || q.contains("ve tinh") || q.contains("ndvi") || q.contains("gps")) {
+            return AiAnswer(
+                question = question,
+                asOf = now,
+                scope = scope,
+                summary = "Hướng dẫn Khoanh vườn & Phân tích 7 chỉ số Vệ tinh Google Earth Engine:",
+                facts = listOf(
+                    Fact("📐 Chạm tối thiểu 3–4 đỉnh trên bản đồ vệ tinh để khoanh ranh vườn (${d.garden.areaHa ?: 2.91} ha) hoặc chọn nhanh vườn mẫu Tây Nguyên.", FactKind.DOC),
+                    Fact("🛰️ Hệ thống tự động trích xuất 7 chỉ số GEE LIVE: Độ phủ tán, Đếm số cây tự động, NDVI, NDRE, Ẩm độ đất, Nhiệt độ bề mặt & Cao độ.", FactKind.COMPUTED),
+                    Fact("✅ Giao diện HUD đáy đã được căn chỉnh không che khuất nút Zoom [+][-] của Google Maps.", FactKind.DOC),
+                ),
+                channel = ChatBotChannel.TECH_SUPPORT,
+                featureCards = listOf(
+                    ChatFeatureCard(
+                        id = "open-map-gee",
+                        title = "Bản Đồ Khoanh Vườn & Vệ Tinh GEE",
+                        subtitle = "Mở bản đồ khoanh đa giác, đếm tán cây tự động & xem 7 chỉ số GEE",
+                        buttonLabel = "Mở bản đồ",
+                        actionRoute = "map",
+                        iconType = "map",
+                    ),
+                ),
+            )
+        }
+
+        // 4) Hỏi về Đồng bộ SĐT / Điện thoại & Tablet / Sao lưu .zip
+        if (q.contains("dong bo") || q.contains("sdt") || q.contains("so dien thoai") || q.contains("tablet") || q.contains("sao luu") || q.contains("zip") || q.contains("khoi phuc")) {
+            return AiAnswer(
+                question = question,
+                asOf = now,
+                scope = scope,
+                summary = "Cơ chế đồng bộ theo Số điện thoại & Sao lưu an toàn đa thiết bị:",
+                facts = listOf(
+                    Fact("📱⇄💻 Chỉ cần đăng nhập cùng một Số điện thoại trên Điện thoại (1080×2400) và Tablet (2560×1600), sổ vườn và gói tài khoản sẽ tự đồng bộ qua Cloud.", FactKind.DOC),
+                    Fact("💾 Lưu trữ Local-First: Mọi ghi chép đều lưu tức thì trên máy ngay cả khi mất sóng tại rẫy, và tự đồng bộ khi có mạng.", FactKind.COMPUTED),
+                    Fact("📦 Bạn cũng có thể xuất/nhập bản sao lưu toàn diện (.zip) tại mục Cài đặt vườn.", FactKind.DOC),
+                ),
+                channel = ChatBotChannel.TECH_SUPPORT,
+                featureCards = listOf(
+                    ChatFeatureCard(
+                        id = "open-phone-auth",
+                        title = "Đồng Bộ Tài Khoản Theo Số Điện Thoại",
+                        subtitle = "Liên kết hoặc chuyển đổi SĐT nhà nông giữa Điện thoại & Tablet",
+                        buttonLabel = "Mở SĐT",
+                        actionRoute = "action:phone_auth",
+                        iconType = "sync",
+                    ),
+                    ChatFeatureCard(
+                        id = "open-setup-backup",
+                        title = "Cài Đặt Vườn & Sao Lưu (.zip)",
+                        subtitle = "Quản lý dữ liệu ngoại tuyến, sao lưu và hợp nhất không mất bản ghi",
+                        buttonLabel = "Mở cài đặt",
+                        actionRoute = "setup",
+                        iconType = "log",
+                    ),
+                ),
+            )
+        }
+
+        // 5) Mặc định: Liên hệ Đội ngũ Phát triển / Báo lỗi / Góp ý tính năng (Thay thế SĐT & Email)
+        return AiAnswer(
+            question = question,
+            asOf = now,
+            scope = scope,
+            summary = "Đã tiếp nhận thông tin cho Đội ngũ Phát triển VWing (Mã phiếu #$ticketCode):",
+            facts = listOf(
+                Fact("⚡ Thay vì phải gọi SĐT hay gửi Email chờ đợi, AI Hỗ trợ Kỹ thuật đã tự động đóng gói nội dung của bạn kèm trạng thái vườn (${d.garden.name} · ${d.activeTrees.size} cây).", FactKind.COMPUTED),
+                Fact("🛠️ Đội ngũ Kỹ sư Phát triển VWing ưu tiên xử lý phản hồi trực tiếp từ Chatbot trong vòng 15 phút làm việc.", FactKind.DOC),
+                Fact("📌 Bạn có thể bấm nút \"Gửi phiếu\" bên dưới để xác nhận lưu và đẩy phiếu #$ticketCode lên hệ thống Dev.", FactKind.INFERENCE),
+            ),
+            channel = ChatBotChannel.TECH_SUPPORT,
+            featureCards = listOf(
+                ChatFeatureCard(
+                    id = "submit-dev-ticket-$ticketCode",
+                    title = "Phiếu Liên Hệ Đội Phát Triển #$ticketCode",
+                    subtitle = "Nội dung: \"${question.take(48)}${if (question.length > 48) "…" else ""}\"",
+                    buttonLabel = "Gửi phiếu",
+                    actionRoute = "action:submit_ticket|$ticketCode|$question",
+                    iconType = "ticket",
+                ),
+                ChatFeatureCard(
+                    id = "open-plan-from-support",
+                    title = "Kiểm Tra Gói Tài Khoản & Tính Năng",
+                    subtitle = "Xem trạng thái Basic / Pro Account và bảng điều khiển Feature Flags",
+                    buttonLabel = "Mở bảng",
+                    actionRoute = "action:plan_dialog",
+                    iconType = "plan",
+                ),
+            ),
+        )
+    }
+
+    fun buildAgriFeatureCards(a: AiAnswer, d: GardenData): List<ChatFeatureCard> {
+        if (a.featureCards.isNotEmpty()) return a.featureCards
+        val cards = mutableListOf<ChatFeatureCard>()
+        val q = plain(a.question)
+        if (q.contains("van de") || q.contains("kiem tra") || q.contains("cay")) {
+            val firstProblemTree = d.activeTrees.firstOrNull {
+                val c = d.effectiveCondition(it)
+                c == Condition.NEEDS_CHECK || c == Condition.WATCH
+            } ?: d.activeTrees.firstOrNull()
+            if (firstProblemTree != null) {
+                cards += ChatFeatureCard(
+                    id = "open-tree-${firstProblemTree.id}",
+                    title = "Hồ sơ Cây ${firstProblemTree.code} (${firstProblemTree.zone})",
+                    subtitle = "Kiểm tra lịch sử chăm sóc, số trái (${firstProblemTree.fruits ?: 46} trái) & cập nhật ảnh",
+                    buttonLabel = "Mở hồ sơ",
+                    actionRoute = "tree|${firstProblemTree.id}",
+                    iconType = "sparkle",
+                )
+            }
+        }
+        cards += ChatFeatureCard(
+            id = "open-garden-log",
+            title = "Sổ Nhật Ký & Ghi Hoạt Động Vườn",
+            subtitle = "Ghi lại lịch bón phân, phun thuốc hoặc tưới nước vào sổ theo SĐT",
+            buttonLabel = "Mở sổ",
+            actionRoute = "log",
+            iconType = "log",
+        )
+        return cards
     }
 }

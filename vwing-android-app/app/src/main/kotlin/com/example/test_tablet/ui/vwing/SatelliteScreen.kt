@@ -194,6 +194,8 @@ fun SatelliteScreen(c: VCtx) {
                         c.toast("Đã lưu cấu hình vệ tinh.")
                     }
                 })
+                VButton("4G / Cloudflare HTTPS", { url = SatelliteConfig.DEFAULT_SAT_URL; cfgErr = null }, primary = false)
+                VButton("Wi-Fi LAN (192.168.1.42:8000)", { url = "http://192.168.1.42:8000"; cfgErr = null }, primary = false)
                 VButton("Cổng USB (127.0.0.1:8000)", { url = "http://127.0.0.1:8000"; cfgErr = null }, primary = false)
                 if (cfg.configured) VButton("Hủy", { editing = false; cfgErr = null }, primary = false)
             }

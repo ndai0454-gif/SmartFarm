@@ -1247,7 +1247,7 @@ private fun PhoneLogRow(
                 fontSize = 7.sp,
             )
         }
-        Text("→", color = LC.muted, fontSize = 9.sp)
+        Text("→", color = LC.muted, fontSize = 12.sp)
     }
 }
 
@@ -1331,7 +1331,7 @@ private fun LandingAudienceStrip(
             Text(
                 text = "THIẾT KẾ CHO NHỮNG NGƯỜI GẮN BÓ VỚI VƯỜN",
                 color = Color(0xFF77826F),
-                fontSize = 9.5.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.6.sp,
                 textAlign = TextAlign.Center,
@@ -1389,7 +1389,7 @@ private fun LandingFeaturesSection(
                     Text(
                         text = "VƯỜN CỦA BẠN, RÕ RÀNG HƠN",
                         color = Color(0xFF637C50),
-                        fontSize = 10.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.5.sp,
                     )
@@ -1414,7 +1414,7 @@ private fun LandingFeaturesSection(
                 Text(
                     text = "VƯỜN CỦA BẠN, RÕ RÀNG HƠN",
                     color = Color(0xFF637C50),
-                    fontSize = 10.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.5.sp,
                 )
@@ -1694,7 +1694,7 @@ private fun LandingTag(text: String) {
         Text(
             text = text,
             color = Color(0xFF52703D),
-            fontSize = 9.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
         )
     }
@@ -1773,7 +1773,7 @@ private fun SatelliteCopyBlock(
             Text(
                 text = "THÊM MỘT GÓC NHÌN TỪ TRÊN CAO",
                 color = Color(0xFF637C50),
-                fontSize = 10.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.4.sp,
             )
@@ -1815,7 +1815,7 @@ private fun SatelliteCopyBlock(
         Text(
             text = "Đang thử nghiệm với dữ liệu Google Earth Engine.\nChỉ số hỗ trợ quan sát, cần đối chiếu thực địa.",
             color = LC.muted,
-            fontSize = 11.sp,
+            fontSize = 12.sp,
             lineHeight = 18.sp,
         )
         Row(
@@ -1918,7 +1918,7 @@ private fun SatellitePreviewCard(
                     Text(
                         text = item.tabLabel,
                         color = if (selected) Color(0xFF32583A) else Color(0xFF657454),
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
                     )
                 }
@@ -1994,7 +1994,7 @@ private fun SatellitePreviewCard(
             Text(
                 text = tab.metricCopy,
                 color = LC.muted,
-                fontSize = 10.5.sp,
+                fontSize = 12.sp,
                 lineHeight = 16.sp,
                 textAlign = TextAlign.End,
             )
@@ -2020,7 +2020,7 @@ private fun SatellitePreviewCard(
         Text(
             text = tab.dataNote,
             color = Color(0xFF7A846E),
-            fontSize = 9.5.sp,
+            fontSize = 12.sp,
             lineHeight = 15.sp,
         )
     }
@@ -2047,7 +2047,7 @@ private fun LandingHowSection(
             Text(
                 text = "BẮT ĐẦU THẬT TỰ NHIÊN",
                 color = Color(0xFF637C50),
-                fontSize = 10.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.5.sp,
             )
@@ -2163,7 +2163,7 @@ private fun LandingFaqSection(
                     Text(
                         text = "BẠN CÓ THỂ ĐANG TÒ MÒ",
                         color = Color(0xFF637C50),
-                        fontSize = 10.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                         letterSpacing = 1.5.sp,
                     )
@@ -2194,7 +2194,7 @@ private fun LandingFaqSection(
                 Text(
                     text = "BẠN CÓ THỂ ĐANG TÒ MÒ",
                     color = Color(0xFF637C50),
-                    fontSize = 10.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.5.sp,
                 )
@@ -2301,7 +2301,7 @@ private fun LandingFinalCtaSection(
             Text(
                 text = "BẮT ĐẦU TỪ VƯỜN CỦA BẠN",
                 color = Color(0xFF637C50),
-                fontSize = 9.5.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.4.sp,
             )
@@ -2345,7 +2345,7 @@ private fun LandingFinalCtaSection(
             Text(
                 text = "Vào màn Tổng quan · Sẵn sàng làm việc tại vườn",
                 color = Color(0xFF718260),
-                fontSize = 9.5.sp,
+                fontSize = 12.sp,
             )
         }
 
@@ -2361,13 +2361,13 @@ private fun LandingFinalCtaSection(
                 Text(
                     text = "Hiểu từng cây. Chăm cả khu vườn.",
                     color = Color(0xFF77816E),
-                    fontSize = 11.5.sp,
+                    fontSize = 12.sp,
                 )
             }
             Text(
                 text = "© 2026 VWing",
                 color = Color(0xFF8E9689),
-                fontSize = 10.5.sp,
+                fontSize = 12.sp,
             )
         }
     }

@@ -97,9 +97,29 @@ fun SetupScreen(c: VCtx) {
         }
     }
 
-    PageHeader(Icons.Filled.Settings, "THIẾT LẬP", "Thiết lập vườn", "Đăng nhập SĐT + OTP Firebase, định vị địa chỉ trên Map, thông tin vườn và sao lưu.")
+    PageHeader(Icons.Filled.Settings, "CÀI ĐẶT", "Cài đặt vườn", "Số điện thoại, liên hệ đội ngũ phát triển qua AI 24/7, vị trí khu vườn và sao lưu.")
 
     FarmerAccountMapCard(c = c)
+    Spacer(Modifier.height(14.dp))
+
+    // Thẻ Liên hệ Nhà phát triển & Hỗ trợ Kỹ thuật bằng 2 AI Chatbot chuyên biệt (Thay thế hoàn toàn SĐT & Email truyền thống)
+    VCard(Modifier.fillMaxWidth(), borderColor = VC.mint.copy(alpha = 0.55f)) {
+        Eyebrow("LIÊN HỆ NHÀ PHÁT TRIỂN & HỖ TRỢ 24/7 (AI CHATBOT — THAY THẾ SĐT & EMAIL)", VC.mint)
+        Text(
+            "Thay vì phải gọi điện thoại hay gửi Email chờ đợi phản hồi, VWing SmartFarm tích hợp 2 kênh AI Chatbot chuyên biệt hoạt động 24/7:\n" +
+                "• AI Kỹ sư Nông nghiệp: Chẩn đoán sâu bệnh, đọc chỉ số vệ tinh NDVI/NDMI, lập lịch tưới & tra cứu thuốc/phân bón.\n" +
+                "• AI Hỗ trợ Kỹ thuật & Liên hệ Dev: Giải đáp cài đặt, bản đồ GEE, quét QR, gói Basic/Pro và tự động đóng gói Phiếu Hỗ trợ Kỹ thuật (kèm mã vườn & SĐT) gửi thẳng tới Đội ngũ Phát triển VWing.",
+            color = VC.text2,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            modifier = Modifier.padding(vertical = 8.dp),
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            VButton("Mở AI Hỗ trợ Kỹ thuật & Liên hệ Dev", { c.nav.top("ai|support") })
+            VButton("Mở AI Kỹ sư Nông nghiệp", { c.nav.top("ai|agri") }, primary = false)
+            VButton("Xem Giới thiệu AI", { c.nav.top("ai|intro") }, primary = false)
+        }
+    }
     Spacer(Modifier.height(16.dp))
 
     // Thiết lập chia theo mục đích: mỗi nhóm một dòng tiêu đề, mở một nhóm khi cần (mặc định chỉ mở "Vườn của tôi").
@@ -220,15 +240,17 @@ fun SetupScreen(c: VCtx) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     val isEnt = c.uiSettings.planTier == PlanTier.ENTERPRISE
-                    Column(Modifier.weight(1f)) {
+                    val curCycle = c.uiSettings.billingCycle
+                    Column(Modifier.weight(1f).padding(end = 10.dp)) {
                         Text(
-                            if (isEnt) "Đang dùng: ✦ Gói Enterprise (Trang trại / HTX)" else "Đang dùng: 🌱 Gói Free (Nông dân cá thể)",
+                            if (isEnt) "Đang dùng: Pro Account (${PlanTier.ENTERPRISE.priceFor(curCycle)}${curCycle.unitVi})"
+                            else "Đang dùng: Basic Account (${PlanTier.FREE.priceFor(curCycle)}${curCycle.unitVi})",
                             color = VC.text,
                             fontWeight = FontWeight.Bold,
                             fontSize = 15.sp,
                         )
                         Text(
-                            "Bấm để chuyển gói Free ⇄ Enterprise hoặc gạt On/Off từng chức năng (Feature Flags).",
+                            "Basic: 149.000 đ/tháng · 1.499.000 đ/năm | Pro: 499.000 đ/tháng · 4.999.000 đ/năm.",
                             color = VC.text2,
                             fontSize = 13.sp,
                         )
@@ -299,7 +321,7 @@ fun SetupScreen(c: VCtx) {
                             fontSize = 14.sp,
                             modifier = Modifier.padding(vertical = 8.dp),
                         )
-                        VButton("✦ Mở khóa Đồng bộ Đám mây & Nhóm", {
+                        VButton("Mở khóa Đồng bộ Đám mây & Nhóm", {
                             c.requestFeature(VFeature.CLOUD_TEAM)
                         })
                     }
@@ -348,7 +370,7 @@ private fun BulkDialog(c: VCtx, onDismiss: () -> Unit) {
                 Text("Dán dữ liệu từ Excel/Google Sheets (TSV) hoặc CSV, hoặc chọn tệp .csv. Dòng đầu là tiêu đề: mã cây, khu, số trái, giống, năm trồng, vĩ độ, kinh độ. Chỉ cột mã cây là bắt buộc. Ô số trái để trống nghĩa là chưa đếm.", color = VC.text2, fontSize = 14.sp)
                 VButton("Chọn tệp CSV…", { picker.launch(arrayOf("*/*")) }, primary = false)
                 VField(text, { load(it) }, "Dán dữ liệu", singleLine = false, minLines = 4)
-                p?.fatal?.let { Text("✕ $it", color = VC.red, fontSize = 14.sp) }
+                p?.fatal?.let { Text("Lỗi: $it", color = VC.red, fontSize = 14.sp) }
                 if (p != null && p.fatal == null) {
                     SectionLabel("Xem trước · ${p.addable.size} cây sẽ được thêm / ${p.rows.size} dòng")
                     p.rows.take(60).forEach { r ->

@@ -1861,13 +1861,74 @@ def _render_gee_clarity_layers_png(
         wm_a,
     ], axis=-1)
 
+    # 5. Bộ 7 lớp chỉ số quang phổ GEE (NDVI, EVI, NDRE, NDMI, SAVI, NDWI, BSI) cắt theo đa giác vùng khoanh
+    def _cmap_rgba(norm_val: np.ndarray, c0: tuple[float, float, float], c1: tuple[float, float, float], c2: tuple[float, float, float]) -> np.ndarray:
+        v = np.clip(norm_val, 0.0, 1.0)
+        lo = v < 0.5
+        t_lo = v * 2.0
+        t_hi = (v - 0.5) * 2.0
+        cr = np.where(lo, c0[0] + (c1[0] - c0[0]) * t_lo, c1[0] + (c2[0] - c1[0]) * t_hi)
+        cg = np.where(lo, c0[1] + (c1[1] - c0[1]) * t_lo, c1[1] + (c2[1] - c1[1]) * t_hi)
+        cb = np.where(lo, c0[2] + (c1[2] - c0[2]) * t_lo, c1[2] + (c2[2] - c1[2]) * t_hi)
+        return np.stack([
+            np.where(inside, np.uint8(np.clip(cr * 255, 0, 255)), np.uint8(0)),
+            np.where(inside, np.uint8(np.clip(cg * 255, 0, 255)), np.uint8(0)),
+            np.where(inside, np.uint8(np.clip(cb * 255, 0, 255)), np.uint8(0)),
+            np.where(inside, np.uint8(210), np.uint8(0)),
+        ], axis=-1)
+
+    ndvi_map = np.clip((nir_sim - R) / (nir_sim + R + 1e-5), 0.0, 1.0)
+    evi_map = np.clip(2.5 * (nir_sim - R) / (nir_sim + 6.0 * R - 7.5 * B + 1.0), 0.0, 1.0)
+    ndre_map = np.clip(veg_strength * 0.88 + 0.10 * (G - R), 0.0, 1.0)
+    ndmi_map = moist_score
+    savi_map = np.clip(1.5 * (nir_sim - R) / (nir_sim + R + 0.5), 0.0, 1.0)
+    ndwi_map = np.where(water_like, 0.92, np.clip((G - nir_sim + 0.45) / 0.9, 0.0, 1.0))
+    bsi_map = np.clip(1.0 - veg_strength * 0.90 + (R - G) * 0.5, 0.0, 1.0)
+
     urls = {
         "GEE_CLARITY_TRUE_COLOR": _to_png_url(tc_rgba, sharpen=True),
         "GEE_FALSE_COLOR_NIR": _to_png_url(fc_rgba, sharpen=True),
         "GEE_CANOPY_CROWN_HD": _to_png_url(cc_rgba, sharpen=False),
         "GEE_MOISTURE_WATER": _to_png_url(wm_rgba, sharpen=False),
+        "GEE_INDEX_NDVI": _to_png_url(_cmap_rgba(ndvi_map, (0.65, 0.32, 0.12), (0.92, 0.82, 0.25), (0.08, 0.72, 0.30)), sharpen=False),
+        "GEE_INDEX_EVI": _to_png_url(_cmap_rgba(evi_map, (0.55, 0.28, 0.10), (0.52, 0.82, 0.32), (0.04, 0.58, 0.24)), sharpen=False),
+        "GEE_INDEX_NDRE": _to_png_url(_cmap_rgba(ndre_map, (0.82, 0.24, 0.18), (0.96, 0.76, 0.22), (0.12, 0.78, 0.42)), sharpen=False),
+        "GEE_INDEX_NDMI": _to_png_url(_cmap_rgba(ndmi_map, (0.85, 0.35, 0.15), (0.88, 0.92, 0.65), (0.12, 0.48, 0.88)), sharpen=False),
+        "GEE_INDEX_SAVI": _to_png_url(_cmap_rgba(savi_map, (0.68, 0.42, 0.18), (0.84, 0.82, 0.34), (0.16, 0.68, 0.32)), sharpen=False),
+        "GEE_INDEX_NDWI": _to_png_url(_cmap_rgba(ndwi_map, (0.76, 0.52, 0.24), (0.55, 0.82, 0.88), (0.06, 0.38, 0.86)), sharpen=False),
+        "GEE_INDEX_BSI": _to_png_url(_cmap_rgba(bsi_map, (0.14, 0.62, 0.32), (0.88, 0.74, 0.32), (0.78, 0.28, 0.16)), sharpen=False),
     }
     return urls, res_m
+
+
+def _build_spectral_7_layers(urls: dict[str, str], res_m: float, ctx_bounds: Bounds, idx_map: dict[str, float]) -> list[GeeVisualLayerItem]:
+    specs = [
+        ("NDVI", "🌿 Chỉ số NDVI (Mật độ Diệp lục & Tán lá)", "Đo sức sống quang hợp tổng thể của vòm tán cây trồng ((B8-B4)/(B8+B4)).", "Sentinel-2 B8 (NIR) / B4 (Red)"),
+        ("EVI", "🌳 Chỉ số EVI (Tán cây dày khử nhiễu khí quyển)", "Tối ưu cho vườn sầu riêng/cà phê tán dày, không bị bão hòa ở sinh khối cao.", "Sentinel-2 B8 / B4 / B2"),
+        ("NDRE", "🍃 Chỉ số NDRE (Cận hồng ngoại rìa đỏ — Dinh dưỡng lá)", "Phát hiện sớm thiếu đạm/vi lượng và suy yếu tán trước khi lá chuyển vàng ((B8-B5)/(B8+B5)).", "Sentinel-2 B8 (NIR) / B5 (Red-Edge 1)"),
+        ("NDMI", "💧 Chỉ số NDMI (Độ ẩm nước trong tán lá)", "Theo dõi hàm lượng nước trong tán cây và phát hiện sớm stress khô hạn ((B8-B11)/(B8+B11)).", "Sentinel-2 B8 (NIR) / B11 (SWIR1)"),
+        ("SAVI", "🌱 Chỉ số SAVI (Thực vật hiệu chỉnh nền đất)", "Khử nhiễu nền đất đỏ Bazan lộ thiên đối với vườn cây mới trồng hoặc tán thưa.", "Sentinel-2 B8 / B4 (L=0.5)"),
+        ("NDWI", "🌊 Chỉ số NDWI (Mặt nước & Ao hồ tưới)", "Nhận diện ao chứa nước tưới, mương thoát nước và vùng ngập úng cục bộ ((B3-B8)/(B3+B8)).", "Sentinel-2 B3 (Green) / B8 (NIR)"),
+        ("BSI", "🟫 Chỉ số BSI (Đất trống phơi màu & Xói mòn)", "Đánh giá tỷ lệ đất trống lộ thiên giữa các hàng cây và nguy cơ rửa trôi tầng mặt.", "Sentinel-2 B11 / B4 / B8 / B2"),
+    ]
+    out: list[GeeVisualLayerItem] = []
+    for code, title_vi, sub_vi, bands_desc in specs:
+        lid = f"GEE_INDEX_{code}"
+        val = idx_map.get(code)
+        val_txt = f" (TB {val:.2f})" if val is not None else ""
+        out.append(
+            GeeVisualLayerItem(
+                layer_id=lid,
+                title_vi=f"{title_vi}{val_txt}",
+                subtitle_vi=sub_vi,
+                bands_desc=bands_desc,
+                resolution_m=res_m,
+                image_url=urls.get(lid),
+                tile_url_template=None,
+                bounds=ctx_bounds,
+            )
+        )
+    return out
 
 
 def mock_gee_garden_clarity(ring: list, req: GeeGardenClarityRequest, base_url: str) -> GeeGardenClarityResult:
@@ -1884,11 +1945,17 @@ def mock_gee_garden_clarity(ring: list, req: GeeGardenClarityRequest, base_url: 
     ga = mock_analyze(ring, ga_req, base_url)
     g_box = geo.bounds(ring)
     ctx_box = g_box
-    ndvi_mean = next((i.mean for i in ga.indices if i.index == "NDVI"), 0.64) or 0.64
-    ndre_mean = next((i.mean for i in ga.indices if i.index == "NDRE"), 0.36) or 0.36
-    ndmi_mean = next((i.mean for i in ga.indices if i.index == "NDMI"), 0.22) or 0.22
+    idx_means = {i.index: i.mean for i in ga.indices if i.mean is not None}
+    ndvi_mean = idx_means.get("NDVI", 0.64)
+    evi_mean = idx_means.get("EVI", 0.48)
+    ndre_mean = idx_means.get("NDRE", 0.36)
+    ndmi_mean = idx_means.get("NDMI", 0.22)
+    savi_mean = idx_means.get("SAVI", 0.44)
+    ndwi_mean = idx_means.get("NDWI", -0.28)
+    bsi_mean = idx_means.get("BSI", -0.14)
     urls, res_m = _render_gee_clarity_layers_png(ctx_box, ndvi_mean, ndmi_mean, base_url, ring=ring)
     ctx_bounds = Bounds(**ctx_box)
+    spectral_7 = _build_spectral_7_layers(urls, res_m, ctx_bounds, idx_means)
 
     layers = [
         GeeVisualLayerItem(
@@ -1932,6 +1999,8 @@ def mock_gee_garden_clarity(ring: list, req: GeeGardenClarityRequest, base_url: 
             bounds=ctx_bounds,
         ),
     ]
+    if req.include_7_index_layers:
+        layers.extend(spectral_7)
     return GeeGardenClarityResult(
         dataset="COPERNICUS/S2_SR_HARMONIZED + GOOGLE/DYNAMICWORLD/V1 + High-Res 0,3m Fusion (MÔ PHỎNG)",
         source=mock_service.SIM,
@@ -1948,11 +2017,17 @@ def mock_gee_garden_clarity(ring: list, req: GeeGardenClarityRequest, base_url: 
         canopy_cover_pct=ga.tree_estimation.canopy_cover_pct,
         estimated_trees=ga.tree_estimation.estimated_trees,
         mean_ndvi=ndvi_mean,
+        mean_evi=evi_mean,
         mean_ndre=ndre_mean,
         mean_ndmi=ndmi_mean,
+        mean_savi=savi_mean,
+        mean_ndwi=ndwi_mean,
+        mean_bsi=bsi_mean,
+        indices=ga.indices,
         elevation_mean_m=ga.terrain.elevation_mean_m,
         slope_mean_deg=ga.terrain.slope_mean_deg,
         layers=layers,
+        spectral_7_layers=spectral_7,
         sample_tree_points_geojson=ga.tree_estimation.sample_tree_points_geojson,
         summary_vi=(
             f"Đã tăng cường độ rõ khu vườn ({ga.area_ha:.2f} ha · ~{ga.tree_estimation.estimated_trees} cây · "
@@ -2031,11 +2106,17 @@ def live_gee_garden_clarity(ring: list, req: GeeGardenClarityRequest, base_url: 
     except Exception:
         ga = mock_analyze(ring, ga_req, base_url)
 
-    ndvi_mean = next((i.mean for i in ga.indices if i.index == "NDVI"), 0.62) or 0.62
-    ndre_mean = next((i.mean for i in ga.indices if i.index == "NDRE"), 0.34) or 0.34
-    ndmi_mean = next((i.mean for i in ga.indices if i.index == "NDMI"), 0.20) or 0.20
+    idx_means = {i.index: i.mean for i in ga.indices if i.mean is not None}
+    ndvi_mean = idx_means.get("NDVI", 0.62)
+    evi_mean = idx_means.get("EVI", 0.46)
+    ndre_mean = idx_means.get("NDRE", 0.34)
+    ndmi_mean = idx_means.get("NDMI", 0.20)
+    savi_mean = idx_means.get("SAVI", 0.42)
+    ndwi_mean = idx_means.get("NDWI", -0.26)
+    bsi_mean = idx_means.get("BSI", -0.12)
     urls, res_m = _render_gee_clarity_layers_png(ctx_box, ndvi_mean, ndmi_mean, base_url, ring=ring)
     ctx_bounds = Bounds(**ctx_box)
+    spectral_7 = _build_spectral_7_layers(urls, res_m, ctx_bounds, idx_means)
 
     # Không phủ TileOverlay Sentinel-2 10m trực tiếp đè lên Zoom 18–20 (vì 10m/px sẽ làm mờ khu vườn),
     # thay vào đó dùng ảnh đã hợp nhất quang phổ GEE + 0,15m–0,29m RGB Unsharp ở độ phân giải 1280×1280 px.
@@ -2081,6 +2162,8 @@ def live_gee_garden_clarity(ring: list, req: GeeGardenClarityRequest, base_url: 
             bounds=ctx_bounds,
         ),
     ]
+    if req.include_7_index_layers:
+        layers.extend(spectral_7)
 
     return GeeGardenClarityResult(
         dataset="COPERNICUS/S2_SR_HARMONIZED + GOOGLE/DYNAMICWORLD/V1 + COPERNICUS/DEM/GLO30",
@@ -2098,11 +2181,17 @@ def live_gee_garden_clarity(ring: list, req: GeeGardenClarityRequest, base_url: 
         canopy_cover_pct=ga.tree_estimation.canopy_cover_pct,
         estimated_trees=ga.tree_estimation.estimated_trees,
         mean_ndvi=ndvi_mean,
+        mean_evi=evi_mean,
         mean_ndre=ndre_mean,
         mean_ndmi=ndmi_mean,
+        mean_savi=savi_mean,
+        mean_ndwi=ndwi_mean,
+        mean_bsi=bsi_mean,
+        indices=ga.indices,
         elevation_mean_m=ga.terrain.elevation_mean_m,
         slope_mean_deg=ga.terrain.slope_mean_deg,
         layers=layers,
+        spectral_7_layers=spectral_7,
         sample_tree_points_geojson=ga.tree_estimation.sample_tree_points_geojson,
         summary_vi=(
             f"GEE LIVE ({best_date}, mây {best_cloud if best_cloud is not None else 0:.1f}%): "

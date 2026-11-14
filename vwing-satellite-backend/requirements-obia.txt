@@ -1,0 +1,12 @@
+# OBIA (Lite Classify engine, chạy phía máy chủ). Phiên bản đã được thử trong test_obia_api.py.
+# Động cơ KHÔNG nằm trong dự án: clone https://github.com/leobarua/liteclassify rồi đặt LITECLASSIFY_DIR.
+# Tuỳ chọn: PyTorch + trọng số DINOv2 (xem requirements-sr.txt) để bước discover dùng đặc trưng sâu.
+numpy==2.5.3
+pandas==3.0.5
+geopandas==1.2.0
+pyproj==3.8.0
+rasterio==1.5.2
+shapely==2.2.0
+scikit-image==0.26.0
+scikit-learn==1.9.1
+scipy==1.18.1

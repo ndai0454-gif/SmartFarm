@@ -198,17 +198,28 @@ object AgroLayers3DClient {
         if (!mmcApiKey.isNullOrBlank()) body.put("mmc_api_key", mmcApiKey)
         if (!mmcFarmId.isNullOrBlank()) body.put("mmc_farm_id", mmcFarmId)
 
-        val resp = Api.call(
-            cfg.url,
-            cfg.token,
-            "POST",
-            "/v1/agro-layers/analyze",
-            body.toString().toByteArray(Charsets.UTF_8),
-        )
-        if (resp.code !in 200..299) {
-            throw java.io.IOException("Máy chủ trả mã ${resp.code} khi phân tích 3D phân tầng.")
+        var lastErr: java.io.IOException? = null
+        var resp: ApiResp? = null
+        for (base in SatelliteClient.candidateUrls(cfg.url)) {
+            try {
+                resp = Api.call(
+                    base,
+                    cfg.token,
+                    "POST",
+                    "/v1/agro-layers/analyze",
+                    body.toString().toByteArray(Charsets.UTF_8),
+                    mapOf("Content-Type" to "application/json; charset=utf-8"),
+                )
+                break
+            } catch (e: java.io.IOException) {
+                lastErr = e
+            }
         }
-        return parse(String(resp.body, Charsets.UTF_8))
+        val finalResp = resp ?: throw (lastErr ?: java.io.IOException("Không kết nối được máy chủ vệ tinh."))
+        if (finalResp.code !in 200..299) {
+            throw java.io.IOException("Máy chủ trả mã ${finalResp.code} khi phân tích 3D phân tầng.")
+        }
+        return parse(String(finalResp.body, Charsets.UTF_8))
     }
 
     fun parse(jsonText: String): AgroLayers3DReport {

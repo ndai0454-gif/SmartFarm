@@ -17,7 +17,7 @@ data class SatelliteConfig(
     val configured get() = url.isNotBlank() && token.isNotBlank()
 
     companion object {
-        const val DEFAULT_SAT_URL = "http://127.0.0.1:8000"
+        const val DEFAULT_SAT_URL = "https://mainland-visibility-helps-compaq.trycloudflare.com"
         const val DEFAULT_SAT_TOKEN = "7d8de592cacc475fb528c798cad5cb0dbde137013ae744a799297ba7980a0738"
     }
 }
@@ -69,24 +69,24 @@ val VIETNAM_GARDEN_PRESETS = listOf(
         listOf(GeoPoint(11.5511, 107.7996), GeoPoint(11.5512, 107.8012), GeoPoint(11.5504, 107.8016), GeoPoint(11.5497, 107.8011), GeoPoint(11.5498, 107.7997)),
     ),
     VietnamGardenPreset(
-        "Krông Pắc, Đắk Lắk — Sầu riêng Ea Yông", "Tây Nguyên · 2,17 ha", SatCropKey.DURIAN,
-        listOf(GeoPoint(12.6880, 108.3120), GeoPoint(12.6880, 108.3135), GeoPoint(12.6892, 108.3135), GeoPoint(12.6892, 108.3120)),
+        "Di Linh, Lâm Đồng — Sầu riêng & Cà phê Hòa Ninh", "Tây Nguyên · 2,25 ha", SatCropKey.DURIAN,
+        listOf(GeoPoint(11.5840, 108.0648), GeoPoint(11.5840, 108.0663), GeoPoint(11.5853, 108.0663), GeoPoint(11.5853, 108.0648)),
     ),
     VietnamGardenPreset(
-        "Cai Lậy, Tiền Giang — Sầu riêng Ngũ Hiệp", "ĐBSCL · 1,46 ha", SatCropKey.DURIAN,
-        listOf(GeoPoint(10.3320, 106.0950), GeoPoint(10.3320, 106.0962), GeoPoint(10.3330, 106.0962), GeoPoint(10.3330, 106.0950)),
+        "Đạ Huoai, Lâm Đồng — Sầu riêng Hà Lâm", "Tây Nguyên · 1,96 ha", SatCropKey.DURIAN,
+        listOf(GeoPoint(11.4120, 107.6405), GeoPoint(11.4120, 107.6419), GeoPoint(11.4132, 107.6419), GeoPoint(11.4132, 107.6405)),
     ),
     VietnamGardenPreset(
-        "Cư M'gar, Đắk Lắk — Cà phê Robusta Quảng Phú", "Tây Nguyên · 2,02 ha", SatCropKey.COFFEE,
-        listOf(GeoPoint(12.8250, 108.0750), GeoPoint(12.8250, 108.0764), GeoPoint(12.8262, 108.0764), GeoPoint(12.8262, 108.0750)),
+        "Lâm Hà, Lâm Đồng — Cà phê & Sầu riêng Nam Ban", "Tây Nguyên · 2,12 ha", SatCropKey.COFFEE,
+        listOf(GeoPoint(11.7915, 108.3315), GeoPoint(11.7915, 108.3330), GeoPoint(11.7928, 108.3330), GeoPoint(11.7928, 108.3315)),
     ),
     VietnamGardenPreset(
-        "Long Khánh, Đồng Nai — Bưởi / Cây có múi Bình Lộc", "Đông Nam Bộ · 1,60 ha", SatCropKey.CITRUS,
-        listOf(GeoPoint(10.9450, 107.2250), GeoPoint(10.9450, 107.2262), GeoPoint(10.9461, 107.2262), GeoPoint(10.9461, 107.2250)),
+        "Bảo Lâm, Lâm Đồng — Bơ & Sầu riêng Lộc Thắng", "Tây Nguyên · 2,34 ha", SatCropKey.MANGO_AVOCADO,
+        listOf(GeoPoint(11.6475, 107.7515), GeoPoint(11.6475, 107.7531), GeoPoint(11.6488, 107.7531), GeoPoint(11.6488, 107.7515)),
     ),
     VietnamGardenPreset(
-        "Lục Ngạn, Bắc Giang — Vải thiều / Nhãn Hồng Giang", "Trung du Bắc Bộ · 1,64 ha", SatCropKey.MANGO_AVOCADO,
-        listOf(GeoPoint(21.3820, 106.6620), GeoPoint(21.3820, 106.6633), GeoPoint(21.3831, 106.6633), GeoPoint(21.3831, 106.6620)),
+        "Đức Trọng, Lâm Đồng — Cà phê & Cây ăn trái Liên Nghĩa", "Tây Nguyên · 1,88 ha", SatCropKey.COFFEE,
+        listOf(GeoPoint(11.7345, 108.3715), GeoPoint(11.7345, 108.3729), GeoPoint(11.7357, 108.3729), GeoPoint(11.7357, 108.3715)),
     ),
 )
 
@@ -291,14 +291,22 @@ object SatelliteClient {
         val u = runCatching { URL(clean) }.getOrNull() ?: return listOf(clean)
         val port = if (u.port != -1) u.port else u.defaultPort
         val isAndroid = System.getProperty("java.vm.name")?.contains("Dalvik", ignoreCase = true) == true
-        if (!isAndroid || u.protocol != "http" || port != 8000) return listOf(clean)
+        if (!isAndroid) return listOf(clean)
+        if (u.protocol == "https") {
+            return listOf(
+                clean,
+                "http://192.168.1.42:8000",
+                "http://127.0.0.1:8000",
+                "http://10.0.2.2:8000",
+            ).distinct()
+        }
+        if (u.protocol != "http" || port != 8000) return listOf(clean)
         return listOf(
+            clean,
+            SatelliteConfig.DEFAULT_SAT_URL,
+            "http://192.168.1.42:8000",
             "http://127.0.0.1:8000",
             "http://10.0.2.2:8000",
-            clean,
-            "http://10.87.70.46:8000",
-            "http://100.116.83.74:8000",
-            "http://192.168.100.46:8000",
         ).distinct()
     }
 

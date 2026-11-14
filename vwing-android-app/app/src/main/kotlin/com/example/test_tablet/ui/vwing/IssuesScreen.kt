@@ -172,7 +172,9 @@ fun IssuesScreen(c: VCtx, tabArg: String) {
             }
         }
         else -> {
-            ChipRow(listOf("Đang mở", "Tất cả") + IssueStatus.values().map { it.label }, statusF, { it }, { statusF = it }, Modifier.padding(bottom = 10.dp))
+            val statusOptions = listOf("Đang mở", "Tất cả") + IssueStatus.values().map { it.label }
+            if (c.wide) ChipRow(statusOptions, statusF, { it }, { statusF = it }, Modifier.padding(bottom = 10.dp))
+            else ScrollChipRow(statusOptions, statusF, { it }, { statusF = it }, Modifier.padding(bottom = 10.dp))
             val list = d.issues.filter {
                 when (statusF) { "Đang mở" -> it.status.isOpen; "Tất cả" -> true; else -> it.status.label == statusF }
             }.sortedWith(compareByDescending<Issue> { it.isOverdue(today) }.thenByDescending { it.priority.ordinal }.thenBy { it.dueAt ?: Long.MAX_VALUE })

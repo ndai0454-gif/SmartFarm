@@ -22,7 +22,12 @@ class NoScenes(Exception):
 
 
 def init(project: str) -> None:
-    ee.Initialize(project=project)
+    try:
+        ee.Initialize(project=project)
+    except Exception:
+        import google.auth
+        creds, _ = google.auth.default(scopes=["https://www.googleapis.com/auth/earthengine"])
+        ee.Initialize(credentials=creds, project=project)
 
 
 def _geom(ring):

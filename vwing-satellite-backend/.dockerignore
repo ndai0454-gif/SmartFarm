@@ -1,0 +1,13 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+_backup_2026-11-12/
+artifacts/
+lightning_logs/
+models/
+tests/
+tools/
+*.log

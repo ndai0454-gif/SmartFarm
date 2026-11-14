@@ -191,10 +191,10 @@ fun DeepForestHubCard(hud: RegionHudState, cfg: SatelliteConfig, onSelectOverlay
         if (df != null) {
             Text("${df.boxes.size} tán được phát hiện · Tin cậy TB ${df.meanConfidencePct.takeIf { it.isFinite() }?.let { "${fmtNum(it, 1)}%" } ?: "—"}", color = VC.mint, fontSize = 15.sp, fontWeight = FontWeight.Bold)
             Text(df.summaryVi, color = VC.text2, fontSize = 12.sp)
-            df.source?.let { Text("Nguồn: $it", color = VC.text2, fontSize = 11.sp) }
-            df.provenance?.let { Text("Truy xuất: $it", color = VC.text2, fontSize = 11.sp) }
+            df.source?.let { Text("Nguồn: $it", color = VC.text2, fontSize = 12.sp) }
+            df.provenance?.let { Text("Truy xuất: $it", color = VC.text2, fontSize = 12.sp) }
             df.warnings.forEach { Text(it, color = VC.amber, fontSize = 12.sp) }
-            Text("Raster ${df.rasterWidthPx}×${df.rasterHeightPx}px · Số tile: ${df.totalTilesProcessed ?: "chưa có"} · Trước NMS: ${df.rawBoxesBeforeNms ?: "chưa có"} · Loại trùng: ${df.nmsSuppressedCount ?: "chưa có"}", color = VC.text2, fontSize = 11.sp)
+            Text("Raster ${df.rasterWidthPx}×${df.rasterHeightPx}px · Số tile: ${df.totalTilesProcessed ?: "chưa có"} · Trước NMS: ${df.rawBoxesBeforeNms ?: "chưa có"} · Loại trùng: ${df.nmsSuppressedCount ?: "chưa có"}", color = VC.text2, fontSize = 12.sp)
         }
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             VButton(if (hud.showDeepForestBboxes) "Ẩn khung tán" else "Hiện khung tán", { hud.showDeepForestBboxes = !hud.showDeepForestBboxes }, primary = false)
@@ -226,7 +226,7 @@ fun DeepForestHubCard(hud: RegionHudState, cfg: SatelliteConfig, onSelectOverlay
                 { it.shortLabelVi },
                 { selectedOamPreset = it },
             )
-            Text("Vùng OAM: ${selectedOamPreset.fullNameVi} · Cây trồng trọng điểm: ${selectedOamPreset.focusCropsVi}", color = VC.text2, fontSize = 11.sp)
+            Text("Vùng OAM: ${selectedOamPreset.fullNameVi} · Cây trồng trọng điểm: ${selectedOamPreset.focusCropsVi}", color = VC.text2, fontSize = 12.sp)
             Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 VButton("Tìm ảnh OAM VN (<50cm)", {
                     scope.launch {
@@ -248,7 +248,7 @@ fun DeepForestHubCard(hud: RegionHudState, cfg: SatelliteConfig, onSelectOverlay
                     openUrl("https://www.planet.com/markets/education-and-research/")
                 }, primary = false)
             }
-            Text("• PlanetScope / Planet Labs (Education & Research License): Ảnh vệ tinh chụp hàng ngày toàn lãnh thổ Việt Nam (3m/pixel dùng cho phân vùng tán rừng rộng lớn; xin mẫu SkySat 50cm/pixel để nhận diện tán cây bằng DeepForest).", color = VC.text2, fontSize = 11.sp)
+            Text("• PlanetScope / Planet Labs (Education & Research License): Ảnh vệ tinh chụp hàng ngày toàn lãnh thổ Việt Nam (3m/pixel dùng cho phân vùng tán rừng rộng lớn; xin mẫu SkySat 50cm/pixel để nhận diện tán cây bằng DeepForest).", color = VC.text2, fontSize = 12.sp)
 
             oamSearchResult?.let { oam ->
                 Text(
@@ -260,7 +260,7 @@ fun DeepForestHubCard(hud: RegionHudState, cfg: SatelliteConfig, onSelectOverlay
                 )
                 oam.results.take(4).forEach { item ->
                     val gsdText = item.gsdCm?.let { "${fmtNum(it, 1)} cm/px" } ?: "chưa rõ GSD"
-                    Text("  • ${item.title} ($gsdText · ${item.provider}) ${if (item.suitableForDeepForest) "✅ Đạt chuẩn DeepForest" else "⚠️ GSD thô"}", color = VC.text2, fontSize = 11.sp)
+                    Text("  • ${item.title} ($gsdText · ${item.provider}) ${if (item.suitableForDeepForest) "✅ Đạt chuẩn DeepForest" else "⚠️ GSD thô"}", color = VC.text2, fontSize = 12.sp)
                 }
             }
 
@@ -317,7 +317,7 @@ fun DeepForestHubCard(hud: RegionHudState, cfg: SatelliteConfig, onSelectOverlay
                 Text(
                     csvRes.fullCsv.trim(),
                     color = VC.text2,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                     fontFamily = FontFamily.Monospace,
                 )
             }

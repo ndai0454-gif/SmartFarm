@@ -53,8 +53,9 @@ fun WeatherPanel(c: VCtx, compact: Boolean = true) {
     gardenPoint?.let { places["Vị trí vườn · ${c.d.garden.location.ifBlank { c.d.garden.name }}"] = it }
     if (!compact) {
         places["Bảo Lộc, Lâm Đồng · địa điểm tham khảo"] = GeoPoint(11.547, 107.807)
-        places["Buôn Ma Thuột, Đắk Lắk · địa điểm tham khảo"] = GeoPoint(12.667, 108.038)
-        places["Cai Lậy, Đồng Tháp · địa điểm tham khảo"] = GeoPoint(10.410, 106.119)
+        places["Di Linh, Lâm Đồng · địa điểm tham khảo"] = GeoPoint(11.584, 108.065)
+        places["Đạ Huoai, Lâm Đồng · địa điểm tham khảo"] = GeoPoint(11.412, 107.641)
+        places["Lâm Hà / Đức Trọng, Lâm Đồng · địa điểm tham khảo"] = GeoPoint(11.735, 108.372)
     }
     var selected by remember(gardenPoint) { mutableStateOf(places.keys.firstOrNull().orEmpty()) }
     val point = places[selected]

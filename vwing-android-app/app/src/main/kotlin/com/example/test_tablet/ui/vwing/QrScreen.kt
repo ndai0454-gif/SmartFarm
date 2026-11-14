@@ -22,6 +22,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -148,9 +150,30 @@ fun QrDialog(c: VCtx, tree: Tree, onDismiss: () -> Unit) {
                 Image(bmp.asImageBitmap(), "Mã QR cây ${tree.code}", Modifier.size(260.dp).background(androidx.compose.ui.graphics.Color.White).align(Alignment.CenterHorizontally))
                 if (publicMode) {
                     Text(payload, color = VC.text2, fontSize = 13.sp)
-                    Text("Người mua quét sẽ mở trang truy xuất chỉ gồm các trường chủ vườn đã chọn công khai.", color = VC.text2, fontSize = 14.sp)
-                    publicNote?.let { Text(it, color = VC.amber, fontSize = 14.sp) }
-                } else Text("Mã gắn với ID cố định của cây nên đổi mã hiển thị vẫn quét ra đúng hồ sơ. Lưu ảnh để in và dán lên cây.", color = VC.text2, fontSize = 14.sp)
+                    Text(
+                        "🌐 Nội dung người mua/thương lái nhận được khi quét:\n" +
+                            "• Trang web Truy xuất nguồn gốc (✓ VWing Verified)\n" +
+                            "• Câu chuyện vườn, Tên vườn, Địa điểm, Cây trồng & Diện tích\n" +
+                            "• Mã cây (${tree.code}), Khu (${tree.zone}), Giống (${tree.variety.ifBlank { c.d.garden.crop }}), Năm trồng (${tree.plantedYear ?: "—"}), Tình trạng (${tree.condition.label}) & Vị trí GPS làm tròn ~10m\n" +
+                            "• Nhật ký chăm sóc, vật tư/liều lượng, khối lượng thu hoạch (kg) & ảnh thực tế (ẩn hoàn toàn tên nhân công, bệnh nội bộ và doanh thu).",
+                        color = VC.text2,
+                        fontSize = 13.sp,
+                    )
+                    publicNote?.let { Text(it, color = VC.amber, fontSize = 13.5.sp) }
+                } else {
+                    Text("Payload: $payload", color = VC.mint, fontSize = 12.5.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+                    Text(
+                        "📱 Nội dung nhận được khi quét bằng App VWing:\n" +
+                            "1. Định danh & Trạng thái: Mã ${tree.code} · ${tree.zone}, ID cố định (${tree.id}), Thẻ ${tree.condition.label}\n" +
+                            "2. Thông số & Năng suất: Số trái đếm trên cây (${tree.fruits ?: 0} trái), Giống ${tree.variety.ifBlank { c.d.garden.crop }}, Năm trồng ${tree.plantedYear ?: "—"}, Tọa độ GPS 6 số lẻ\n" +
+                            "3. Danh sách Vấn đề & Sâu bệnh đang mở + Phác đồ xử lý\n" +
+                            "4. So sánh Ảnh Trước – Sau theo mốc thời gian chăm sóc\n" +
+                            "5. Dòng thời gian Nhật ký: Quan sát, Bón phân, Phun thuốc, Tưới nước, Thu hoạch & Kiểm toán (Audit)\n" +
+                            "6. Thao tác nhanh 1 chạm: Ghi hoạt động, Báo bệnh, Sửa cây, Thay thế cây, Xem trên bản đồ.",
+                        color = VC.text2,
+                        fontSize = 13.sp,
+                    )
+                }
             }
         },
         confirmButton = { VButton("Lưu ảnh nhãn", { save.launch("vwing-qr-${tree.code}${if (publicMode) "-nguoi-mua" else ""}.png") }) },
@@ -287,6 +310,7 @@ fun resolveScan(d: GardenData, raw: String) = Qr.resolve(d, raw)
 @Composable
 fun QrScannerScreen(c: VCtx) {
     val context = LocalContext.current
+    val view = androidx.compose.ui.platform.LocalView.current
     val d = c.d
     var granted by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
@@ -294,6 +318,8 @@ fun QrScannerScreen(c: VCtx) {
     var asked by remember { mutableStateOf(false) }
     var manual by remember { mutableStateOf("") }
     var previewQrTree by remember { mutableStateOf<Tree?>(null) }
+    var scannedSpacingMeta by remember { mutableStateOf<Qr.SpacingQrMeta?>(null) }
+    var showQrGuideDetails by remember { mutableStateOf(true) }
     val exportAllQr = rememberQrSheetExport(c)
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         granted = it
@@ -310,15 +336,22 @@ fun QrScannerScreen(c: VCtx) {
         val r = resolveScan(d, cleaned)
         when (r) {
             is Qr.Scan.Found -> {
+                scannedSpacingMeta = r.spacingMeta
+                performConfirmHaptic(view)
                 c.selectTree(r.tree.id)
                 c.toast("Đã mở hồ sơ cây ${r.tree.code} (${r.tree.zone}).")
                 c.nav.push("tree|${r.tree.id}")
             }
             is Qr.Scan.Unknown -> {
+                scannedSpacingMeta = r.spacingMeta
                 val fallback = d.activeTrees.firstOrNull { it.code.equals(r.id, ignoreCase = true) }
                 if (fallback != null) {
+                    performConfirmHaptic(view)
                     c.selectTree(fallback.id)
                     c.nav.push("tree|${fallback.id}")
+                } else if (r.spacingMeta != null) {
+                    performConfirmHaptic(view)
+                    c.toast("Đã giải mã QR Lưới Khoảng Cách cây ${r.spacingMeta.code} (${r.spacingMeta.cropVi} · ${r.spacingMeta.spacing}).")
                 } else {
                     c.toast(scanMessage(r) ?: "Không tìm thấy cây ${r.id}.")
                 }
@@ -328,6 +361,7 @@ fun QrScannerScreen(c: VCtx) {
                     it.code.equals(cleaned, ignoreCase = true) || cleaned.contains(it.code, ignoreCase = true)
                 }
                 if (fallback != null) {
+                    performConfirmHaptic(view)
                     c.selectTree(fallback.id)
                     c.nav.push("tree|${fallback.id}")
                 } else {
@@ -341,22 +375,48 @@ fun QrScannerScreen(c: VCtx) {
         QrDialog(c, t, onDismiss = { previewQrTree = null })
     }
 
+    @OptIn(ExperimentalLayoutApi::class)
     Column(
         Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         VCard(Modifier.fillMaxWidth(), borderColor = VC.border) {
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Column(Modifier.weight(1f)) {
+            if (c.wide) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Eyebrow("QUÉT MÃ QR GỐC CÂY")
+                        Text(
+                            "Đưa mã QR dán trên thân cây vào khung camera",
+                            color = VC.text,
+                            fontSize = 18.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        )
+                        Text(
+                            "Tự động mở ngay hồ sơ cây, lịch sử bón phân/tưới nước và tình trạng sâu bệnh.",
+                            color = VC.text2,
+                            fontSize = 13.sp,
+                        )
+                    }
+                    VButton(
+                        "Xuất tờ QR cả vườn",
+                        { exportAllQr() },
+                        primary = false,
+                    )
+                }
+            } else {
+                Column(
+                    Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
                     Eyebrow("QUÉT MÃ QR GỐC CÂY")
                     Text(
                         "Đưa mã QR dán trên thân cây vào khung camera",
                         color = VC.text,
-                        fontSize = 18.sp,
+                        fontSize = 16.5.sp,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
                     )
                     Text(
@@ -364,12 +424,13 @@ fun QrScannerScreen(c: VCtx) {
                         color = VC.text2,
                         fontSize = 13.sp,
                     )
+                    VButton(
+                        "Xuất tờ QR cả vườn",
+                        { exportAllQr() },
+                        modifier = Modifier.fillMaxWidth(),
+                        primary = false,
+                    )
                 }
-                VButton(
-                    "Xuất tờ QR cả vườn",
-                    { exportAllQr() },
-                    primary = false,
-                )
             }
 
             androidx.compose.foundation.layout.Spacer(Modifier.size(10.dp))
@@ -377,29 +438,31 @@ fun QrScannerScreen(c: VCtx) {
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(if (c.wide) 320.dp else 260.dp)
+                    .height(if (c.wide) 320.dp else 230.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .background(androidx.compose.ui.graphics.Color(0xFF07150E)),
+                    .background(androidx.compose.ui.graphics.Color(0xFF07150E))
+                    .border(1.dp, VC.border, RoundedCornerShape(12.dp)),
                 contentAlignment = Alignment.Center,
             ) {
                 if (granted) {
                     CameraPreview(onResult = { handleRawScan(it) })
-                    Box(
-                        Modifier
-                            .size(180.dp)
-                            .border(2.dp, VC.mint, RoundedCornerShape(16.dp)),
-                    )
+                    MotionQrLaserReticle()
                 } else {
+                    MotionQrLaserReticle()
                     Column(
-                        Modifier.padding(24.dp),
+                        Modifier
+                            .padding(horizontal = 24.dp, vertical = 14.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(androidx.compose.ui.graphics.Color(0xCC04120C))
+                            .padding(14.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         Text(
                             if (asked) "Chưa có quyền Camera. Hãy bấm cấp quyền bên dưới hoặc nhập mã cây ở ô kế tiếp."
-                            else "Đang xin quyền truy cập Camera để quét mã QR…",
+                            else "Khung Laser AI sẵn sàng · Cấp quyền Camera để quét trực tiếp",
                             color = androidx.compose.ui.graphics.Color.White,
-                            fontSize = 15.sp,
+                            fontSize = 13.5.sp,
                         )
                         VButton("Cấp quyền Camera", { ask.launch(Manifest.permission.CAMERA) })
                     }
@@ -416,7 +479,7 @@ fun QrScannerScreen(c: VCtx) {
                 VField(
                     manual,
                     { manual = it },
-                    "Hoặc nhập mã cây (ví dụ: A-01, SR-001)",
+                    "Hoặc nhập mã cây (ví dụ: A-01, A-04)",
                     Modifier.weight(1f),
                 )
                 VButton(
@@ -425,49 +488,324 @@ fun QrScannerScreen(c: VCtx) {
                     enabled = manual.isNotBlank(),
                 )
             }
+
+            val quickTrees = remember(d.activeTrees) {
+                val attention = d.activeTrees.filter { it.condition != com.example.test_tablet.data.vwing.Condition.STABLE }
+                (attention + d.activeTrees.filter { it.condition == com.example.test_tablet.data.vwing.Condition.STABLE }).distinctBy { it.id }.take(5)
+            }
+            if (quickTrees.isNotEmpty()) {
+                androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+                Text(
+                    "Chạm mở nhanh cây trong vườn (không cần gõ chữ):",
+                    color = VC.text2,
+                    fontSize = 13.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                )
+                androidx.compose.foundation.layout.Spacer(Modifier.size(6.dp))
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    quickTrees.forEach { qt ->
+                        val isWarn = qt.condition != com.example.test_tablet.data.vwing.Condition.STABLE
+                        VButton(
+                            text = if (isWarn) "⚠ Cây ${qt.code}" else "🌱 Cây ${qt.code}",
+                            onClick = {
+                                c.selectTree(qt.id)
+                                c.nav.push("tree|${qt.id}")
+                            },
+                            primary = isWarn,
+                        )
+                    }
+                }
+            }
+        }
+
+        // Nếu vừa quét một mã QR Lưới Khoảng Cách (vwing://tree/SR-001?code=...&crop=DURIAN&spacing=8x8m...) chưa có trong danh sách cây đã lưu:
+        scannedSpacingMeta?.let { meta ->
+            VCard(Modifier.fillMaxWidth(), borderColor = VC.lime) {
+                Eyebrow("KẾT QUẢ GIẢI MÃ QR LƯỚI KHOẢNG CÁCH · ${meta.code}", VC.lime)
+                Text(
+                    "🌳 Cây ${meta.code} · ${meta.cropVi} (Khoảng cách chuẩn ${meta.spacing.ifBlank { "8x8m" }} · ${meta.unitM2 ?: 64} m²/cây)",
+                    color = VC.text,
+                    fontSize = 16.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                )
+                Text(
+                    "• Vị trí lưới: Hàng ${meta.row ?: "—"} · Cây thứ ${meta.col ?: "—"}" +
+                        (meta.totalTrees?.let { " / Tổng $it cây" } ?: "") +
+                        (meta.areaM2?.let { " · Diện tích vườn ${String.format(java.util.Locale.US, "%.0f", it)} m²" } ?: "") +
+                        "\n• Tọa độ tâm tán GPS: ${meta.lat?.let { String.format(java.util.Locale.US, "%.6f", it) } ?: "—"}, ${meta.lng?.let { String.format(java.util.Locale.US, "%.6f", it) } ?: "—"}",
+                    color = VC.text2,
+                    fontSize = 13.sp,
+                )
+                Spacer(Modifier.height(8.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    VButton(
+                        "➕ Lưu cây ${meta.code} vào vườn & Mở hồ sơ",
+                        {
+                            val zoneName = meta.row?.let { "Hàng $it" } ?: "Khu A"
+                            val geoPos = if (meta.lat != null && meta.lng != null) {
+                                com.example.test_tablet.data.vwing.GeoPoint(meta.lat, meta.lng)
+                            } else null
+                            val out = c.store.addTree(
+                                code = meta.code,
+                                zone = zoneName,
+                                variety = meta.cropVi,
+                                plantedYear = java.util.Calendar.getInstance().get(java.util.Calendar.YEAR),
+                                pos = geoPos,
+                                posSource = com.example.test_tablet.data.vwing.PosSource.ESTIMATED,
+                            )
+                            scannedSpacingMeta = null
+                            val saved = c.store.data.activeTrees.firstOrNull { it.code.equals(meta.code, ignoreCase = true) }
+                            if (saved != null) {
+                                c.selectTree(saved.id)
+                                c.toast("Đã lưu cây ${saved.code} vào vườn và mở hồ sơ.")
+                                c.nav.push("tree|${saved.id}")
+                            } else {
+                                c.toast(out.message ?: "Đã xử lý mã QR cây ${meta.code}.")
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                    )
+                    VButton("Đóng", { scannedSpacingMeta = null }, primary = false)
+                }
+            }
+        }
+
+        // Thẻ giải thích chi tiết: NỘI DUNG NHẬN ĐƯỢC KHI QUÉT MÃ QR CÂY TRỒNG
+        VCard(Modifier.fillMaxWidth(), borderColor = VC.mint.copy(alpha = 0.55f)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                    Eyebrow("NỘI DUNG NHẬN ĐƯỢC KHI QUÉT MÃ QR CỦA CÂY", VC.mint)
+                    Text(
+                        "3 chế độ dữ liệu trả về tự động khi quét mã QR dán trên thân cây",
+                        color = VC.text,
+                        fontSize = 16.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    )
+                }
+                VButton(
+                    if (showQrGuideDetails) "Thu gọn" else "Xem chi tiết",
+                    { showQrGuideDetails = !showQrGuideDetails },
+                    primary = false,
+                )
+            }
+
+            if (showQrGuideDetails) {
+                Spacer(Modifier.height(8.dp))
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(VC.elevated)
+                        .border(1.dp, VC.border, RoundedCornerShape(12.dp))
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        "1️⃣ Khi Chủ vườn / Kỹ sư / Nhân công quét bằng App VWing (QR Nội bộ `vwing://tree/<treeId>`):",
+                        color = VC.mint,
+                        fontSize = 14.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    )
+                    Text(
+                        "• Định danh & Trạng thái: Mã cây (VD: A-04, SR-001), Khu/Lô canh tác, ID cố định (đổi tên mã cây vẫn giữ nguyên lịch sử), Thẻ sức khỏe (Ổn định / Theo dõi / Cần kiểm tra) & trạng thái đồng bộ Cloud.\n" +
+                            "• Thông số sinh trưởng & Đếm trái (`THÔNG TIN`): Số trái đã đếm trên cây (tính sản lượng & doanh thu dự kiến), Giống cây & Năm trồng (VD: Sầu riêng Ri6 · 2019), Ngày kiểm tra gần nhất / cảnh báo quá hạn, Tọa độ GPS 6 số lẻ (`lat, lng`) & chất lượng dữ liệu.\n" +
+                            "• Danh sách Sâu bệnh (`VẤN ĐỀ`): Các bệnh đang mở trên cây (vàng lá, xì mủ, rầy…), ngày phát hiện, hạn xử lý và nút mở phác đồ điều trị.\n" +
+                            "• Đối chiếu Ảnh Trước – Sau (`SO SÁNH ẢNH TRƯỚC – SAU`): Đặt 2 ảnh chụp thực tế của cây theo mốc thời gian cạnh nhau để kiểm chứng hiệu quả phân thuốc.\n" +
+                            "• Dòng thời gian Nhật ký (`DÒNG THỜI GIAN`): Toàn bộ lịch sử Quan sát, Bón phân, Phun thuốc, Tưới nước, Thu hoạch (số kg), Tái kiểm tra và Lịch sử kiểm toán chỉnh sửa (Audit).\n" +
+                            "• Thao tác nhanh 1 chạm tại gốc: Ghi hoạt động, Báo vấn đề, Sửa thông tin, Thay thế cây, Xem trên bản đồ, In lại nhãn QR.",
+                        color = VC.text,
+                        fontSize = 12.8.sp,
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(VC.elevated)
+                        .border(1.dp, VC.border, RoundedCornerShape(12.dp))
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        "2️⃣ Khi quét Mã QR Lưới Khoảng Cách từ Bản đồ Khoanh vùng (`vwing://tree/SR-001?crop=DURIAN&spacing=8x8m...`):",
+                        color = VC.lime,
+                        fontSize = 14.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    )
+                    Text(
+                        "• Giải mã trực tiếp thông số quy hoạch gắn sẵn trong QR: Mã cây (`SR-001`, `CF-0001`), Loại cây (`Sầu riêng 8m×8m = 64m²/cây` hoặc `Cà phê 3m×3m = 9m²/cây`), Vị trí `Hàng thứ mấy · Cây thứ mấy`, Tọa độ GPS tâm tán 6 số lẻ, Diện tích vườn (`m²`) và Tổng số cây.\n" +
+                            "• Hỗ trợ nút 1 chạm lưu ngay cây từ lưới quy hoạch vào Sổ vườn nếu cây chưa có trong danh sách.",
+                        color = VC.text,
+                        fontSize = 12.8.sp,
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(VC.elevated)
+                        .border(1.dp, VC.border, RoundedCornerShape(12.dp))
+                        .padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        "3️⃣ Khi Thương lái / Người tiêu dùng quét bằng Camera điện thoại thường (`QR cho người mua` · `/p/<gardenKey>/<treeId>`):",
+                        color = VC.gold,
+                        fontSize = 14.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    )
+                    Text(
+                        "• Mở trang web Truy xuất nguồn gốc chính hãng (`✓ VWing Verified`) không cần cài app.\n" +
+                            "• Hiển thị minh bạch các mục chủ vườn cho phép công khai: Lời giới thiệu vườn (`story`), Thông tin vườn (Tên vườn, Địa điểm, Cây trồng, Diện tích), Thông tin cây (Mã cây, Khu, Giống, Năm trồng, Tình trạng, Vị trí GPS làm tròn ~10m bảo mật), Ngày kiểm tra gần nhất, và Nhật ký chăm sóc & thu hoạch (Ngày, Hoạt động, Vật tư & Liều lượng, Khối lượng thu hoạch kg, Ảnh thực tế).\n" +
+                            "• Bảo mật tuyệt đối: Tên nhân công, sâu bệnh nội bộ, công việc tồn đọng và doanh thu luôn được ẩn khỏi trang công khai.",
+                        color = VC.text,
+                        fontSize = 12.8.sp,
+                    )
+                }
+            }
         }
 
         val trees = d.activeTrees.sortedBy { it.code }
         if (trees.isNotEmpty()) {
+            var selectedZoneFilter by remember { mutableStateOf("Tất cả") }
+            var showAllTrees by remember(selectedZoneFilter) { mutableStateOf(false) }
+            val zoneOptions = remember(trees) {
+                listOf("Tất cả") + trees.map { it.zone.ifBlank { "Khu A" } }.distinct().sorted()
+            }
+            val filteredTrees = remember(trees, selectedZoneFilter) {
+                if (selectedZoneFilter == "Tất cả") trees
+                else trees.filter { it.zone.equals(selectedZoneFilter, ignoreCase = true) }
+            }
+            val displayedTrees = remember(filteredTrees, showAllTrees) {
+                if (showAllTrees) filteredTrees else filteredTrees.take(12)
+            }
             VCard(Modifier.fillMaxWidth(), borderColor = VC.border) {
-                Eyebrow("DANH SÁCH NHÃN QR CÂY TRONG VƯỜN (${trees.size} CÂY)")
+                Eyebrow("DANH SÁCH NHÃN QR CÂY TRONG VƯỜN (${filteredTrees.size}/${trees.size} CÂY)")
                 Text(
-                    "Chạm \"Mở cây\" để xem hồ sơ hoặc \"Mã QR\" để xem và lưu nhãn in dán lên cây.",
+                    "Chạm chọn Khu/Lô bên dưới để lọc nhanh, sau đó chạm trực tiếp vào dòng cây hoặc bấm \"Mã QR\" để in nhãn dán lên cây.",
                     color = VC.muted,
-                    fontSize = 13.sp,
+                    fontSize = 13.5.sp,
                 )
                 androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
-                trees.take(12).forEach { t ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 4.dp)
-                            .background(VC.elevated, androidx.compose.foundation.shape.RoundedCornerShape(10.dp))
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                "Cây ${t.code} · ${t.zone}",
-                                color = VC.text,
-                                fontSize = 15.sp,
-                                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                            )
-                            Text(
-                                "${t.variety.ifBlank { d.garden.crop }} · ${t.condition.label}",
-                                color = VC.text2,
-                                fontSize = 12.5.sp,
-                            )
+                FlowRow(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    zoneOptions.forEach { zOpt ->
+                        val count = if (zOpt == "Tất cả") trees.size else trees.count { it.zone.equals(zOpt, ignoreCase = true) }
+                        val active = selectedZoneFilter == zOpt
+                        VButton(
+                            text = "$zOpt ($count cây)",
+                            onClick = { selectedZoneFilter = zOpt },
+                            primary = active,
+                        )
+                    }
+                }
+                androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+                displayedTrees.forEach { t ->
+                    val openTreeAction = {
+                        c.selectTree(t.id)
+                        c.nav.push("tree|${t.id}")
+                    }
+                    if (c.wide) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                                .background(VC.elevated, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                                .border(1.dp, VC.border, androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
+                                .bounceClick(onClick = openTreeAction)
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f).padding(end = 10.dp)) {
+                                Text(
+                                    "Cây ${t.code} · ${t.zone}",
+                                    color = VC.text,
+                                    fontSize = 15.5.sp,
+                                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                )
+                                Text(
+                                    "${t.variety.ifBlank { d.garden.crop }} · ${t.condition.label} · ✓ Đã lưu",
+                                    color = VC.text2,
+                                    fontSize = 13.sp,
+                                )
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                VButton("Mã QR", { previewQrTree = t }, primary = false)
+                                VButton("Mở cây", openTreeAction)
+                            }
                         }
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            VButton("Mã QR", { previewQrTree = t }, primary = false)
-                            VButton("Mở cây", {
-                                c.selectTree(t.id)
-                                c.nav.push("tree|${t.id}")
-                            })
+                    } else {
+                        // Bố cục tối ưu cho Điện thoại (360dp & 411dp): thông tin cây hiển thị trọn chiều ngang, 2 nút thao tác chia đều bên dưới
+                        Column(
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 5.dp)
+                                .clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                                .background(VC.elevated, androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                                .border(1.dp, VC.border, androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
+                                .bounceClick(onClick = openTreeAction)
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f).padding(end = 8.dp)) {
+                                    Text(
+                                        "Cây ${t.code} · ${t.zone}",
+                                        color = VC.text,
+                                        fontSize = 16.sp,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                    )
+                                    Text(
+                                        "${t.variety.ifBlank { d.garden.crop }} · ✓ Đã lưu",
+                                        color = VC.text2,
+                                        fontSize = 13.sp,
+                                    )
+                                }
+                                ConditionTag(t.condition)
+                            }
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                VButton("Mã QR", { previewQrTree = t }, modifier = Modifier.weight(1f), primary = false)
+                                VButton("Mở cây", openTreeAction, modifier = Modifier.weight(1f))
+                            }
                         }
                     }
+                }
+                if (filteredTrees.size > 12) {
+                    androidx.compose.foundation.layout.Spacer(Modifier.size(8.dp))
+                    VButton(
+                        text = if (!showAllTrees) "Xem đầy đủ tất cả ${filteredTrees.size} cây (còn ${filteredTrees.size - 12} cây)"
+                        else "Thu gọn danh sách (chỉ hiện 12 cây đầu)",
+                        onClick = { showAllTrees = !showAllTrees },
+                        modifier = Modifier.fillMaxWidth(),
+                        primary = false,
+                    )
                 }
             }
         }

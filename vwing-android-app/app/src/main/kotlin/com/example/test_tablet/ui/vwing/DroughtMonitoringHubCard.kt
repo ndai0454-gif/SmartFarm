@@ -91,7 +91,7 @@ fun DroughtMonitoringHubCard(
                     Text(
                         "Đới khí hậu: ${dr.faoGaul.climateZoneVi} · GEE + MODIS + CHIRPS + TerraClimate",
                         color = VC.text2,
-                        fontSize = 11.5.sp,
+                        fontSize = 12.sp,
                     )
                 }
             }
@@ -252,7 +252,7 @@ fun DroughtMonitoringHubCard(
                     Text(
                         label,
                         color = if (selected) VC.cyan else VC.text2,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.Medium,
                     )
                 }
@@ -289,7 +289,7 @@ fun DroughtMonitoringHubCard(
                     Text(
                         "📅 $label",
                         color = if (isYr) VC.amber else VC.text,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = if (isYr) FontWeight.ExtraBold else FontWeight.Medium,
                     )
                 }
@@ -306,7 +306,7 @@ fun DroughtMonitoringHubCard(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("🗺 Phủ bản đồ chuyên đề:", color = VC.text2, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            Text("🗺 Phủ bản đồ chuyên đề:", color = VC.text2, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             listOf(
                 "VHI" to "🌾 VHI (Sức khỏe TH)",
                 "VCI" to "🌱 VCI (Thực vật)",
@@ -337,7 +337,7 @@ fun DroughtMonitoringHubCard(
                     Text(
                         mLabel,
                         color = if (isM) VC.lime else VC.text2,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = if (isM) FontWeight.ExtraBold else FontWeight.Medium,
                     )
                 }
@@ -416,7 +416,7 @@ private fun DroughtCoreSixTab(dr: DroughtMonitoringReport) {
                 Text(
                     snap.spatialFindingVi,
                     color = VC.text,
-                    fontSize = 11.5.sp,
+                    fontSize = 12.sp,
                     modifier = Modifier.padding(top = 2.dp),
                 )
             }
@@ -430,7 +430,7 @@ private fun DroughtCoreSixTab(dr: DroughtMonitoringReport) {
                 Text(
                     "Chịu hạn: ${fmtNum(snap.droughtAffectedPct, 1)}% (${fmtNum(snap.droughtAffectedHa, 2)} ha)",
                     color = VC.text2,
-                    fontSize = 11.sp,
+                    fontSize = 12.sp,
                 )
             }
         }
@@ -469,7 +469,7 @@ private fun DroughtCoreSixTab(dr: DroughtMonitoringReport) {
                             Text(
                                 "${item.icon} ${item.nameVi}",
                                 color = accent,
-                                fontSize = 11.5.sp,
+                                fontSize = 12.sp,
                                 fontWeight = FontWeight.ExtraBold,
                                 modifier = Modifier.weight(1f),
                             )
@@ -483,18 +483,18 @@ private fun DroughtCoreSixTab(dr: DroughtMonitoringReport) {
                         Text(
                             "Công thức: ${item.formula}",
                             color = VC.cyan,
-                            fontSize = 10.5.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.SemiBold,
                         )
                         Text(
                             "Nguồn: ${item.satelliteSource} · Biên 26 năm: ${item.range26yText}",
                             color = VC.text2,
-                            fontSize = 10.5.sp,
+                            fontSize = 12.sp,
                         )
                         Text(
                             item.roleVi,
                             color = VC.text,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                         )
                     }
                 }
@@ -518,7 +518,7 @@ private fun DroughtCoreSixTab(dr: DroughtMonitoringReport) {
             Text(
                 "🌡️ II. CHÊNH LỆCH NHIỆT ĐỘ BỀ MẶT ĐẤT (LST) THEO ĐẶC ĐIỂM LỚP PHỦ (NĂM ${dr.focusYear})",
                 color = VC.amber,
-                fontSize = 11.5.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.ExtraBold,
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -547,7 +547,7 @@ private fun DroughtCoreSixTab(dr: DroughtMonitoringReport) {
             Text(
                 "• Chênh lệch nhiệt Đất trống vs. Ven nguồn nước: +${fmtNum(lz.bareVsWaterGradientC, 1)}°C | Đất trống vs. Tán thực vật: +${fmtNum(lz.bareVsCanopyGradientC, 1)}°C. Nhiệt độ bề mặt cao chiếm ưu thế tại các khoảnh thiếu thảm che phủ, thúc đẩy bốc hơi nước và hạ thấp chỉ số TCI.",
                 color = VC.text2,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
             )
         }
 
@@ -565,7 +565,7 @@ private fun DroughtCoreSixTab(dr: DroughtMonitoringReport) {
             Text(
                 "🌾 III. PHÂN BỐ CẤP ĐỘ HẠN HÁN THEO CHỈ SỐ SỨC KHỎE THỰC VẬT (VHI = 0.5×VCI + 0.5×TCI)",
                 color = VC.lime,
-                fontSize = 11.5.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.ExtraBold,
             )
             Row(
@@ -621,9 +621,9 @@ private fun LstZoneMiniBox(
             .border(1.dp, color.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
             .padding(8.dp),
     ) {
-        Text(title, color = color, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+        Text(title, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Text("${fmtNum(tempC, 1)} °C", color = VC.text, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
-        Text(sub, color = VC.text2, fontSize = 10.sp)
+        Text(sub, color = VC.text2, fontSize = 12.sp)
     }
 }
 
@@ -634,7 +634,7 @@ private fun VhiLegendChip(label: String, pct: Double, ha: Double, color: Color) 
         Text(
             "$label: ${fmtNum(pct, 1)}% (${fmtNum(ha, 2)} ha)",
             color = VC.text,
-            fontSize = 10.5.sp,
+            fontSize = 12.sp,
             fontWeight = FontWeight.Medium,
         )
     }
@@ -710,33 +710,33 @@ private fun DroughtRefYearsAndChangeTab(
                     Text(
                         snap.droughtClassVi,
                         color = VC.text,
-                        fontSize = 10.5.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.SemiBold,
                     )
                     Text(
                         "• NDVI: ${fmtNum(snap.ndviMean, 3)} | VCI: ${fmtNum(snap.vciMeanPct, 1)}%",
                         color = VC.mint,
-                        fontSize = 10.5.sp,
+                        fontSize = 12.sp,
                     )
                     Text(
                         "• LST: ${fmtNum(snap.lstMeanC, 1)}°C | TCI: ${fmtNum(snap.tciMeanPct, 1)}%",
                         color = VC.amber,
-                        fontSize = 10.5.sp,
+                        fontSize = 12.sp,
                     )
                     Text(
                         "• Mưa CHIRPS: ${fmtNum(snap.rainfallMm, 1)} mm (${if (snap.rainfallAnomalyPct >= 0) "+" else ""}${fmtNum(snap.rainfallAnomalyPct, 1)}%)",
                         color = VC.cyan,
-                        fontSize = 10.5.sp,
+                        fontSize = 12.sp,
                     )
                     Text(
                         "• Diện tích chịu hạn: ${fmtNum(snap.droughtAffectedPct, 1)}% (${fmtNum(snap.droughtAffectedHa, 2)} ha)",
                         color = VC.text2,
-                        fontSize = 10.5.sp,
+                        fontSize = 12.sp,
                     )
                     Text(
                         "• ΔLST (Đất trống - Nước): +${fmtNum(snap.lstZones.bareVsWaterGradientC, 1)}°C",
                         color = VC.text2,
-                        fontSize = 10.sp,
+                        fontSize = 12.sp,
                     )
                 }
             }
@@ -762,13 +762,13 @@ private fun DroughtRefYearsAndChangeTab(
                     Text(
                         "🛰️ II. BẢN ĐỒ BIẾN ĐỘNG THẢM THỰC VẬT ΔNDVI GIAI ĐOẠN 2000–2025 (ΔNDVI = NDVI₂₀₂₅ - NDVI₂₀₀₀)",
                         color = VC.teal,
-                        fontSize = 11.5.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.ExtraBold,
                     )
                     Text(
                         "NDVI trung bình 2000: ${fmtNum(chg.ndvi2000Mean, 3)} → Năm 2025: ${fmtNum(chg.ndvi2025Mean, 3)} | ΔNDVI TB = ${if (chg.deltaNdviMean >= 0) "+" else ""}${fmtNum(chg.deltaNdviMean, 4)}",
                         color = VC.text,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                     )
                 }
                 Box(
@@ -789,7 +789,7 @@ private fun DroughtRefYearsAndChangeTab(
                         }
                         .padding(horizontal = 9.dp, vertical = 5.dp),
                 ) {
-                    Text("🗺 Phủ bản đồ ΔNDVI", color = VC.lime, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("🗺 Phủ bản đồ ΔNDVI", color = VC.lime, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                 }
             }
 
@@ -806,11 +806,11 @@ private fun DroughtRefYearsAndChangeTab(
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text(cls.labelVi, color = VC.text, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        Text(cls.labelVi, color = VC.text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                         Text(
                             "${fmtNum(cls.areaPct, 1)}% (${fmtNum(cls.areaHa, 3)} ha)",
                             color = barColor,
-                            fontSize = 11.sp,
+                            fontSize = 12.sp,
                             fontWeight = FontWeight.ExtraBold,
                         )
                     }
@@ -834,7 +834,7 @@ private fun DroughtRefYearsAndChangeTab(
             Text(
                 chg.interpretationVi,
                 color = VC.text2,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
             )
         }
     }
@@ -871,13 +871,13 @@ private fun DroughtTimeSeriesAndLagTab(dr: DroughtMonitoringReport) {
                     Text(
                         "📊 Cột: Mưa CHIRPS (mm/năm) | Đường: VHI (Xanh) · VCI (Ngọc) · TCI (Cam)",
                         color = VC.text,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
                     )
                     Text(
                         "Đỉnh mưa: ${dec.wettestYear} (${fmtNum(dec.wettestRainfallMm, 0)}mm) · Đáy mưa: ${dec.driestYear} (${fmtNum(dec.driestRainfallMm, 0)}mm)",
                         color = VC.cyan,
-                        fontSize = 11.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.ExtraBold,
                     )
                 }
@@ -961,7 +961,7 @@ private fun DroughtTimeSeriesAndLagTab(dr: DroughtMonitoringReport) {
                 // Nhãn trục năm
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     listOf("2000", "2005", "2010", "2015", "2018 (Đỉnh mưa)", "2021 (Đáy mưa)", "2025").forEach { lbl ->
-                        Text(lbl, color = VC.text2, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Text(lbl, color = VC.text2, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -980,19 +980,19 @@ private fun DroughtTimeSeriesAndLagTab(dr: DroughtMonitoringReport) {
             Text(
                 "🧠 II. TẠI SAO LƯỢNG MƯA TĂNG KHÔNG ĐỒNG NGHĨA THẢM THỰC VẬT PHỤC HỒI NGAY LẬP TỨC?",
                 color = VC.amber,
-                fontSize = 11.5.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.ExtraBold,
             )
             Text(
                 dec.keyPrincipleVi,
                 color = VC.text,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
             )
             Text(
                 dec.case2018Vs2021SummaryVi,
                 color = VC.cyan,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
             )
 
             // Bảng ma trận tương quan & độ trễ
@@ -1041,10 +1041,10 @@ private fun DroughtTimeSeriesAndLagTab(dr: DroughtMonitoringReport) {
                         Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                     ) {
-                        Text(f.titleVi, color = VC.lime, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        Text("Trọng số tác động: ${fmtNum(f.impactWeightPct, 0)}%", color = VC.amber, fontSize = 10.5.sp, fontWeight = FontWeight.Bold)
+                        Text(f.titleVi, color = VC.lime, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Text("Trọng số tác động: ${fmtNum(f.impactWeightPct, 0)}%", color = VC.amber, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
-                    Text(f.explanationVi, color = VC.text2, fontSize = 10.5.sp)
+                    Text(f.explanationVi, color = VC.text2, fontSize = 12.sp)
                 }
             }
         }
@@ -1066,9 +1066,9 @@ private fun CorrMetricPill(
             .border(1.dp, color.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
             .padding(7.dp),
     ) {
-        Text(title, color = color, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        Text(title, color = color, fontSize = 12.sp, fontWeight = FontWeight.Bold)
         Text(value, color = VC.text, fontSize = 13.5.sp, fontWeight = FontWeight.ExtraBold)
-        Text(sub, color = VC.text2, fontSize = 9.5.sp)
+        Text(sub, color = VC.text2, fontSize = 12.sp)
     }
 }
 
@@ -1095,7 +1095,7 @@ private fun DroughtBasraAndTechTab(dr: DroughtMonitoringReport) {
             Text(
                 "${b.regionNameVi} · ${b.admBoundary}",
                 color = VC.text,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
             )
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1107,12 +1107,12 @@ private fun DroughtBasraAndTechTab(dr: DroughtMonitoringReport) {
                         .border(1.dp, VC.cyan.copy(alpha = 0.55f), RoundedCornerShape(8.dp))
                         .padding(8.dp),
                 ) {
-                    Text("🌧 Năm 2018 — Lượng mưa cao nhất", color = VC.cyan, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("🌧 Năm 2018 — Lượng mưa cao nhất", color = VC.cyan, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                     Text("${fmtNum(b.wettest2018RainfallMm, 1)} mm/năm", color = VC.text, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
                     Text(
                         "NDVI = ${fmtNum(b.wettest2018Ndvi, 3)} · VHI = ${fmtNum(b.wettest2018VhiPct, 1)}% (Chưa phục hồi ngay trong năm 2018 do nền nhiệt & độ mặn)",
                         color = VC.text2,
-                        fontSize = 10.5.sp,
+                        fontSize = 12.sp,
                     )
                 }
                 Column(
@@ -1123,19 +1123,19 @@ private fun DroughtBasraAndTechTab(dr: DroughtMonitoringReport) {
                         .border(1.dp, Color(0xFFEF5350).copy(alpha = 0.6f), RoundedCornerShape(8.dp))
                         .padding(8.dp),
                 ) {
-                    Text("🔥 Năm 2021 — Lượng mưa thấp nhất", color = Color(0xFFEF5350), fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("🔥 Năm 2021 — Lượng mưa thấp nhất", color = Color(0xFFEF5350), fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
                     Text("${fmtNum(b.driest2021RainfallMm, 1)} mm/năm", color = VC.text, fontSize = 14.sp, fontWeight = FontWeight.ExtraBold)
                     Text(
                         "NDVI = ${fmtNum(b.driest2021Ndvi, 3)} · LST = ${fmtNum(b.driest2021LstC, 1)}°C · VHI = ${fmtNum(b.driest2021VhiPct, 1)}% (Hạn cực đoan)",
                         color = VC.text2,
-                        fontSize = 10.5.sp,
+                        fontSize = 12.sp,
                     )
                 }
             }
             Text(
                 b.summaryInsightVi,
                 color = VC.text,
-                fontSize = 11.sp,
+                fontSize = 12.sp,
             )
         }
 
@@ -1157,10 +1157,10 @@ private fun DroughtBasraAndTechTab(dr: DroughtMonitoringReport) {
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("• ${tech.component}", color = VC.mint, fontSize = 11.sp, fontWeight = FontWeight.ExtraBold)
-                    Text(tech.collections, color = VC.cyan, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    Text("• ${tech.component}", color = VC.mint, fontSize = 12.sp, fontWeight = FontWeight.ExtraBold)
+                    Text(tech.collections, color = VC.cyan, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
-                Text(tech.purposeVi, color = VC.text2, fontSize = 10.5.sp)
+                Text(tech.purposeVi, color = VC.text2, fontSize = 12.sp)
             }
         }
 
@@ -1178,11 +1178,11 @@ private fun DroughtBasraAndTechTab(dr: DroughtMonitoringReport) {
                 Text(
                     "🎯 III. KHUYẾN NGHỊ QUẢN LÝ TÀI NGUYÊN NƯỚC, CHỐNG SA MẠC HÓA & THÍCH ỨNG KHÍ HẬU",
                     color = VC.lime,
-                    fontSize = 11.5.sp,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.ExtraBold,
                 )
                 dr.agronomicRecommendationsVi.forEach { rec ->
-                    Text("• $rec", color = VC.text, fontSize = 11.sp)
+                    Text("• $rec", color = VC.text, fontSize = 12.sp)
                 }
             }
         }
